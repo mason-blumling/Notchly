@@ -1,0 +1,696 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		587D3D062D3DD8590034FA71 /* HoverWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D052D3DD8530034FA71 /* HoverWindow.swift */; };
+		587D3D082D3DDADC0034FA71 /* PopoverTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D072D3DDAD70034FA71 /* PopoverTrackingView.swift */; };
+		587D3D0A2D3DDBC60034FA71 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D092D3DDBC20034FA71 /* PopoverContentView.swift */; };
+		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
+		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
+		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
+		58C2A7202D3DAD0200764D80 /* HoverMenuBarButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A70A2D3DAD0200764D80 /* HoverMenuBarButtonView.swift */; };
+		58C2A7212D3DAD0200764D80 /* PreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A70B2D3DAD0200764D80 /* PreferenceKeys.swift */; };
+		58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */; };
+		58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A7362D3DAD6800764D80 /* CalendarManager.swift */; };
+		58C2A73B2D3DAD6B00764D80 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A7392D3DAD6B00764D80 /* MenuBarController.swift */; };
+		58C2A7412D3DAD6E00764D80 /* CalendarEventCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */; };
+		58C2A7422D3DAD6E00764D80 /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A73D2D3DAD6E00764D80 /* MenuBarPopoverView.swift */; };
+		58C2A7432D3DAD6E00764D80 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A73F2D3DAD6E00764D80 /* ContentView.swift */; };
+		58C2A7452D3DBCA600764D80 /* HoverTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A7442D3DBCA300764D80 /* HoverTrackingView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		58A40D782D094925002B5165 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 58A40D5E2D094923002B5165 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 58A40D652D094923002B5165;
+			remoteInfo = Notchly;
+		};
+		58A40D822D094925002B5165 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 58A40D5E2D094923002B5165 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 58A40D652D094923002B5165;
+			remoteInfo = Notchly;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		587D3D052D3DD8530034FA71 /* HoverWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverWindow.swift; sourceTree = "<group>"; };
+		587D3D072D3DDAD70034FA71 /* PopoverTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverTrackingView.swift; sourceTree = "<group>"; };
+		587D3D092D3DDBC20034FA71 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		58A40DA72D094FDB002B5165 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		58C2A70A2D3DAD0200764D80 /* HoverMenuBarButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverMenuBarButtonView.swift; sourceTree = "<group>"; };
+		58C2A70B2D3DAD0200764D80 /* PreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceKeys.swift; sourceTree = "<group>"; };
+		58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		58C2A7112D3DAD0200764D80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		58C2A7182D3DAD0200764D80 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		58C2A7192D3DAD0200764D80 /* Notchly.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Notchly.entitlements; sourceTree = "<group>"; };
+		58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyApp.swift; sourceTree = "<group>"; };
+		58C2A7362D3DAD6800764D80 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
+		58C2A7392D3DAD6B00764D80 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventCard.swift; sourceTree = "<group>"; };
+		58C2A73D2D3DAD6E00764D80 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
+		58C2A73F2D3DAD6E00764D80 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		58C2A7442D3DBCA300764D80 /* HoverTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverTrackingView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		58A40D7A2D094925002B5165 /* NotchlyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NotchlyTests;
+			sourceTree = "<group>";
+		};
+		58A40D842D094925002B5165 /* NotchlyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NotchlyUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		58A40D632D094923002B5165 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D742D094925002B5165 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D7E2D094925002B5165 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		587D3D172D3EF1250034FA71 /* Hovering */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A7442D3DBCA300764D80 /* HoverTrackingView.swift */,
+				587D3D052D3DD8530034FA71 /* HoverWindow.swift */,
+			);
+			path = Hovering;
+			sourceTree = "<group>";
+		};
+		58A40D5D2D094923002B5165 = {
+			isa = PBXGroup;
+			children = (
+				58A40DA62D094FDB002B5165 /* Frameworks */,
+				58C2A71B2D3DAD0200764D80 /* Notchly */,
+				58A40D7A2D094925002B5165 /* NotchlyTests */,
+				58A40D842D094925002B5165 /* NotchlyUITests */,
+				58A40D672D094923002B5165 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		58A40D672D094923002B5165 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				58A40D662D094923002B5165 /* Notchly.app */,
+				58A40D772D094925002B5165 /* NotchlyTests.xctest */,
+				58A40D812D094925002B5165 /* NotchlyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		58A40DA62D094FDB002B5165 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				58A40DA72D094FDB002B5165 /* EventKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		58C2A70C2D3DAD0200764D80 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A70A2D3DAD0200764D80 /* HoverMenuBarButtonView.swift */,
+				58C2A70B2D3DAD0200764D80 /* PreferenceKeys.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		58C2A7102D3DAD0200764D80 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		58C2A7122D3DAD0200764D80 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A7112D3DAD0200764D80 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		58C2A71B2D3DAD0200764D80 /* Notchly */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A7192D3DAD0200764D80 /* Notchly.entitlements */,
+				58C2A7182D3DAD0200764D80 /* Info.plist */,
+				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
+				58C2A7402D3DAD6E00764D80 /* Views */,
+				58C2A73A2D3DAD6B00764D80 /* Controllers */,
+				58C2A70C2D3DAD0200764D80 /* Helpers */,
+				58C2A7372D3DAD6800764D80 /* Models */,
+				58C2A7102D3DAD0200764D80 /* Preview Content */,
+				58C2A7122D3DAD0200764D80 /* Resources */,
+			);
+			path = Notchly;
+			sourceTree = "<group>";
+		};
+		58C2A7372D3DAD6800764D80 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A7362D3DAD6800764D80 /* CalendarManager.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		58C2A73A2D3DAD6B00764D80 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A7392D3DAD6B00764D80 /* MenuBarController.swift */,
+			);
+			path = Controllers;
+			sourceTree = "<group>";
+		};
+		58C2A73E2D3DAD6E00764D80 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */,
+				58C2A73D2D3DAD6E00764D80 /* MenuBarPopoverView.swift */,
+				587D3D092D3DDBC20034FA71 /* PopoverContentView.swift */,
+				587D3D072D3DDAD70034FA71 /* PopoverTrackingView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		58C2A7402D3DAD6E00764D80 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A73F2D3DAD6E00764D80 /* ContentView.swift */,
+				587D3D172D3EF1250034FA71 /* Hovering */,
+				58C2A73E2D3DAD6E00764D80 /* MenuBar */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		58A40D652D094923002B5165 /* Notchly */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58A40D8B2D094925002B5165 /* Build configuration list for PBXNativeTarget "Notchly" */;
+			buildPhases = (
+				58A40D622D094923002B5165 /* Sources */,
+				58A40D632D094923002B5165 /* Frameworks */,
+				58A40D642D094923002B5165 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Notchly;
+			packageProductDependencies = (
+			);
+			productName = Notchly;
+			productReference = 58A40D662D094923002B5165 /* Notchly.app */;
+			productType = "com.apple.product-type.application";
+		};
+		58A40D762D094925002B5165 /* NotchlyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58A40D8E2D094925002B5165 /* Build configuration list for PBXNativeTarget "NotchlyTests" */;
+			buildPhases = (
+				58A40D732D094925002B5165 /* Sources */,
+				58A40D742D094925002B5165 /* Frameworks */,
+				58A40D752D094925002B5165 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				58A40D792D094925002B5165 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				58A40D7A2D094925002B5165 /* NotchlyTests */,
+			);
+			name = NotchlyTests;
+			packageProductDependencies = (
+			);
+			productName = NotchlyTests;
+			productReference = 58A40D772D094925002B5165 /* NotchlyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		58A40D802D094925002B5165 /* NotchlyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58A40D912D094925002B5165 /* Build configuration list for PBXNativeTarget "NotchlyUITests" */;
+			buildPhases = (
+				58A40D7D2D094925002B5165 /* Sources */,
+				58A40D7E2D094925002B5165 /* Frameworks */,
+				58A40D7F2D094925002B5165 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				58A40D832D094925002B5165 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				58A40D842D094925002B5165 /* NotchlyUITests */,
+			);
+			name = NotchlyUITests;
+			packageProductDependencies = (
+			);
+			productName = NotchlyUITests;
+			productReference = 58A40D812D094925002B5165 /* NotchlyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		58A40D5E2D094923002B5165 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					58A40D652D094923002B5165 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					58A40D762D094925002B5165 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 58A40D652D094923002B5165;
+					};
+					58A40D802D094925002B5165 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 58A40D652D094923002B5165;
+					};
+				};
+			};
+			buildConfigurationList = 58A40D612D094923002B5165 /* Build configuration list for PBXProject "Notchly" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 58A40D5D2D094923002B5165;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 58A40D672D094923002B5165 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				58A40D652D094923002B5165 /* Notchly */,
+				58A40D762D094925002B5165 /* NotchlyTests */,
+				58A40D802D094925002B5165 /* NotchlyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		58A40D642D094923002B5165 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */,
+				58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D752D094925002B5165 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D7F2D094925002B5165 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		58A40D622D094923002B5165 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58C2A73B2D3DAD6B00764D80 /* MenuBarController.swift in Sources */,
+				58C2A7202D3DAD0200764D80 /* HoverMenuBarButtonView.swift in Sources */,
+				587D3D062D3DD8590034FA71 /* HoverWindow.swift in Sources */,
+				58C2A7452D3DBCA600764D80 /* HoverTrackingView.swift in Sources */,
+				58C2A7212D3DAD0200764D80 /* PreferenceKeys.swift in Sources */,
+				587D3D082D3DDADC0034FA71 /* PopoverTrackingView.swift in Sources */,
+				58C2A7412D3DAD6E00764D80 /* CalendarEventCard.swift in Sources */,
+				587D3D0A2D3DDBC60034FA71 /* PopoverContentView.swift in Sources */,
+				58C2A7422D3DAD6E00764D80 /* MenuBarPopoverView.swift in Sources */,
+				58C2A7432D3DAD6E00764D80 /* ContentView.swift in Sources */,
+				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
+				58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D732D094925002B5165 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		58A40D7D2D094925002B5165 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		58A40D792D094925002B5165 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 58A40D652D094923002B5165 /* Notchly */;
+			targetProxy = 58A40D782D094925002B5165 /* PBXContainerItemProxy */;
+		};
+		58A40D832D094925002B5165 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 58A40D652D094923002B5165 /* Notchly */;
+			targetProxy = 58A40D822D094925002B5165 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		58A40D892D094925002B5165 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		58A40D8A2D094925002B5165 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		58A40D8C2D094925002B5165 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Notchly/Notchly.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Notchly/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Notchly/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		58A40D8D2D094925002B5165 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Notchly/Notchly.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Notchly/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Notchly/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		58A40D8F2D094925002B5165 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KSV8764PQK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.NotchlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Notchly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Notchly";
+			};
+			name = Debug;
+		};
+		58A40D902D094925002B5165 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KSV8764PQK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.NotchlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Notchly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Notchly";
+			};
+			name = Release;
+		};
+		58A40D922D094925002B5165 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KSV8764PQK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.NotchlyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Notchly;
+			};
+			name = Debug;
+		};
+		58A40D932D094925002B5165 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KSV8764PQK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.NotchlyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Notchly;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		58A40D612D094923002B5165 /* Build configuration list for PBXProject "Notchly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58A40D892D094925002B5165 /* Debug */,
+				58A40D8A2D094925002B5165 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		58A40D8B2D094925002B5165 /* Build configuration list for PBXNativeTarget "Notchly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58A40D8C2D094925002B5165 /* Debug */,
+				58A40D8D2D094925002B5165 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		58A40D8E2D094925002B5165 /* Build configuration list for PBXNativeTarget "NotchlyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58A40D8F2D094925002B5165 /* Debug */,
+				58A40D902D094925002B5165 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		58A40D912D094925002B5165 /* Build configuration list for PBXNativeTarget "NotchlyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58A40D922D094925002B5165 /* Debug */,
+				58A40D932D094925002B5165 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 58A40D5E2D094923002B5165 /* Project object */;
+}
