@@ -106,7 +106,7 @@ class MenuBarController: ObservableObject {
                 popover?.contentViewController = NSHostingController(
                     rootView: MenuBarPopoverView(controller: self, content: {
                         PopoverContentView(groupedEvents: self.groupedEvents)
-                            .frame(width: 400, height: 200) // Ensure dimensions match popoverRect
+                            .frame(width: 600, height: 200) // Ensure dimensions match popoverRect
                             .background(Color.black)       // Match the pill style
                             .cornerRadius(25)
                     })

@@ -24,7 +24,7 @@ struct MenuBarPopoverView<Content: View>: NSViewRepresentable {
         containerView.wantsLayer = true
         containerView.layer?.backgroundColor = NSColor.clear.cgColor
 
-        // Configure trackingView
+        // Configure trackingView (used to monitor curser enter/exit)
         let trackingView = PopoverTrackingView(frame: .zero, controller: controller!)
         trackingView.translatesAutoresizingMaskIntoConstraints = false
         trackingView.wantsLayer = true

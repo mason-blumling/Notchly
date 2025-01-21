@@ -46,7 +46,7 @@ struct PopoverContentView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 }
-                .frame(maxHeight: 400) // Limit height for the popover
+                .frame(maxHeight: 250) // Limit height for the popover
             }
         }
         .padding()
@@ -67,7 +67,7 @@ struct PopoverContentView_Previews: PreviewProvider {
         PopoverContentView(groupedEvents: [
             Calendar.current.startOfDay(for: Date()): sampleEvents
         ])
-        .frame(width: 300)
+        .frame(width: 600)
         .previewLayout(.sizeThatFits)
         .background(Color.gray)
     }
