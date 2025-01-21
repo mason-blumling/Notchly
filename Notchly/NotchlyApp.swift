@@ -1,29 +1,58 @@
 //
 //  NotchlyApp.swift
-//  Notchly
-//
-//  Created by Mason Blumling on 12/10/24.
-//
-//  This file serves as the entry point for the Notchly macOS app.
-//  It defines the main app structure, initializes the menu bar controller,
-//  and specifies the primary scene for the app.
 //
 
 import SwiftUI
+import Combine
 
 @main
 struct NotchlyApp: App {
-    // MARK: - Properties
-    
-    /// The menu bar controller manages the app's menu bar item and its associated functionality.
-    @StateObject private var menuBarController = MenuBarController()
-
-    // MARK: - Body
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
-            /// The main content view of the app.
-            ContentView()
+        Settings {
+            EmptyView() // No settings UI for now
         }
     }
+}
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var notchly: Notchly<ContentView>!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize Notchly with a test content view
+        notchly = Notchly {
+            ContentView()
+        }
+
+        // Show the notch on the primary screen
+        if let screen = NSScreen.main {
+            notchly.initializeWindow(screen: screen) // Explicitly initialize
+            notchly.isVisible = true // Make sure it's visible by default
+        }
+    }
+}
+
+struct ContentView: View {
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack {
+            Text(isHovered ? "Hovering!" : "Not Hovering")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding()
+                .background(isHovered ? Color.green : Color.red)
+                .cornerRadius(10)
+        }
+        .frame(width: 200, height: 40)
+        .background(Color.black.opacity(0.8))
+        .cornerRadius(20)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+#Preview {
+    ContentView()
 }
