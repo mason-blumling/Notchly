@@ -10,6 +10,7 @@
 		587D3D062D3DD8590034FA71 /* HoverWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D052D3DD8530034FA71 /* HoverWindow.swift */; };
 		587D3D082D3DDADC0034FA71 /* PopoverTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D072D3DDAD70034FA71 /* PopoverTrackingView.swift */; };
 		587D3D0A2D3DDBC60034FA71 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D092D3DDBC20034FA71 /* PopoverContentView.swift */; };
+		587D3D292D3F52D90034FA71 /* OverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D282D3F52D40034FA71 /* OverlayWindow.swift */; };
 		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
@@ -45,6 +46,7 @@
 		587D3D052D3DD8530034FA71 /* HoverWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverWindow.swift; sourceTree = "<group>"; };
 		587D3D072D3DDAD70034FA71 /* PopoverTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverTrackingView.swift; sourceTree = "<group>"; };
 		587D3D092D3DDBC20034FA71 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		587D3D282D3F52D40034FA71 /* OverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindow.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +108,7 @@
 		587D3D172D3EF1250034FA71 /* Hovering */ = {
 			isa = PBXGroup;
 			children = (
+				587D3D282D3F52D40034FA71 /* OverlayWindow.swift */,
 				58C2A7442D3DBCA300764D80 /* HoverTrackingView.swift */,
 				587D3D052D3DD8530034FA71 /* HoverWindow.swift */,
 			);
@@ -363,6 +366,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				58C2A73B2D3DAD6B00764D80 /* MenuBarController.swift in Sources */,
+				587D3D292D3F52D90034FA71 /* OverlayWindow.swift in Sources */,
 				58C2A7202D3DAD0200764D80 /* HoverMenuBarButtonView.swift in Sources */,
 				587D3D062D3DD8590034FA71 /* HoverWindow.swift in Sources */,
 				58C2A7452D3DBCA600764D80 /* HoverTrackingView.swift in Sources */,

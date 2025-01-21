@@ -32,10 +32,10 @@ class PopoverTrackingView: NSView {
         super.init(frame: frame)
 
         // MARK: Add Tracking Area
-        // Create and add an NSTrackingArea for detecting mouse movement events.
+        // Define the area within the view that tracks mouse events.
         let trackingArea = NSTrackingArea(
             rect: self.bounds,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], // Added `.inVisibleRect`
             owner: self,
             userInfo: nil
         )
@@ -48,27 +48,17 @@ class PopoverTrackingView: NSView {
 
     // MARK: - Mouse Event Handlers
 
-    /// Handles mouse entry into the popover area.
-    /// - Parameter event: The mouse event that triggered this method.
     override func mouseEntered(with event: NSEvent) {
         print("Mouse entered popover")
-        menuBarController?.isMouseInPopover = true
+        menuBarController?.hoverState = .overlay
+        menuBarController?.debounceTimer?.invalidate()
     }
 
-    /// Handles mouse exit from the popover area.
-    /// - Parameter event: The mouse event that triggered this method.
-    /// - Note: `debounceTimer` is utilized for a quick entry-exit to ensure the animation/window does not lag behind
     override func mouseExited(with event: NSEvent) {
         print("Mouse exited popover")
-        menuBarController?.isMouseInPopover = false
-
-        // Schedule the debounce timer to hide the popover if the mouse is no longer in any active area.
-        menuBarController?.debounceTimer?.invalidate()
-        menuBarController?.debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
-            guard let self = self else { return }
-            if !(self.menuBarController?.isMouseInHoverArea ?? false) {
-                self.menuBarController?.hidePopover()
-            }
+        if menuBarController?.hoverState == .overlay {
+            menuBarController?.hoverState = .none
+            menuBarController?.debounceHideOverlay()
         }
     }
 }
