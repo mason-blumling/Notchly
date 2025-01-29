@@ -5,38 +5,50 @@
 import SwiftUI
 import Combine
 
+// MARK: - Application Entry Point
+
 @main
 struct NotchlyApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate // 🔥 Delegate to manage app lifecycle
 
     var body: some Scene {
+        // 🔥 Settings scene is currently empty
         Settings {
-            EmptyView() // No settings UI for now
+            EmptyView() // Placeholder for future settings UI
         }
     }
 }
+
+// MARK: - App Delegate
+
+/// Handles the initialization and configuration of the Notchly app.
 class AppDelegate: NSObject, NSApplicationDelegate {
+    // Instance of the main Notchly controller
     private var notchly: Notchly<ContentView>!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize Notchly with a test content view
+        // Initialize Notchly with a sample content view
         notchly = Notchly {
-            ContentView()
+            ContentView() // Use ContentView as the default notch content
         }
 
-        // Show the notch on the primary screen
+        // Show the Notchly window on the primary screen
         if let screen = NSScreen.main {
-            notchly.initializeWindow(screen: screen) // Explicitly initialize
-            notchly.isVisible = true // Make sure it's visible by default
+            notchly.initializeWindow(screen: screen) // Explicitly initialize the notch window
+            notchly.isVisible = true // Ensure it's visible by default
         }
     }
 }
 
+// MARK: - Sample Content View
+
+/// A placeholder content view for testing the hover state.
 struct ContentView: View {
-    @State private var isHovered = false
+    @State private var isHovered = false // Tracks hover state
 
     var body: some View {
         VStack {
+            // Dynamic label that changes based on hover state
             Text(isHovered ? "Hovering!" : "Not Hovering")
                 .font(.headline)
                 .foregroundColor(.white)
@@ -44,15 +56,17 @@ struct ContentView: View {
                 .background(isHovered ? Color.green : Color.red)
                 .cornerRadius(10)
         }
-        .frame(width: 200, height: 40)
-        .background(Color.black.opacity(0.8))
+        .frame(width: 200, height: 40) // Fixed frame size
+        .background(Color.black.opacity(0.8)) // Background for the content
         .cornerRadius(20)
         .onHover { hovering in
-            isHovered = hovering
+            isHovered = hovering // Update hover state on mouse hover
         }
     }
 }
 
+// MARK: - Preview
+
 #Preview {
-    ContentView()
+    ContentView() // Preview the sample ContentView
 }

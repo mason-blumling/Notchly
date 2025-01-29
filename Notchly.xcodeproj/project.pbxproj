@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		587D3D4C2D40C1140034FA71 /* Test1ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4B2D40C10E0034FA71 /* Test1ContentView.swift */; };
-		587D3D4F2D40C4810034FA71 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchShape.swift */; };
+		587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */; };
 		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
@@ -49,7 +49,7 @@
 
 /* Begin PBXFileReference section */
 		587D3D4B2D40C10E0034FA71 /* Test1ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Test1ContentView.swift; sourceTree = "<group>"; };
-		587D3D4E2D40C4750034FA71 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
+		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -165,11 +165,10 @@
 			children = (
 				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
 				58C97BED2D49ACC3006FFC06 /* Core */,
+				58C97BEC2D49ACBC006FFC06 /* UI */,
 				58C97BEF2D49ACD0006FFC06 /* Helpers */,
 				58C2A7122D3DAD0200764D80 /* Resources */,
 				58C97BF02D49ACDA006FFC06 /* Testing */,
-				58C97BEC2D49ACBC006FFC06 /* UI */,
-				58C97BEE2D49ACC9006FFC06 /* Window */,
 				58C97BF12D49AD4E006FFC06 /* Xcode Stuff */,
 			);
 			path = Notchly;
@@ -187,9 +186,8 @@
 		58C97BEC2D49ACBC006FFC06 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				58C97BCD2D488008006FFC06 /* NotchlyView.swift */,
-				587D3D4E2D40C4750034FA71 /* NotchShape.swift */,
-				58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */,
+				58C97BF32D49B148006FFC06 /* Calendar */,
+				58C97BF22D49B126006FFC06 /* Notchly */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -202,14 +200,6 @@
 				58C97BC92D487E94006FFC06 /* Notchly.swift */,
 			);
 			path = Core;
-			sourceTree = "<group>";
-		};
-		58C97BEE2D49ACC9006FFC06 /* Window */ = {
-			isa = PBXGroup;
-			children = (
-				58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */,
-			);
-			path = Window;
 			sourceTree = "<group>";
 		};
 		58C97BEF2D49ACD0006FFC06 /* Helpers */ = {
@@ -236,6 +226,24 @@
 				58C2A7102D3DAD0200764D80 /* Preview Content */,
 			);
 			path = "Xcode Stuff";
+			sourceTree = "<group>";
+		};
+		58C97BF22D49B126006FFC06 /* Notchly */ = {
+			isa = PBXGroup;
+			children = (
+				587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */,
+				58C97BCD2D488008006FFC06 /* NotchlyView.swift */,
+				58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */,
+			);
+			path = Notchly;
+			sourceTree = "<group>";
+		};
+		58C97BF32D49B148006FFC06 /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */,
+			);
+			path = Calendar;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -400,7 +408,7 @@
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
 				58C97B9B2D47087C006FFC06 /* DefaultKeys.swift in Sources */,
-				587D3D4F2D40C4810034FA71 /* NotchShape.swift in Sources */,
+				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
 				58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */,
 			);

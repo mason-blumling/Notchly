@@ -13,7 +13,7 @@ import SwiftUI
 //    @State private var isExpanded: Bool = false
 //
 //    var body: some View {
-//        NotchShape(bottomCornerRadius: bottomCornerRadius)
+//        NotchlyShape(bottomCornerRadius: bottomCornerRadius)
 //            .fill(isExpanded ? Color.green.opacity(0.8) : isHovering ? Color.blue.opacity(0.8) : Color.gray.opacity(0.6))
 //            .frame(width: isExpanded ? 400 : isHovering ? 300 : 200, height: 40)
 //            .shadow(color: .black.opacity(0.2), radius: isExpanded ? 15 : isHovering ? 10 : 5)

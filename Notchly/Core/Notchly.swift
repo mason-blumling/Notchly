@@ -8,47 +8,67 @@
 import Combine
 import SwiftUI
 
-// MARK: - Notchly
+// MARK: - Notchly (Main Class)
 
+/// `Notchly` is responsible for managing the floating notch UI component.
+/// It handles hover-based expansion, resizing, and dynamic content rendering.
 public class Notchly<Content>: ObservableObject where Content: View {
 
-    // MARK: - Public Properties
+    // MARK: - Window Properties
 
-    public var windowController: NSWindowController? // Allow users to modify the NSPanel
-    
-    // Content Properties
+    /// The main window controller that manages the floating notch window.
+    public var windowController: NSWindowController?
+
+    // MARK: - Notch Content
+
+    /// The SwiftUI content displayed inside the notch.
     @Published var content: () -> Content
-    @Published var contentUUID: UUID
-    @Published var isVisible: Bool = false // Controls fade in/out animation
     
-    // Notch Size Properties
+    /// A unique identifier for the current content (to force UI updates).
+    @Published var contentUUID: UUID
+
+    /// Controls the visibility of the notch.
+    @Published var isVisible: Bool = false
+
+    // MARK: - Notch Size & Hover State
+
+    /// Default notch dimensions (small state).
     @Published var notchWidth: CGFloat = 200
     @Published var notchHeight: CGFloat = 40
 
+    /// Tracks whether the mouse is currently inside the notch.
+    @Published var isMouseInside: Bool = false
+    
     // MARK: - Private Properties
 
-    @Published var isMouseInside: Bool = false // Prevents auto-hide when mouse is inside
+    /// Prevents unnecessary updates by debouncing resize operations.
     private var workItem: DispatchWorkItem?
+
+    /// Subscription to monitor screen changes.
     private var subscription: AnyCancellable?
+
+    /// Collection of subscriptions to manage memory properly.
     private var subscriptions = Set<AnyCancellable>()
-    
+
     // MARK: - Animations
 
+    /// Defines the hover and expansion animations.
     var animation: Animation {
         if #available(macOS 14.0, *) {
-            Animation.spring(.bouncy(duration: 0.4))
+            return Animation.spring(.bouncy(duration: 0.4))
         } else {
-            Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
+            return Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
         }
     }
 
     // MARK: - Initializer
 
+    /// Initializes a `Notchly` instance with a dynamic SwiftUI content view.
     public init(contentID: UUID = .init(), @ViewBuilder content: @escaping () -> Content) {
         self.contentUUID = contentID
         self.content = content
         
-        // Observe screen changes
+        // Monitor screen parameter changes to adjust window positioning.
         self.subscription = NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
@@ -56,7 +76,7 @@ public class Notchly<Content>: ObservableObject where Content: View {
                 self.initializeWindow(screen: screen)
             }
         
-        // Observe hover changes
+        // Observe hover state changes and trigger notch expansion or collapse.
         $isMouseInside
             .sink { [weak self] inside in
                 self?.handleHover(expand: inside)
@@ -69,44 +89,51 @@ public class Notchly<Content>: ObservableObject where Content: View {
 
 public extension Notchly {
     
+    /// Initializes and displays the floating notch window on a given screen.
     func initializeWindow(screen: NSScreen) {
-        if windowController == nil {
-            print("Creating the notch window...")
+        guard windowController == nil else { return } // Prevent duplicate windows
 
-            // 🔥 Fixed large window size
-            let maxWidth: CGFloat = 600
-            let maxHeight: CGFloat = 500
+        print("Creating the notch window...")
 
-            let frame = NSRect(
-                x: screen.frame.midX - (maxWidth / 2),
-                y: screen.frame.maxY - maxHeight,  // 🔥 Always locked at the top
-                width: maxWidth,
-                height: maxHeight
-            )
+        // 🔥 Define a fixed maximum size for the window (prevents resizing)
+        let maxWidth: CGFloat = 600
+        let maxHeight: CGFloat = 500
 
-            let view = NSHostingView(rootView: NotchView(notchly: self).foregroundStyle(.white))
+        // Calculate position: Always anchored to the top center of the screen.
+        let frame = NSRect(
+            x: screen.frame.midX - (maxWidth / 2),
+            y: screen.frame.maxY - maxHeight,
+            width: maxWidth,
+            height: maxHeight
+        )
 
-            let panel = NotchlyWindowPanel(
-                contentRect: frame,
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: true
-            )
+        // Create the SwiftUI hosting view containing the notch
+        let view = NSHostingView(rootView: NotchView(notchly: self).foregroundStyle(.white))
 
-            panel.isMovable = false
-            panel.isMovableByWindowBackground = false
-            panel.setFrame(frame, display: true)
-            panel.setFrameOrigin(NSPoint(x: frame.origin.x, y: screen.frame.maxY - frame.height))
-            panel.contentView = view
-            panel.isOpaque = false
-            panel.backgroundColor = .clear
-            panel.level = .screenSaver
-            panel.orderFrontRegardless()
+        // Configure the floating panel
+        let panel = NotchlyWindowPanel(
+            contentRect: frame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
 
-            windowController = NSWindowController(window: panel)
-        }
+        // Prevent accidental movement and enforce proper positioning
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.setFrame(frame, display: true)
+        panel.setFrameOrigin(NSPoint(x: frame.origin.x, y: screen.frame.maxY - frame.height))
+        panel.contentView = view
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.level = .screenSaver
+        panel.orderFrontRegardless()
+
+        // Store the window reference
+        windowController = NSWindowController(window: panel)
     }
 
+    /// Handles hover interactions and triggers notch expansion or contraction.
     func handleHover(expand: Bool) {
         DispatchQueue.main.async {
             withAnimation(self.animation) {
@@ -115,6 +142,7 @@ public extension Notchly {
         }
     }
 
+    /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
         let targetWidth: CGFloat = expanded ? 500 : 200
         let targetHeight: CGFloat = expanded ? 250 : 40
@@ -125,17 +153,20 @@ public extension Notchly {
         }
     }
     
+    /// Updates the notch content dynamically.
     func setContent(contentID: UUID = .init(), content: @escaping () -> Content) {
         self.content = content
         self.contentUUID = contentID
     }
     
+    /// Forces the notch to be visible on the given screen.
     func show(on screen: NSScreen = NSScreen.screens[0]) {
         guard let window = windowController?.window else { return }
         window.orderFrontRegardless()
         isVisible = true
     }
     
+    /// Hides the notch window.
     func hide() {
         isVisible = false
     }
