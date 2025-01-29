@@ -14,10 +14,11 @@ struct NotchView<Content>: View where Content: View {
 
     // MARK: - Default & Expanded Dimensions
 
-    /// Default (collapsed) size of the notch.
-    private let defaultWidth: CGFloat = 200
-    private let defaultHeight: CGFloat = 40
-
+    /// Default (collapsed) size of the notch. (Measured to the same size as MBP 16' Notch)
+    /// Width: 199, Height: 31.75
+    private let defaultWidth: CGFloat = 199
+    private let defaultHeight: CGFloat = 31.75
+    
     /// Expanded size of the notch when hovered.
     private let expandedWidth: CGFloat = 500
     private let expandedHeight: CGFloat = 250
@@ -32,6 +33,10 @@ struct NotchView<Content>: View where Content: View {
                 // ZStack to layer the Notch shape and hover detection area
                 ZStack {
                     notchShape() // Main Notch UI
+                    notchly.content() // 🔥 Add the content inside the notch
+                        .frame(width: notchly.notchWidth - 20, height: notchly.notchHeight - 20) // Prevents clipping
+                        .opacity(notchly.isMouseInside ? 1 : 0) // Optional: fades in
+                        .animation(notchly.animation, value: notchly.isMouseInside)
                     hoverDetectionArea() // Invisible area for mouse tracking
                 }
 
@@ -46,13 +51,13 @@ struct NotchView<Content>: View where Content: View {
     /// Creates the notch shape with dynamic expansion on hover.
     private func notchShape() -> some View {
         NotchlyShape(
-            bottomCornerRadius: notchly.isMouseInside ? 10 : 10,
-            topCornerRadius: notchly.isMouseInside ? 10 : 10
+            bottomCornerRadius: notchly.configuration.bottomCornerRadius,
+            topCornerRadius: notchly.configuration.topCornerRadius
         )
         .fill(Color.black)
         .frame(
-            width: notchly.isMouseInside ? notchly.notchWidth : defaultWidth,
-            height: notchly.isMouseInside ? notchly.notchHeight : defaultHeight
+            width: notchly.isMouseInside ? notchly.notchWidth : NotchPresets.defaultNotch.width,
+            height: notchly.isMouseInside ? notchly.notchHeight : NotchPresets.defaultNotch.height
         )
         .animation(notchly.animation, value: notchly.isMouseInside)
         .shadow(color: .black.opacity(0.5), radius: notchly.isMouseInside ? 10 : 0)
@@ -65,8 +70,8 @@ struct NotchView<Content>: View where Content: View {
         Color.clear
             .contentShape(Rectangle()) // Ensures the hover area matches the frame
             .frame(
-                width: notchly.isMouseInside ? notchly.notchWidth : defaultWidth,
-                height: notchly.isMouseInside ? notchly.notchHeight : defaultHeight
+                width: notchly.isMouseInside ? notchly.notchWidth : NotchPresets.defaultNotch.width,
+                height: notchly.isMouseInside ? notchly.notchHeight : NotchPresets.defaultNotch.height
             )
             .onHover { hovering in
                 DispatchQueue.main.async {

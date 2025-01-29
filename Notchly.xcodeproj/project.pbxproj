@@ -28,6 +28,7 @@
 		58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BCD2D488008006FFC06 /* NotchlyView.swift */; };
 		58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */; };
 		58C97BD62D4881FE006FFC06 /* BlurAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */; };
+		58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 		58C97BCD2D488008006FFC06 /* NotchlyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyView.swift; sourceTree = "<group>"; };
 		58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyWindowPanel.swift; sourceTree = "<group>"; };
 		58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurAnimation.swift; sourceTree = "<group>"; };
+		58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyConfigurations.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -231,6 +233,7 @@
 		58C97BF22D49B126006FFC06 /* Notchly */ = {
 			isa = PBXGroup;
 			children = (
+				58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */,
 				587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */,
 				58C97BCD2D488008006FFC06 /* NotchlyView.swift */,
 				58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */,
@@ -403,6 +406,7 @@
 				58C97BCA2D487E98006FFC06 /* Notchly.swift in Sources */,
 				587D3D4C2D40C1140034FA71 /* Test1ContentView.swift in Sources */,
 				58C2A7412D3DAD6E00764D80 /* CalendarEventCard.swift in Sources */,
+				58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */,
 				58C97BD62D4881FE006FFC06 /* BlurAnimation.swift in Sources */,
 				58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */,
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,

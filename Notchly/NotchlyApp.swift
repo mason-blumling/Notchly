@@ -44,24 +44,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 /// A placeholder content view for testing the hover state.
 struct ContentView: View {
-    @State private var isHovered = false // Tracks hover state
-
     var body: some View {
         VStack {
             // Dynamic label that changes based on hover state
-            Text(isHovered ? "Hovering!" : "Not Hovering")
+            Text("HOWDYYYYYYYY")
                 .font(.headline)
                 .foregroundColor(.white)
                 .padding()
-                .background(isHovered ? Color.green : Color.red)
+                .background(Color.green)
                 .cornerRadius(10)
         }
         .frame(width: 200, height: 40) // Fixed frame size
         .background(Color.black.opacity(0.8)) // Background for the content
         .cornerRadius(20)
-        .onHover { hovering in
-            isHovered = hovering // Update hover state on mouse hover
-        }
     }
 }
 

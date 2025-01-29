@@ -34,7 +34,10 @@ public class Notchly<Content>: ObservableObject where Content: View {
 
     /// Default notch dimensions (small state).
     @Published var notchWidth: CGFloat = 200
-    @Published var notchHeight: CGFloat = 40
+    @Published var notchHeight: CGFloat = 35
+
+    /// Use configuration instead of raw values
+    @Published var configuration: NotchlyConfiguration = NotchPresets.defaultNotch
 
     /// Tracks whether the mouse is currently inside the notch.
     @Published var isMouseInside: Bool = false
@@ -150,6 +153,12 @@ public extension Notchly {
         withAnimation(animation) {
             notchWidth = targetWidth
             notchHeight = targetHeight
+        }
+    }
+    
+    func updateConfiguration(to newConfiguration: NotchlyConfiguration) {
+        withAnimation(animation) {
+            self.configuration = newConfiguration
         }
     }
     
