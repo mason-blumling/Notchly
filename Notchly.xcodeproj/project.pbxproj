@@ -29,6 +29,7 @@
 		58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */; };
 		58C97BD62D4881FE006FFC06 /* BlurAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */; };
 		58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */; };
+		58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97BFA2D4B350D006FFC06 /* NotchlyCalendarView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyWindowPanel.swift; sourceTree = "<group>"; };
 		58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurAnimation.swift; sourceTree = "<group>"; };
 		58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyConfigurations.swift; sourceTree = "<group>"; };
+		58C97BFA2D4B350D006FFC06 /* NotchlyCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyCalendarView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -244,6 +246,7 @@
 		58C97BF32D49B148006FFC06 /* Calendar */ = {
 			isa = PBXGroup;
 			children = (
+				58C97BFA2D4B350D006FFC06 /* NotchlyCalendarView.swift */,
 				58C2A73C2D3DAD6E00764D80 /* CalendarEventCard.swift */,
 			);
 			path = Calendar;
@@ -411,6 +414,7 @@
 				58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */,
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
+				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,
 				58C97B9B2D47087C006FFC06 /* DefaultKeys.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
