@@ -32,16 +32,17 @@ struct NotchView<Content>: View where Content: View {
                         width: notchly.isMouseInside ? notchly.notchWidth : NotchPresets.defaultNotch.width,
                         height: notchly.isMouseInside ? notchly.notchHeight : NotchPresets.defaultNotch.height
                     )
-                    .animation(notchly.animation, value: notchly.isMouseInside)
-                    .shadow(color: .black.opacity(0.5), radius: notchly.isMouseInside ? 10 : 0)
+                    .animation(notchly.animation, value: notchly.isMouseInside
+                    )
+                    .clipped() // 🔥 Prevents any unwanted content bleed
 
                     // 🔥 Directly embed content inside the expanding notch
-                    if notchly.isMouseInside {
-                        NotchlyCalendarView(calendarManager: calendarManager)
-                            .frame(width: notchly.notchWidth - 30, height: notchly.notchHeight - 30)
-                            .transition(.opacity)
-                            .animation(notchly.animation, value: notchly.isMouseInside)
-                    }
+                    NotchlyCalendarView(calendarManager: calendarManager)
+                        .frame(width: notchly.notchWidth - 30, height: notchly.notchHeight - 30)
+                        .opacity(notchly.isMouseInside ? 1 : 0) // 🔥 Fade out at the right moment
+                        .transition(.opacity.combined(with: .scale(scale: 0.9))) // 🔥 Fade *before* shrink
+                        .animation(notchly.animation, value: notchly.isMouseInside)
+                        .clipped() // 🔥 Ensures smooth expansion/shrink without overflow
                 }
                 .onHover { hovering in
                     debounceHover(hovering)
@@ -67,8 +68,10 @@ struct NotchView<Content>: View where Content: View {
         let workItem = DispatchWorkItem {
             DispatchQueue.main.async {
                 guard hovering != notchly.isMouseInside else { return }
-                notchly.isMouseInside = hovering
-                notchly.handleHover(expand: hovering)
+                withAnimation(notchly.animation) {
+                    notchly.isMouseInside = hovering
+                    notchly.handleHover(expand: hovering)
+                }
             }
         }
         
