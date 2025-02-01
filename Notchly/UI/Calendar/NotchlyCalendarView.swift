@@ -20,37 +20,134 @@ struct Config {
 struct NotchlyCalendarView: View {
     @ObservedObject var calendarManager: CalendarManager
     @State private var selectedDate: Date = Date()
-    @State private var weatherInfo: WeatherData? = nil
+    @State private var weatherInfo: WeatherData? = nil 
     @State private var pressedEventID: String? = nil
     @State private var scrollPosition: Int?
     @State private var byClick: Bool = false
     private let config = Config()
+    @State private var lastCloseTime: Date?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(selectedDate.formatted(.dateTime.month()))
-                .font(.title3)
-                .bold()
-                .foregroundColor(.white)
+        HStack(spacing: 0) {
+            Spacer() // Pushes everything to the right
 
-            calendarDateScrollView()
-            weatherWidget()
-            eventsListView()
+            VStack(alignment: .leading, spacing: 6) {
+                monthHeader() // 🔥 Extracted into a method
+                calendarRow() // 🔥 Extracted condensed calendar
+                eventsSection() // 🔥 Extracted event display
+            }
+            .frame(width: 180) // 🔥 Shrink width for balance
+            .padding(.trailing, 16)
         }
-        .padding()
+        .padding(.vertical, 10)
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 15))
+    }
+
+    // MARK: - Month Header
+    private func monthHeader() -> some View {
+        HStack {
+            Text(selectedDate.formatted(.dateTime.month()))
+                .font(.title2).bold()
+                .foregroundColor(.white)
+            Spacer()
+        }
+        .padding(.bottom, 2) // 🔥 Slight padding below the header
+    }
+
+    // MARK: - Condensed Calendar Row
+    private func calendarRow() -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                let totalSteps = config.steps * (config.past + config.future)
+                let spacerNum = config.offset
+
+                ForEach(0..<totalSteps + 2 * spacerNum + 1, id: \.self) { index in
+                    let offset = -config.offset - config.past
+                    let date = dateForIndex(index, offset: offset)
+                    let isSelected = isDateSelected(index, offset: offset)
+
+                    dateButton(date: date, isSelected: isSelected)
+                }
+            }
+            .padding(.horizontal, 5)
+        }
+        .scrollPosition(id: $scrollPosition, anchor: .center) // 🔥 Ensures smooth scrolling
+        .onChange(of: scrollPosition) { _, newValue in
+            if !byClick {
+                handleScrollChange(newValue: newValue)
+            } else {
+                byClick = false
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                scrollToToday() // ✅ Ensure today is centered
+            }
+            fetchWeather(for: selectedDate)
+        }
+    }
+
+    // MARK: - Date Button
+    private func dateButton(date: Date, isSelected: Bool) -> some View {
+        Button(action: {
+            withAnimation {
+                selectedDate = date
+            }
+        }) {
+            VStack(spacing: 2) {
+                Text(date.formatted(.dateTime.weekday(.narrow))) // 🔥 Day letters
+                    .font(.caption2)
+                    .frame(width: 18, height: 14)
+                    .foregroundColor(isSelected ? .blue : .gray.opacity(0.5))
+
+                Text("\(Calendar.current.component(.day, from: date))") // 🔥 Day number
+                    .font(.subheadline)
+                    .bold()
+                    .monospacedDigit()
+                    .frame(minWidth: 22, maxWidth: 24)
+                    .foregroundColor(isSelected ? .white : .gray.opacity(0.5))
+            }
+            .padding(8) // 🔥 Makes the entire highlight a bigger hitbox
+            .background(isSelected ? Color.blue.opacity(0.3) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(PlainButtonStyle()) // 🔥 Prevents button styling from messing with layout
+        .contentShape(Rectangle()) // 🔥 Expands the tappable area to the whole highlight
+    }
+
+    // MARK: - Events Section
+    private func eventsSection() -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if eventsForSelectedDate().isEmpty {
+                Text("No Events")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+                    .italic()
+            } else {
+                ForEach(eventsForSelectedDate().prefix(3), id: \.eventIdentifier) { event in
+                    eventRow(event: event)
+                }
+
+                if eventsForSelectedDate().count > 3 {
+                    Text("More events...")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .italic()
+                }
+            }
+        }
     }
 
     // MARK: - Calendar Date Scroll View
     private func calendarDateScrollView() -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: config.spacing) {
+            HStack(spacing: 6) { // 🔥 Adjust spacing for better alignment
                 let totalSteps = config.steps * (config.past + config.future)
                 let spacerNum = config.offset
                 ForEach(0..<totalSteps + 2 * spacerNum + 1, id: \.self) { index in
                     if index < spacerNum || index > totalSteps + spacerNum - 1 {
-                        Spacer().frame(width: 32, height: 32).id(index)
+                        Spacer().frame(width: 28, height: 28).id(index) // 🔥 Maintain spacing
                     } else {
                         let offset = -config.offset - config.past
                         let date = dateForIndex(index, offset: offset)
@@ -66,11 +163,9 @@ struct NotchlyCalendarView: View {
                     }
                 }
             }
-            .frame(height: 75)
-            .padding(.vertical, 5)
-            .scrollTargetLayout()
+            .padding(.horizontal, 5) // 🔥 Gives space for smooth scrolling
         }
-        .scrollPosition(id: $scrollPosition, anchor: .leading)
+        .scrollPosition(id: $scrollPosition, anchor: .center) // 🔥 Keeps it scrollable
         .onChange(of: scrollPosition) { _, newValue in
             if !byClick {
                 handleScrollChange(newValue: newValue)
@@ -79,7 +174,9 @@ struct NotchlyCalendarView: View {
             }
         }
         .onAppear {
-            scrollToToday()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // 🔥 Ensure proper scrolling
+                scrollToToday()
+            }
             fetchWeather(for: selectedDate)
         }
     }
@@ -242,10 +339,17 @@ struct NotchlyCalendarView: View {
 
     private func scrollToToday() {
         let today = Date()
-        let todayIndex = indexForDate(today, offset: -config.offset - config.past)
-        byClick = true
-        scrollPosition = todayIndex - config.offset
+        let offset = -config.offset - config.past - 1 
+        let todayIndex = indexForDate(today, offset: offset)
+
         selectedDate = today
+        byClick = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { // Give UI time to render
+            withAnimation {
+                scrollPosition = todayIndex // ✅ Centers today in the scroll view
+            }
+        }
     }
     
     private func dateButton(date: Date, isSelected: Bool, offset: Int, onClick: @escaping () -> Void) -> some View {
