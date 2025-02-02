@@ -51,10 +51,10 @@ public struct NotchPresets {
     )
 
     static let large = NotchlyConfiguration(
-        width: 500,
-        height: 250,
-        topCornerRadius: 9,
-        bottomCornerRadius: 9,
+        width: 750,
+        height: 175,
+        topCornerRadius: 20,
+        bottomCornerRadius: 20,
         shadowRadius: 0
     )
 }

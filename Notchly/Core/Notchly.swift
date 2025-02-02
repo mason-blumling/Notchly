@@ -99,7 +99,7 @@ public extension Notchly {
         print("Creating the notch window...")
 
         // 🔥 Define a fixed maximum size for the window (prevents resizing)
-        let maxWidth: CGFloat = 600
+        let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
 
         // Calculate position: Always anchored to the top center of the screen.
@@ -147,12 +147,12 @@ public extension Notchly {
 
     /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
-        let targetWidth: CGFloat = expanded ? 500 : 200
-        let targetHeight: CGFloat = expanded ? 250 : 40
-
         withAnimation(animation) {
-            notchWidth = targetWidth
-            notchHeight = targetHeight
+            let preset = expanded ? NotchPresets.large : NotchPresets.defaultNotch
+            self.configuration = preset // ✅ Update the active configuration
+
+            self.notchWidth = preset.width
+            self.notchHeight = preset.height
         }
     }
     

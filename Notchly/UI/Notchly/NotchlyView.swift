@@ -21,8 +21,8 @@ struct NotchView<Content>: View where Content: View {
             HStack(spacing: 0) {
                 Spacer()
 
-                // 🔥 The entire Notch is now responsible for hover detection & animations
                 ZStack {
+                    // 🔥 The Notch Shape (Handles expansion)
                     NotchlyShape(
                         bottomCornerRadius: notchly.configuration.bottomCornerRadius,
                         topCornerRadius: notchly.configuration.topCornerRadius
@@ -32,17 +32,26 @@ struct NotchView<Content>: View where Content: View {
                         width: notchly.isMouseInside ? notchly.notchWidth : NotchPresets.defaultNotch.width,
                         height: notchly.isMouseInside ? notchly.notchHeight : NotchPresets.defaultNotch.height
                     )
-                    .animation(notchly.animation, value: notchly.isMouseInside
-                    )
-                    .clipped() // 🔥 Prevents any unwanted content bleed
+                    .animation(notchly.animation, value: notchly.isMouseInside)
+                    .clipped()
 
-                    // 🔥 Directly embed content inside the expanding notch
-                    NotchlyCalendarView(calendarManager: calendarManager)
-                        .frame(width: notchly.notchWidth - 30, height: notchly.notchHeight - 30)
-                        .opacity(notchly.isMouseInside ? 1 : 0) // 🔥 Fade out at the right moment
-                        .transition(.opacity.combined(with: .scale(scale: 0.9))) // 🔥 Fade *before* shrink
-                        .animation(notchly.animation, value: notchly.isMouseInside)
-                        .clipped() // 🔥 Ensures smooth expansion/shrink without overflow
+                    // 🔹 Positioning the Calendar Inside Notch
+                    HStack(spacing: 0) {
+                        Spacer(minLength: NotchPresets.small.width + 10) // ✅ Ensures space after small notch
+
+                        NotchlyCalendarView(calendarManager: calendarManager, notchWidth: notchly.notchWidth, isExpanded: notchly.isMouseInside)
+//                            .frame(
+//                                width: notchly.notchWidth * 0.5, // ✅ Ensures it stays inside the notch
+//                                height: notchly.notchHeight - 30)
+                            .frame(width: NotchPresets.large.width * 0.48,
+                                   height: notchly.notchHeight) // ✅ Matches notch height
+                            .opacity(notchly.isMouseInside ? 1 : 0)
+                            .animation(.easeInOut(duration: 0.2), value: notchly.isMouseInside) // ✅ More natural fade-in
+                            .clipped()
+
+                        Spacer() // ✅ Ensures right alignment doesn't overflow
+                    }
+                    .frame(width: notchly.notchWidth, alignment: .trailing)
                 }
                 .onHover { hovering in
                     debounceHover(hovering)
@@ -64,7 +73,7 @@ struct NotchView<Content>: View where Content: View {
     /// Debounces hover events to prevent rapid state changes
     private func debounceHover(_ hovering: Bool) {
         debounceWorkItem?.cancel()
-        
+
         let workItem = DispatchWorkItem {
             DispatchQueue.main.async {
                 guard hovering != notchly.isMouseInside else { return }
@@ -74,7 +83,7 @@ struct NotchView<Content>: View where Content: View {
                 }
             }
         }
-        
+
         debounceWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
     }
