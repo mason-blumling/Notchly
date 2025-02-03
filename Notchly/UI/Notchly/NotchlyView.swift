@@ -39,15 +39,17 @@ struct NotchView<Content>: View where Content: View {
                     HStack(spacing: 0) {
                         Spacer(minLength: NotchPresets.small.width + 10) // ✅ Ensures space after small notch
 
-                        NotchlyCalendarView(calendarManager: calendarManager, notchWidth: notchly.notchWidth, isExpanded: notchly.isMouseInside)
-//                            .frame(
-//                                width: notchly.notchWidth * 0.5, // ✅ Ensures it stays inside the notch
-//                                height: notchly.notchHeight - 30)
-                            .frame(width: NotchPresets.large.width * 0.48,
-                                   height: notchly.notchHeight) // ✅ Matches notch height
+                        NotchlyCalendarView(calendarManager: calendarManager,
+                                            notchWidth: notchly.notchWidth,
+                                            isExpanded: notchly.isMouseInside)
+                            .frame(
+                                width: NotchPresets.large.width * 0.55,
+                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0 // ✅ Shrinks with Notch
+                            )
                             .opacity(notchly.isMouseInside ? 1 : 0)
-                            .animation(.easeInOut(duration: 0.2), value: notchly.isMouseInside) // ✅ More natural fade-in
+                            .animation(.easeInOut(duration: 0.2), value: notchly.isMouseInside)
                             .clipped()
+                            .transition(.move(edge: .trailing).combined(with: .opacity)) // ✅ Smooth exit transition
 
                         Spacer() // ✅ Ensures right alignment doesn't overflow
                     }

@@ -258,10 +258,10 @@
 		58C97C182D5003A4006FFC06 /* Calendar Parts */ = {
 			isa = PBXGroup;
 			children = (
-				58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */,
 				58C97C162D500385006FFC06 /* NotchlyDateSelector.swift */,
 				58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */,
 				58C97C1B2D5003CA006FFC06 /* NotchlyUtilities.swift */,
+				58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */,
 			);
 			path = "Calendar Parts";
 			sourceTree = "<group>";

@@ -11,7 +11,8 @@ import EventKit
 struct NotchlyEventList: View {
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
-    @State private var pressedEventID: String?
+    var calendarWidth: CGFloat // ✅ Ensures events fit within CalendarA dynamically
+
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -21,6 +22,7 @@ struct NotchlyEventList: View {
                 eventListView()
             }
         }
+        .frame(width: calendarWidth, alignment: .trailing) // ✅ Matches the date selector width
     }
 }
 
@@ -28,48 +30,43 @@ struct NotchlyEventList: View {
 private extension NotchlyEventList {
     
     func emptyStateView() -> some View {
-        Text("No Events")
-            .foregroundColor(.gray)
-            .font(.caption)
-            .italic()
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, 10)
+        VStack {
+            Spacer()
+            Text("No Events")
+                .foregroundColor(.gray)
+                .font(.caption)
+                .italic()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 12)
+            Spacer()
+        }
+        .frame(maxHeight: .infinity) // 🔥 Matches event list dynamically
     }
 
     func eventListView() -> some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 4) {
-                    ForEach(eventsForSelectedDate(), id: \.eventIdentifier) { event in
-                        eventRow(event: event)
-                    }
-                }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 0) // ✅ Adds padding to expand width
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity) // 🔥 Extended height
-            .background(Color.clear)
-            .scrollBounceBehavior(.always)
-            .onAppear {
-                DispatchQueue.main.async {
-                    if let firstEvent = eventsForSelectedDate().first {
-                        scrollProxy.scrollTo(firstEvent.eventIdentifier, anchor: .top)
-                    }
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 6) {
+                ForEach(eventsForSelectedDate(), id: \.eventIdentifier) { event in
+                    eventRow(event: event)
                 }
             }
+            .padding(.vertical, 4)
         }
+        .frame(width: calendarWidth, alignment: .trailing) // ✅ Prevents right overflow
+        .padding(.leading, 5) // ✅ Nudges it slightly right to align exactly
+        .scrollBounceBehavior(.always)
     }
 
     func eventRow(event: EKEvent) -> some View {
-        HStack {
+        HStack(alignment: .center, spacing: 6) {
             eventIcon(event)
             eventDetails(event)
             Spacer()
             eventTime(event)
         }
-        .padding(.horizontal, 12) // ✅ Increases padding for width
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity) // ✅ Forces event width to expand
+        .padding(.horizontal, 6) // ✅ Matches "No Events" padding
+        .padding(.vertical, 4)
+        .frame(width: calendarWidth * 0.9, alignment: .leading) // ✅ Ensures events fit perfectly
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray).opacity(0.2))
@@ -80,15 +77,6 @@ private extension NotchlyEventList {
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
-        .scaleEffect(pressedEventID == event.eventIdentifier ? 0.95 : 1.0)
-        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressedEventID)
-        .onTapGesture {
-            pressedEventID = event.eventIdentifier
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                pressedEventID = nil
-            }
-            openEventInCalendar(event)
-        }
     }
 }
 
@@ -107,7 +95,6 @@ private extension NotchlyEventList {
                 .foregroundColor(event.status == .canceled ? .gray : .white)
                 .lineLimit(1)
                 .strikethrough(event.status == .canceled, color: .gray)
-                .scaleEffect(pressedEventID == event.eventIdentifier ? 0.95 : 1.0)
 
             if let attendees = event.attendees, !attendees.isEmpty {
                 Text("\(attendees.count) attendees")

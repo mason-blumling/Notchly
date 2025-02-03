@@ -19,22 +19,24 @@ struct NotchlyCalendarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            monthHeader()
-            NotchlyDateSelector(
-                selectedDate: $selectedDate,
-                calendarManager: calendarManager
-            )
-            NotchlyEventList(
-                selectedDate: selectedDate,
-                calendarManager: calendarManager
-            )
+            // ✅ Month & Date Selector Stay Fixed
+            VStack(spacing: 2) {
+                Spacer(minLength: 2)
+                NotchlyDateSelector(selectedDate: $selectedDate,
+                                    calendarManager: calendarManager)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading) // 🔥 Locks left-alignment
+
+            // 🔹 Event List (or "No Events" placeholder)
+            NotchlyEventList(selectedDate: selectedDate,
+                             calendarManager: calendarManager,
+                             calendarWidth: NotchPresets.large.width * 0.45)
+                .frame(maxHeight: .infinity) // 🔥 Expands dynamically but never shifts things
         }
         .frame(
             width: NotchPresets.large.width * 0.45, // ✅ Keeps it within the large notch
-            height: NotchPresets.large.height - 5 // ✅ Matches notch height with slight buffer
+            height: NotchPresets.large.height - 25 // ✅ Matches notch height with slight buffer
         )
-        .offset(x: NotchPresets.small.width * 0.3) // ✅ Moves it rightward to align with the small notch's rightmost point
-        .padding(.leading, 5) // ✅ Optional fine-tuning
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .opacity(isExpanded ? 1 : 0)
