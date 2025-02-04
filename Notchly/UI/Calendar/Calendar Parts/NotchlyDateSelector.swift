@@ -79,6 +79,7 @@ private extension NotchlyDateSelector {
             .frame(height: 44)
             .padding(.horizontal, 5)
         }
+        .frame(height: 44)
         .scrollPosition(id: $scrollPosition, anchor: .center)
         .onChange(of: scrollPosition) { _, newValue in handleScrollUpdate(newValue) }
         .zIndex(1)
