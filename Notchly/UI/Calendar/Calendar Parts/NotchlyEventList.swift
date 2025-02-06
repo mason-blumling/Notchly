@@ -12,7 +12,7 @@ struct NotchlyEventList: View {
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
     @State private var pressedEventID: String?
-    var calendarWidth: CGFloat // ✅ Ensures events fit within CalendarA dynamically
+    var calendarWidth: CGFloat // ✅ Ensures events fit dynamically
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -46,9 +46,9 @@ private extension NotchlyEventList {
                     }
                 }
                 .padding(.vertical, 4)
-                .padding(.horizontal, 0) // ✅ Adds padding to expand width
+                .padding(.horizontal, 0)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity) // 🔥 Extended height
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.clear)
             .scrollBounceBehavior(.always)
             .onAppear {
@@ -60,24 +60,39 @@ private extension NotchlyEventList {
             }
         }
     }
+}
 
+// MARK: - Event Row
+private extension NotchlyEventList {
+    
     func eventRow(event: EKEvent) -> some View {
-        HStack {
+        let isPending = isEventPending(event)
+        let isAwaitingResponses = isEventAwaitingResponses(event)
+        let hasPendingStatus = isPending || isAwaitingResponses
+
+        return HStack {
             eventIcon(event)
-            eventDetails(event)
+            eventDetails(event, isPending: isPending, isAwaitingResponses: isAwaitingResponses)
             Spacer()
             eventTime(event)
         }
-        .padding(.horizontal, 12) // ✅ Increases padding for width
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .frame(maxWidth: .infinity) // ✅ Forces event width to expand
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray).opacity(0.2))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                )
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray).opacity(hasPendingStatus ? 0.25 : 0.2))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(hasPendingStatus ? Color.yellow.opacity(0.8) : Color.clear, lineWidth: hasPendingStatus ? 1.5 : 0.5)
+                    )
+
+                if hasPendingStatus {
+                    StripedBackground()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
@@ -93,6 +108,39 @@ private extension NotchlyEventList {
     }
 }
 
+// MARK: - Event Status Detection
+private extension NotchlyEventList {
+    
+    func isEventPending(_ event: EKEvent) -> Bool {
+        guard let attendees = event.attendees else { return false }
+
+        return attendees.contains { attendee in
+            attendee.isCurrentUser &&
+            (attendee.participantStatus == .pending ||
+             attendee.participantStatus == .unknown)
+        }
+    }
+    
+    func isEventAwaitingResponses(_ event: EKEvent) -> Bool {
+        guard let attendees = event.attendees else { return false }
+
+        let isOrganizer = event.organizer?.isCurrentUser ?? false
+        
+        return isOrganizer && attendees.contains { attendee in
+            attendee.participantStatus == .pending || attendee.participantStatus == .unknown
+        }
+    }
+    
+    func awaitingAttendees(_ event: EKEvent) -> [String] {
+        guard let attendees = event.attendees else { return [] }
+
+        return attendees.compactMap { attendee in
+            let firstName = attendee.name?.components(separatedBy: " ").first ?? "Unknown"
+            return (attendee.participantStatus == .pending || attendee.participantStatus == .unknown) ? firstName : nil
+        }
+    }
+}
+
 // MARK: - Event UI Elements
 private extension NotchlyEventList {
     
@@ -102,13 +150,27 @@ private extension NotchlyEventList {
             .frame(width: 10, height: 10)
     }
 
-    func eventDetails(_ event: EKEvent) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    func eventDetails(_ event: EKEvent, isPending: Bool, isAwaitingResponses: Bool) -> some View {
+        let awaitingNames = awaitingAttendees(event)
+
+        return VStack(alignment: .leading, spacing: 2) {
             Text(event.title)
                 .foregroundColor(event.status == .canceled ? .gray : .white)
                 .lineLimit(1)
                 .strikethrough(event.status == .canceled, color: .gray)
                 .scaleEffect(pressedEventID == event.eventIdentifier ? 0.95 : 1.0)
+
+            if isPending {
+                Text("Pending Your Response")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+            }
+
+            if isAwaitingResponses, !awaitingNames.isEmpty {
+                Text("Waiting on \(awaitingNames.joined(separator: ", "))")
+                    .foregroundColor(.blue)
+                    .font(.caption)
+            }
 
             if let attendees = event.attendees, !attendees.isEmpty {
                 Text("\(attendees.count) attendees")
@@ -131,24 +193,36 @@ private extension NotchlyEventList {
     }
 }
 
+// MARK: - Striped Background for Pending Events
+private extension NotchlyEventList {
+    struct StripedBackground: View {
+        var body: some View {
+            Canvas { context, size in
+                let stripeWidth: CGFloat = 6
+                let spacing: CGFloat = 10
+
+                for x in stride(from: -size.height, to: size.width, by: spacing) {
+                    var path = Path()
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x + stripeWidth, y: size.height))
+
+                    context.stroke(path, with: .color(Color(.systemGray).opacity(0.25)), lineWidth: 2)
+                }
+            }
+            .opacity(0.3)
+        }
+    }
+}
+
 // MARK: - Event Handling
 private extension NotchlyEventList {
-    /// 🔹 Opens the selected event in macOS Calendar (Supports Recurring Events)
+    
     func openEventInCalendar(_ event: EKEvent) {
         guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             print("❌ Failed to encode event identifier: \(String(describing: event.title))")
             return
         }
-        var urlString = "ical://ekevent/\(eventIdentifier)?method=show&options=more"
-        // 🔥 If it's a recurring event, append the exact start date
-        if event.hasRecurrenceRules, let startDate = event.startDate {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
-            formatter.timeZone = event.isAllDay ? TimeZone.current : TimeZone(secondsFromGMT: 0)
-            
-            let dateComponent = formatter.string(from: startDate)
-            urlString.insert(contentsOf: "/\(dateComponent)", at: urlString.index(urlString.startIndex, offsetBy: 14))
-        }
+        let urlString = "ical://ekevent/\(eventIdentifier)?method=show&options=more"
 
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
@@ -160,6 +234,7 @@ private extension NotchlyEventList {
 
 // MARK: - Event Filtering
 private extension NotchlyEventList {
+    
     func eventsForSelectedDate() -> [EKEvent] {
         calendarManager.events.filter {
             Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate)
