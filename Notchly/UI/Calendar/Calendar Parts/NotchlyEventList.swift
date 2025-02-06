@@ -11,8 +11,8 @@ import EventKit
 struct NotchlyEventList: View {
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
-    @State private var pressedEventID: String?
     var calendarWidth: CGFloat
+    @State private var pressedEventID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -50,6 +50,7 @@ private extension NotchlyEventList {
                     }
                 }
             }
+            .drawingGroup() /// Forces SwiftUI to rasterize complex views for better performance
             .padding(.vertical, 4)
             .padding(.horizontal, 0)
         }
@@ -237,6 +238,7 @@ private extension NotchlyEventList {
                     context.stroke(path, with: .color(Color(.systemGray).opacity(0.25)), lineWidth: 2)
                 }
             }
+            .drawingGroup() /// Offloads rendering workload to GPU
             .opacity(0.3)
         }
     }
@@ -257,7 +259,6 @@ private extension NotchlyEventList {
 
 // MARK: - Event Filtering
 private extension NotchlyEventList {
-    
     func eventsForSelectedDate() -> [EKEvent] {
         calendarManager.events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
     }

@@ -18,9 +18,13 @@ import EventKit
 class CalendarManager: ObservableObject {
     private let eventStore: EKEventStore
     @Published var events: [EKEvent] = []
-
+    
     init(eventStore: EKEventStore = EKEventStore()) {
         self.eventStore = eventStore
+        requestAccess { _ in
+            self.fetchEvents()
+        }
+        subscribeToCalendarChanges() // ✅ Listen for event changes
     }
 
     func requestAccess(completion: @escaping (Bool) -> Void) {
@@ -47,5 +51,17 @@ class CalendarManager: ObservableObject {
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: calendars)
         self.events = eventStore.events(matching: predicate)
         return self.events
+    }
+
+    /// ✅ Listens for event changes in the system calendar
+    private func subscribeToCalendarChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .EKEventStoreChanged,
+            object: eventStore,
+            queue: .main
+        ) { [weak self] _ in
+            print("🔄 Calendar changed, reloading events...")
+            self?.fetchEvents() // ✅ Auto-refresh on changes
+        }
     }
 }
