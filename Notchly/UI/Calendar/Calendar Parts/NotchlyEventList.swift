@@ -12,7 +12,7 @@ struct NotchlyEventList: View {
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
     @State private var pressedEventID: String?
-    var calendarWidth: CGFloat // ✅ Ensures events fit dynamically
+    var calendarWidth: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -38,37 +38,39 @@ private extension NotchlyEventList {
     }
 
     func eventListView() -> some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 4) {
-                    ForEach(eventsForSelectedDate(), id: \.eventIdentifier) { event in
-                        eventRow(event: event)
-                    }
-                }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.clear)
-            .scrollBounceBehavior(.always)
-            .onAppear {
-                DispatchQueue.main.async {
-                    if let firstEvent = eventsForSelectedDate().first {
-                        scrollProxy.scrollTo(firstEvent.eventIdentifier, anchor: .top)
+        let conflicts = detectConflictingEvents()
+
+        return ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 4) {
+                ForEach(eventsWithConflicts(), id: \.self) { item in
+                    if let event = item as? EKEvent {
+                        eventRow(event: event, isConflicting: conflicts.contains(event.eventIdentifier))
+                    } else if let conflictInfo = item as? ConflictInfo {
+                        conflictRow(conflictInfo)
                     }
                 }
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 0)
         }
+    }
+
+    func conflictRow(_ conflict: ConflictInfo) -> some View {
+        Text("⚠️ Conflict from \(conflict.overlapTimeRange)")
+            .foregroundColor(.red)
+            .background(Color.red.opacity(0.1).clipShape(RoundedRectangle(cornerRadius: 8)))
+            .font(.caption).italic()
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 4)
     }
 }
 
 // MARK: - Event Row
 private extension NotchlyEventList {
     
-    func eventRow(event: EKEvent) -> some View {
+    func eventRow(event: EKEvent, isConflicting: Bool) -> some View {
         let isPending = isEventPending(event)
         let isAwaitingResponses = isEventAwaitingResponses(event)
-        let hasPendingStatus = isPending || isAwaitingResponses
 
         return HStack {
             eventIcon(event)
@@ -81,11 +83,14 @@ private extension NotchlyEventList {
         .frame(maxWidth: .infinity)
         .background(
             ZStack {
+                let hasPendingStatus = isPending || isAwaitingResponses
+
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(.systemGray).opacity(hasPendingStatus ? 0.25 : 0.2))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(hasPendingStatus ? Color.yellow.opacity(0.8) : Color.clear, lineWidth: hasPendingStatus ? 1.5 : 0.5)
+                            .stroke(isConflicting ? Color.red.opacity(0.8) : (hasPendingStatus ? Color.yellow.opacity(0.8) : Color.clear),
+                                    lineWidth: isConflicting ? 2 : (hasPendingStatus ? 1.5 : 0.5))
                     )
 
                 if hasPendingStatus {
@@ -113,19 +118,15 @@ private extension NotchlyEventList {
     
     func isEventPending(_ event: EKEvent) -> Bool {
         guard let attendees = event.attendees else { return false }
-
         return attendees.contains { attendee in
             attendee.isCurrentUser &&
-            (attendee.participantStatus == .pending ||
-             attendee.participantStatus == .unknown)
+            (attendee.participantStatus == .pending || attendee.participantStatus == .unknown)
         }
     }
     
     func isEventAwaitingResponses(_ event: EKEvent) -> Bool {
         guard let attendees = event.attendees else { return false }
-
         let isOrganizer = event.organizer?.isCurrentUser ?? false
-        
         return isOrganizer && attendees.contains { attendee in
             attendee.participantStatus == .pending || attendee.participantStatus == .unknown
         }
@@ -133,11 +134,49 @@ private extension NotchlyEventList {
     
     func awaitingAttendees(_ event: EKEvent) -> [String] {
         guard let attendees = event.attendees else { return [] }
-
         return attendees.compactMap { attendee in
             let firstName = attendee.name?.components(separatedBy: " ").first ?? "Unknown"
             return (attendee.participantStatus == .pending || attendee.participantStatus == .unknown) ? firstName : nil
         }
+    }
+}
+
+// MARK: - Conflict Handling
+private extension NotchlyEventList {
+    
+    func eventsWithConflicts() -> [AnyHashable] {
+        var result: [AnyHashable] = []
+        let events = eventsForSelectedDate().sorted { $0.startDate < $1.startDate }
+        let conflicts = detectConflictingEvents()
+
+        for i in 0..<events.count {
+            let event = events[i]
+            result.append(event)
+
+            if i < events.count - 1 {
+                let nextEvent = events[i + 1]
+                if conflicts.contains(event.eventIdentifier) && conflicts.contains(nextEvent.eventIdentifier) {
+                    result.append(ConflictInfo(event1: event, event2: nextEvent))
+                }
+            }
+        }
+        return result
+    }
+
+    func detectConflictingEvents() -> Set<String> {
+        var conflicts: Set<String> = []
+        let sortedEvents = eventsForSelectedDate().sorted { $0.startDate < $1.startDate }
+
+        for i in 0..<sortedEvents.count - 1 {
+            let currentEvent = sortedEvents[i]
+            let nextEvent = sortedEvents[i + 1]
+
+            if currentEvent.endDate > nextEvent.startDate {
+                conflicts.insert(currentEvent.eventIdentifier)
+                conflicts.insert(nextEvent.eventIdentifier)
+            }
+        }
+        return conflicts
     }
 }
 
@@ -171,18 +210,6 @@ private extension NotchlyEventList {
                     .foregroundColor(.blue)
                     .font(.caption)
             }
-
-            if let attendees = event.attendees, !attendees.isEmpty {
-                Text("\(attendees.count) attendees")
-                    .foregroundColor(.gray)
-                    .font(.caption)
-            }
-
-            if event.status == .canceled {
-                Text("(Cancelled)")
-                    .foregroundColor(.gray)
-                    .font(.caption)
-            }
         }
     }
 
@@ -193,8 +220,9 @@ private extension NotchlyEventList {
     }
 }
 
-// MARK: - Striped Background for Pending Events
+// MARK: - Supporting Structs
 private extension NotchlyEventList {
+    
     struct StripedBackground: View {
         var body: some View {
             Canvas { context, size in
@@ -212,22 +240,17 @@ private extension NotchlyEventList {
             .opacity(0.3)
         }
     }
-}
-
-// MARK: - Event Handling
-private extension NotchlyEventList {
     
-    func openEventInCalendar(_ event: EKEvent) {
-        guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            print("❌ Failed to encode event identifier: \(String(describing: event.title))")
-            return
-        }
-        let urlString = "ical://ekevent/\(eventIdentifier)?method=show&options=more"
+    struct ConflictInfo: Hashable {
+        let event1: EKEvent
+        let event2: EKEvent
 
-        if let url = URL(string: urlString) {
-            NSWorkspace.shared.open(url)
-        } else {
-            print("❌ Failed to create URL for event: \(String(describing: event.title))")
+        var overlapTimeRange: String {
+            let overlapStart = max(event1.startDate, event2.startDate)
+            let overlapEnd = min(event1.endDate, event2.endDate)
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "\(formatter.string(from: overlapStart)) - \(formatter.string(from: overlapEnd))"
         }
     }
 }
@@ -236,8 +259,19 @@ private extension NotchlyEventList {
 private extension NotchlyEventList {
     
     func eventsForSelectedDate() -> [EKEvent] {
-        calendarManager.events.filter {
-            Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate)
+        calendarManager.events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
+    }
+}
+
+// MARK: - Event Handling
+private extension NotchlyEventList {
+    
+    func openEventInCalendar(_ event: EKEvent) {
+        guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return
+        }
+        if let url = URL(string: "ical://ekevent/\(eventIdentifier)?method=show&options=more") {
+            NSWorkspace.shared.open(url)
         }
     }
 }
