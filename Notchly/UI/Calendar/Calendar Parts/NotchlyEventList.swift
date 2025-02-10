@@ -103,7 +103,7 @@ private extension NotchlyEventList {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
         .scaleEffect(pressedEventID == event.eventIdentifier ? 0.95 : 1.0)
-        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressedEventID)
+        .animation(NotchlyAnimations.fastBounce, value: pressedEventID)
         .onTapGesture {
             pressedEventID = event.eventIdentifier
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

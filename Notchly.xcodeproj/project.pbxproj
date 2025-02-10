@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */; };
 		58437E9F2D504D6400FF92AA /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58437E9E2D504D6400FF92AA /* MetalKit.framework */; };
-		587D3D4C2D40C1140034FA71 /* Test1ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4B2D40C10E0034FA71 /* Test1ContentView.swift */; };
 		587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */; };
 		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
@@ -51,8 +51,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyAnimations.swift; sourceTree = "<group>"; };
 		58437E9E2D504D6400FF92AA /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		587D3D4B2D40C10E0034FA71 /* Test1ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Test1ContentView.swift; sourceTree = "<group>"; };
 		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -195,7 +195,6 @@
 			isa = PBXGroup;
 			children = (
 				58C97B7E2D45CCE0006FFC06 /* FigmaView.swift */,
-				587D3D4B2D40C10E0034FA71 /* Test1ContentView.swift */,
 			);
 			path = "Figma Files";
 			sourceTree = "<group>";
@@ -222,6 +221,7 @@
 		58C97BEF2D49ACD0006FFC06 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
 				58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */,
 			);
 			path = Helpers;
@@ -419,10 +419,10 @@
 			files = (
 				58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */,
 				58C97BCA2D487E98006FFC06 /* Notchly.swift in Sources */,
-				587D3D4C2D40C1140034FA71 /* Test1ContentView.swift in Sources */,
 				58C97C172D500394006FFC06 /* NotchlyDateSelector.swift in Sources */,
 				58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */,
 				58C97BD62D4881FE006FFC06 /* BlurAnimation.swift in Sources */,
+				580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */,
 				58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */,
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,

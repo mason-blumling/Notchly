@@ -40,7 +40,7 @@ struct NotchlyCalendarView: View {
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .opacity(isExpanded ? 1 : 0)
-        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+        .animation(NotchlyAnimations.smoothTransition, value: isExpanded)
     }
 
     // MARK: - Month Header

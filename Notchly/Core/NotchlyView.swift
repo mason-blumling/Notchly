@@ -49,7 +49,7 @@ struct NotchView<Content>: View where Content: View {
                             .opacity(notchly.isMouseInside ? 1 : 0)
                             .clipped()
                             .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing))) // ✅ Shrinks smoothly
-                            .animation(.easeInOut(duration: 0.15), value: notchly.isMouseInside)
+                            .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
 
                         Spacer() // ✅ Ensures right alignment doesn't overflow
                     }

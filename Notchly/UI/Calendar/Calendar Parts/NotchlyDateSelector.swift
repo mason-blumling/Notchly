@@ -47,7 +47,7 @@ private extension NotchlyDateSelector {
             .background(monthGradient)
             .offset(x: 8, y: -4)
             .scaleEffect(monthBounce ? 1.15 : 1.0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: monthBounce)
+            .animation(NotchlyAnimations.fastBounce, value: monthBounce)
             .zIndex(2)
             .onTapGesture {
                 monthBounce = true
@@ -120,7 +120,7 @@ private extension NotchlyDateSelector {
                         .foregroundColor(.white)
                         .scaleEffect(isSelected ? 1.25 : 1.0)
                         .offset(y: isSelected ? 3 : 0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                        .animation(NotchlyAnimations.fastBounce, value: isSelected)
                 }
                 .padding(.vertical, isSelected ? 6 : 4)
                 .contentShape(Rectangle())
