@@ -176,29 +176,6 @@ private extension NotchlyEventList {
     }
 }
 
-// MARK: - Supporting Structs
-private extension NotchlyEventList {
-    
-    struct StripedBackground: View {
-        var body: some View {
-            Canvas { context, size in
-                let stripeWidth: CGFloat = 6
-                let spacing: CGFloat = 10
-
-                for x in stride(from: -size.height, to: size.width, by: spacing) {
-                    var path = Path()
-                    path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x + stripeWidth, y: size.height))
-
-                    context.stroke(path, with: .color(Color(.systemGray).opacity(0.25)), lineWidth: 2)
-                }
-            }
-            .drawingGroup() /// Offloads rendering workload to GPU
-            .opacity(0.3)
-        }
-    }
-}
-
 // MARK: - Event Filtering
 extension NotchlyEventList {
     func eventsForSelectedDate() -> [EKEvent] {
