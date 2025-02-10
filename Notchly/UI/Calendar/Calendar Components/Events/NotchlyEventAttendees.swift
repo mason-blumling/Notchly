@@ -80,13 +80,11 @@ extension NotchlyEventList {
     /// - Returns: The organizer's name, or `nil` if the user is the organizer.
     func eventOrganizer(_ event: EKEvent) -> String? {
         if event.organizer?.isCurrentUser == true {
-            print("🔹 Skipping organizer because it's the current user: \(event.organizer?.name ?? "Unknown")")
             return nil
         }
 
         if let organizerName = event.organizer?.name {
             if cachedUserEmails.contains(organizerName.lowercased()) {
-                print("🔹 Skipping organizer \(organizerName) because it's my own email")
                 return nil
             }
             return organizerName
