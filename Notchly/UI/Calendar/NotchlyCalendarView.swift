@@ -30,12 +30,12 @@ struct NotchlyCalendarView: View {
             // 🔹 Event List (or "No Events" placeholder)
             NotchlyEventList(selectedDate: selectedDate,
                              calendarManager: calendarManager,
-                             calendarWidth: NotchPresets.large.width * 0.45)
+                             calendarWidth: NotchlyConfiguration.large.width * 0.45)
                 .frame(maxHeight: .infinity) // 🔥 Expands dynamically but never shifts things
         }
         .frame(
-            width: NotchPresets.large.width * 0.45, // ✅ Keeps it within the large notch
-            height: NotchPresets.large.height - 25 // ✅ Matches notch height with slight buffer
+            width: NotchlyConfiguration.large.width * 0.45, // ✅ Keeps it within the large notch
+            height: NotchlyConfiguration.large.height - 25 // ✅ Matches notch height with slight buffer
         )
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))

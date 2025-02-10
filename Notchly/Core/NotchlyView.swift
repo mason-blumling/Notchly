@@ -29,21 +29,21 @@ struct NotchView<Content>: View where Content: View {
                     )
                     .fill(Color.black)
                     .frame(
-                        width: notchly.isMouseInside ? notchly.notchWidth : NotchPresets.defaultNotch.width,
-                        height: notchly.isMouseInside ? notchly.notchHeight : NotchPresets.defaultNotch.height
+                        width: notchly.isMouseInside ? notchly.notchWidth : NotchlyConfiguration.default.width,
+                        height: notchly.isMouseInside ? notchly.notchHeight : NotchlyConfiguration.default.height
                     )
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
 
                     // 🔹 Positioning the Calendar Inside Notch
                     HStack(spacing: 0) {
-                        Spacer(minLength: NotchPresets.small.width + 10) // ✅ Ensures space after small notch
+                        Spacer(minLength: NotchlyConfiguration.small.width + 10) // ✅ Ensures space after small notch
 
                         NotchlyCalendarView(calendarManager: calendarManager,
                                             notchWidth: notchly.notchWidth,
                                             isExpanded: notchly.isMouseInside)
                             .frame(
-                                width: notchly.isMouseInside ? NotchPresets.large.width * 0.55 : NotchPresets.defaultNotch.width * 0.55,
+                                width: notchly.isMouseInside ? NotchlyConfiguration.large.width * 0.55 : NotchlyConfiguration.default.width * 0.55,
                                 height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
                             )
                             .opacity(notchly.isMouseInside ? 1 : 0)

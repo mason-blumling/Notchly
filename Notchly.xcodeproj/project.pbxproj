@@ -221,8 +221,8 @@
 		58C97BEF2D49ACD0006FFC06 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
 				58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */,
+				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";

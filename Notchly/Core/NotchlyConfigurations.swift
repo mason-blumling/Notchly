@@ -1,5 +1,5 @@
 //
-//  NotchConfigurations.swift
+//  NotchlyConfigurations.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 1/28/25.
@@ -8,33 +8,32 @@
 import Foundation
 import SwiftUI
 
+/// Defines the notch size, corner radius, and shadow appearance.
 public struct NotchlyConfiguration {
     let width: CGFloat
     let height: CGFloat
     let topCornerRadius: CGFloat
     let bottomCornerRadius: CGFloat
     let shadowRadius: CGFloat
-}
 
-public struct NotchPresets {
-    /// Default (collapsed) size of the notch. (Measured to the same size as MBP 16' Notch)
-    static let defaultNotch = NotchlyConfiguration(
+    /// ✅ Predefined Notch Configurations
+    public static let `default` = NotchlyConfiguration(
         width: 199,
         height: 31.75,
         topCornerRadius: 9,
         bottomCornerRadius: 9,
         shadowRadius: 0
     )
-    
-    static let liveActivity = NotchlyConfiguration(
+
+    public static let activity = NotchlyConfiguration(
         width: 280,
         height: 31.75,
         topCornerRadius: 9,
         bottomCornerRadius: 9,
         shadowRadius: 0
     )
-    
-    static let small = NotchlyConfiguration(
+
+    public static let small = NotchlyConfiguration(
         width: 350,
         height: 150,
         topCornerRadius: 9,
@@ -42,7 +41,7 @@ public struct NotchPresets {
         shadowRadius: 0
     )
 
-    static let medium = NotchlyConfiguration(
+    public static let medium = NotchlyConfiguration(
         width: 400,
         height: 175,
         topCornerRadius: 9,
@@ -50,7 +49,7 @@ public struct NotchPresets {
         shadowRadius: 0
     )
 
-    static let large = NotchlyConfiguration(
+    public static let large = NotchlyConfiguration(
         width: 750,
         height: 175,
         topCornerRadius: 20,
@@ -59,13 +58,14 @@ public struct NotchPresets {
     )
 }
 
+/// Preview different Notchly configurations.
 struct NotchConfigurationsPreview: View {
     let configurations: [(String, NotchlyConfiguration)] = [
-        ("Default Notch", NotchPresets.defaultNotch),
-        ("Live Activity", NotchPresets.liveActivity),
-        ("Small", NotchPresets.small),
-        ("Medium", NotchPresets.medium),
-        ("Large", NotchPresets.large)
+        ("Default", .default),
+        ("Activity", .activity),
+        ("Small", .small),
+        ("Medium", .medium),
+        ("Large", .large)
     ]
 
     var body: some View {

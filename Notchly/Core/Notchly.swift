@@ -37,7 +37,7 @@ public class Notchly<Content>: ObservableObject where Content: View {
     @Published var notchHeight: CGFloat = 35
 
     /// Use configuration instead of raw values
-    @Published var configuration: NotchlyConfiguration = NotchPresets.defaultNotch
+    @Published var configuration: NotchlyConfiguration = .default
 
     /// Tracks whether the mouse is currently inside the notch.
     @Published var isMouseInside: Bool = false
@@ -148,7 +148,7 @@ public extension Notchly {
     /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
         withAnimation(animation) {
-            let preset = expanded ? NotchPresets.large : NotchPresets.defaultNotch
+            let preset = expanded ? NotchlyConfiguration.large : NotchlyConfiguration.default
             self.configuration = preset // ✅ Update the active configuration
 
             self.notchWidth = preset.width
