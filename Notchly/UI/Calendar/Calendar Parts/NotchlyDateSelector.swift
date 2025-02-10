@@ -13,7 +13,6 @@ import AppKit // ✅ Required for NSHapticFeedbackManager
 /// - Displays a range of past and future dates.
 /// - Highlights the selected date.
 /// - Automatically centers "Today" on first open.
-/// - Prevents overscrolling to avoid empty gaps.
 /// - Provides haptic feedback on date selection.
 struct NotchlyDateSelector: View {
     
@@ -23,7 +22,7 @@ struct NotchlyDateSelector: View {
     @State private var scrollPosition: Int?
     @State private var pendingSelection: Date?
     @State private var isScrolling = false
-    @State private var monthBounce: Bool = false // ✅ Track bounce animation
+    @State private var monthBounce = false
     @State private var debounceTimer: Timer?
 
     private let config = DateSelectorConfig()
@@ -43,21 +42,17 @@ private extension NotchlyDateSelector {
     var monthBlock: some View {
         Text(selectedDate.formatted(.dateTime.month()))
             .font(.system(size: 26, weight: .bold))
-            .foregroundColor(monthBounce ? Color.white.opacity(0.6) : .white) // ✅ Flash effect
+            .foregroundColor(monthBounce ? Color.white.opacity(0.6) : .white)
             .padding(.leading, 6)
             .background(monthGradient)
             .offset(x: 8, y: -4)
-            .scaleEffect(monthBounce ? 1.15 : 1.0) // ✅ Bounce effect
+            .scaleEffect(monthBounce ? 1.15 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.6), value: monthBounce)
             .zIndex(2)
             .onTapGesture {
                 monthBounce = true
                 scrollToToday()
-
-                // ✅ Reset bounce effect after a brief delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    monthBounce = false
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { monthBounce = false }
             }
     }
     
@@ -93,14 +88,13 @@ private extension NotchlyDateSelector {
         .scrollTargetLayout()
         .scrollPosition(id: $scrollPosition, anchor: .center)
         .scrollTargetBehavior(.viewAligned)
-        .onChange(of: scrollPosition) {
-            if let index = scrollPosition {
+        .onChange(of: scrollPosition) { oldValue, newValue in
+            if let index = newValue {
                 let newDate = dateForIndex(index - config.offset + 1)
-
-                // ✅ Prevent shifting left by ensuring `scrollPosition` doesn't change unexpectedly
                 if selectedDate != newDate {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         selectedDate = newDate
+                        triggerHapticFeedback()
                     }
                 }
             }
@@ -116,15 +110,13 @@ private extension NotchlyDateSelector {
             
             Button(action: { handleDateSelection(date) }) {
                 VStack(spacing: 3) {
-                    // 🔹 Weekday (always aligned)
                     Text(date.formatted(.dateTime.weekday(.narrow)))
                         .font(.caption2)
                         .frame(width: 18, height: 10)
                         .foregroundColor(isSelected ? .white : .gray.opacity(0.6))
                     
-                    // 🔹 Date Number (🔥 Now **always bold** to prevent flickering)
                     Text("\(Calendar.current.component(.day, from: date))")
-                        .font(.system(size: isSelected ? 20 : 14, weight: .bold)) // ✅ Always bold
+                        .font(.system(size: isSelected ? 20 : 14, weight: .bold))
                         .foregroundColor(.white)
                         .scaleEffect(isSelected ? 1.25 : 1.0)
                         .offset(y: isSelected ? 3 : 0)
@@ -141,7 +133,6 @@ private extension NotchlyDateSelector {
 // MARK: - Behavior Logic
 private extension NotchlyDateSelector {
     
-    /// Handles Date Selection via Click
     func handleDateSelection(_ date: Date) {
         let targetIndex = indexForDate(date)
         isScrolling = true
@@ -150,44 +141,39 @@ private extension NotchlyDateSelector {
             scrollPosition = targetIndex + 3
         }
 
-        // ✅ Debounce: Wait before setting `selectedDate` to avoid flickering
-        debounceTimer?.invalidate()
-        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { _ in
-            selectedDate = date
-            pendingSelection = nil
-            isScrolling = false
-        }
-
-        pendingSelection = date
         triggerHapticFeedback()
+
+        debounceTimer?.invalidate()
+        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) {
+            _ in selectedDate = date
+        }
     }
 
-    /// Handles Date Selection via Scroll
     func handleScrollUpdate(_ newValue: Int?) {
         guard let newIndex = newValue else { return }
 
         let newDate = dateForIndex(newIndex - config.offset)
 
-        // ✅ Prevents the leftward shift by locking the scroll position
         if !Calendar.current.isDate(selectedDate, inSameDayAs: newDate) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            DispatchQueue.main.async {
                 selectedDate = newDate
-                scrollPosition = newIndex // 🔥 Locks it properly
+                scrollPosition = newIndex
             }
         }
     }
 
-    /// Centers Scroll on Today
     func scrollToToday() {
         let todayIndex = indexForDate(Date())
-
+        
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             scrollPosition = todayIndex + 3
         }
 
+        triggerHapticFeedback()
+        
         debounceTimer?.invalidate()
-        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { _ in
-            selectedDate = Date()
+        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) {
+            _ in selectedDate = Date()
         }
     }
 
@@ -202,7 +188,7 @@ private extension NotchlyDateSelector {
 private extension NotchlyDateSelector {
     func triggerHapticFeedback() {
         let feedback = NSHapticFeedbackManager.defaultPerformer
-        feedback.perform(.alignment, performanceTime: .default)
+        feedback.perform(.alignment, performanceTime: .now)
     }
 }
 
@@ -222,9 +208,9 @@ private extension NotchlyDateSelector {
 
 // MARK: - DateSelector Config
 struct DateSelectorConfig {
-    var past: Int = 30
-    var future: Int = 30
-    var steps: Int = 1
+    var past = 30
+    var future = 30
+    var steps = 1
     var spacing: CGFloat = 6
-    var offset: Int = 3
+    var offset = 3
 }
