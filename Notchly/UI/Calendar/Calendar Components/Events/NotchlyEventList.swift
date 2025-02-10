@@ -4,10 +4,15 @@
 //
 //  Created by Mason Blumling on 2/2/25.
 //
+//  This file displays events for the selected date in Notchly.
+//  - Highlights pending, awaiting response, and conflicting events.
+//  - Opens events in the Calendar app when tapped.
+//
 
 import SwiftUI
 import EventKit
 
+// MARK: - Event List View
 struct NotchlyEventList: View {
     @State var cachedUserEmails: Set<String> = []
     var selectedDate: Date
@@ -29,6 +34,7 @@ struct NotchlyEventList: View {
 // MARK: - UI Components
 private extension NotchlyEventList {
     
+    /// Displays a placeholder when no events exist for the selected date.
     func emptyStateView() -> some View {
         Text("No Events")
             .foregroundColor(.gray)
@@ -38,6 +44,7 @@ private extension NotchlyEventList {
             .padding(.vertical, 10)
     }
 
+    /// Displays the list of events, handling conflicts visually.
     func eventListView() -> some View {
         let conflicts = detectConflictingEvents()
 
@@ -61,6 +68,7 @@ private extension NotchlyEventList {
 // MARK: - Event Row
 private extension NotchlyEventList {
     
+    /// Displays an individual event row.
     func eventRow(event: EKEvent, isConflicting: Bool) -> some View {
         let isPending = isEventPending(event)
         let isAwaitingResponses = isEventAwaitingResponses(event)
@@ -108,13 +116,15 @@ private extension NotchlyEventList {
 
 // MARK: - Event UI Elements
 private extension NotchlyEventList {
-    
+
+    /// Generates the event icon (colored dot).
     func eventIcon(_ event: EKEvent) -> some View {
         Circle()
             .fill(event.calendar.cgColor.map { Color($0) } ?? .red)
             .frame(width: 10, height: 10)
     }
 
+    /// Displays the event title, status, and other details.
     func eventDetails(_ event: EKEvent, isPending: Bool, isAwaitingResponses: Bool) -> some View {
         let awaitingNames = awaitingAttendees(event)
         let declinedNames = declinedAttendees(event)
@@ -153,14 +163,14 @@ private extension NotchlyEventList {
                     .font(.caption)
             }
 
-            // 👤 **Show organizer ONLY if it is NOT the user**
+            /// 👤 Show organizer ONLY if it is NOT the user**
             if let organizer, !organizer.isEmpty {
                 Text("Organizer: \(organizer)")
                     .font(.caption)
                     .foregroundColor(.gray.opacity(0.8))
             }
 
-            // 📍 Show location if available
+            /// 📍 Show location if available
             if let location = eventLocation, !location.isEmpty {
                 Text("📍 \(location)")
                     .font(.caption)
@@ -169,6 +179,7 @@ private extension NotchlyEventList {
         }
     }
 
+    /// Displays the event time.
     func eventTime(_ event: EKEvent) -> some View {
         Text(event.isAllDay ? "All Day" : event.startDate.formatted(date: .omitted, time: .shortened))
             .foregroundColor(.gray)
@@ -176,16 +187,15 @@ private extension NotchlyEventList {
     }
 }
 
-// MARK: - Event Filtering
+// MARK: - Event Filtering & Handling
 extension NotchlyEventList {
+    
+    /// Retrieves events for the selected date.
     func eventsForSelectedDate() -> [EKEvent] {
         calendarManager.events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
     }
-}
-
-// MARK: - Event Handling
-private extension NotchlyEventList {
     
+    /// Opens the selected event in the macOS Calendar app.
     func openEventInCalendar(_ event: EKEvent) {
         guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return
