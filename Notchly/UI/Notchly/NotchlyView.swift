@@ -43,13 +43,13 @@ struct NotchView<Content>: View where Content: View {
                                             notchWidth: notchly.notchWidth,
                                             isExpanded: notchly.isMouseInside)
                             .frame(
-                                width: NotchPresets.large.width * 0.55,
-                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0 // ✅ Shrinks with Notch
+                                width: notchly.isMouseInside ? NotchPresets.large.width * 0.55 : NotchPresets.defaultNotch.width * 0.55,
+                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
                             )
                             .opacity(notchly.isMouseInside ? 1 : 0)
-                            .animation(.easeInOut(duration: 0.2), value: notchly.isMouseInside)
                             .clipped()
-                            .transition(.move(edge: .trailing).combined(with: .opacity)) // ✅ Smooth exit transition
+                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing))) // ✅ Shrinks smoothly
+                            .animation(.easeInOut(duration: 0.15), value: notchly.isMouseInside)
 
                         Spacer() // ✅ Ensures right alignment doesn't overflow
                     }
