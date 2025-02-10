@@ -23,6 +23,7 @@ struct NotchlyDateSelector: View {
     @State private var scrollPosition: Int?
     @State private var pendingSelection: Date?
     @State private var isScrolling = false
+    @State private var monthBounce: Bool = false // ✅ Track bounce animation
     @State private var debounceTimer: Timer?
 
     private let config = DateSelectorConfig()
@@ -42,12 +43,22 @@ private extension NotchlyDateSelector {
     var monthBlock: some View {
         Text(selectedDate.formatted(.dateTime.month()))
             .font(.system(size: 26, weight: .bold))
-            .foregroundColor(.white)
+            .foregroundColor(monthBounce ? Color.white.opacity(0.6) : .white) // ✅ Flash effect
             .padding(.leading, 6)
             .background(monthGradient)
             .offset(x: 8, y: -4)
+            .scaleEffect(monthBounce ? 1.15 : 1.0) // ✅ Bounce effect
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: monthBounce)
             .zIndex(2)
-            .onTapGesture { scrollToToday() } // ✅ Click month to return to today
+            .onTapGesture {
+                monthBounce = true
+                scrollToToday()
+
+                // ✅ Reset bounce effect after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    monthBounce = false
+                }
+            }
     }
     
     var monthGradient: some View {
