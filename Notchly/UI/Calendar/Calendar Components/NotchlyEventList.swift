@@ -9,6 +9,7 @@ import SwiftUI
 import EventKit
 
 struct NotchlyEventList: View {
+    @State private var cachedUserEmails: Set<String> = []
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
     var calendarWidth: CGFloat
@@ -261,63 +262,70 @@ private extension NotchlyEventList {
     }
 }
 
+// MARK: - Cached User Emails (Fix 1)
+private extension NotchlyEventList {
+    func fetchAndCacheUserEmails() {
+        DispatchQueue.global(qos: .background).async {
+            let emails = fetchCurrentUserEmails()
+            DispatchQueue.main.async {
+                self.cachedUserEmails = emails
+            }
+        }
+    }
+}
+
 // MARK: - Event Attendee Handling
 private extension NotchlyEventList {
     
     /// Fetches declined attendees, excluding the current user.
     func declinedAttendees(_ event: EKEvent) -> [String] {
-        let currentUserEmails = fetchCurrentUserEmails()
-
         return event.attendees?
-            .filter { $0.participantStatus == .declined && !currentUserEmails.contains($0.name ?? "") }
+            .filter { $0.participantStatus == .declined && !cachedUserEmails.contains($0.name ?? "") }
             .compactMap { $0.name }
             ?? []
     }
 
     /// Fetches attendees who responded "Maybe," excluding the current user.
     func maybeAttendees(_ event: EKEvent) -> [String] {
-        let currentUserEmails = fetchCurrentUserEmails()
-
         return event.attendees?
-            .filter { $0.participantStatus == .tentative && !currentUserEmails.contains($0.name ?? "") }
+            .filter { $0.participantStatus == .tentative && !cachedUserEmails.contains($0.name ?? "") }
             .compactMap { $0.name }
             ?? []
     }
 
     /// Determines the event organizer and ensures it's not the current user.
     func eventOrganizer(_ event: EKEvent) -> String? {
-        // ✅ Step 1: Check Apple's Built-in `isCurrentUser`
         if event.organizer?.isCurrentUser == true {
             print("🔹 Skipping organizer because it's the current user: \(event.organizer?.name ?? "Unknown")")
             return nil
         }
 
-        // ✅ Step 2: Fetch User Emails from Default Calendar
-        let userEmails = fetchCurrentUserEmails()
-        
         if let organizerName = event.organizer?.name {
-            // ✅ Step 3: Ensure the organizer is not in the user's known emails
-            if userEmails.contains(organizerName.lowercased()) {
+            if cachedUserEmails.contains(organizerName.lowercased()) {
                 print("🔹 Skipping organizer \(organizerName) because it's my own email")
                 return nil
             }
-            return organizerName // ✅ Organizer is valid, return their name
+            return organizerName
         }
 
         return nil
     }
-    
+
     /// Fetches all possible email addresses associated with the current user.
     func fetchCurrentUserEmails() -> Set<String> {
         let eventStore = EKEventStore()
-
-        // 🔥 Attempt to get the primary source
         if let defaultSource = eventStore.defaultCalendarForNewEvents?.source?.title,
            defaultSource.contains("@") {
-            return [defaultSource.lowercased()] // ✅ Use this email
+            return [defaultSource.lowercased()]
         }
-
         return []
+    }
+}
+
+// MARK: - Lifecycle (Fix 1 - Call `fetchAndCacheUserEmails()`)
+private extension NotchlyEventList {
+    func onAppear() {
+        fetchAndCacheUserEmails()
     }
 }
 
