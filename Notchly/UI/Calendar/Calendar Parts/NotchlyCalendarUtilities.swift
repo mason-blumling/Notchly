@@ -1,5 +1,5 @@
 //
-//  NotchlyUtilities.swift
+//  NotchlyCalendarUtilities.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 1/29/25.
@@ -10,7 +10,7 @@ import SwiftUI
 import EventKit
 
 // MARK: - Shared Utilities
-struct NotchlyUtilities {
+struct NotchlyCalendarUtilities {
 
     /// Formats a date to display as a weekday letter (e.g., "M", "T", "W")
     static func formattedWeekday(from date: Date) -> String {
