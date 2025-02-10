@@ -202,8 +202,9 @@ private extension NotchlyEventList {
 
     func eventDetails(_ event: EKEvent, isPending: Bool, isAwaitingResponses: Bool) -> some View {
         let awaitingNames = awaitingAttendees(event)
-        let currentUser = EKEventStore().sources.first?.title
-        let organizerName = event.organizer?.name
+        let declinedNames = declinedAttendees(event)
+        let maybeNames = maybeAttendees(event)
+        let organizer = eventOrganizer(event) // ✅ Use our function
         let eventLocation = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return VStack(alignment: .leading, spacing: 2) {
@@ -225,14 +226,26 @@ private extension NotchlyEventList {
                     .font(.caption)
             }
 
-            /// 👤 Show organizer if not the current user
-            if let organizer = organizerName, organizer != currentUser {
+            if !declinedNames.isEmpty {
+                Text("❌ Declined: \(declinedNames.joined(separator: ", "))")
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+
+            if !maybeNames.isEmpty {
+                Text("🤔 Maybe: \(maybeNames.joined(separator: ", "))")
+                    .foregroundColor(.yellow)
+                    .font(.caption)
+            }
+
+            // 👤 **Show organizer ONLY if it is NOT the user**
+            if let organizer, !organizer.isEmpty {
                 Text("Organizer: \(organizer)")
                     .font(.caption)
                     .foregroundColor(.gray.opacity(0.8))
             }
 
-            /// 📍 Show location if available
+            // 📍 Show location if available
             if let location = eventLocation, !location.isEmpty {
                 Text("📍 \(location)")
                     .font(.caption)
@@ -245,6 +258,66 @@ private extension NotchlyEventList {
         Text(event.isAllDay ? "All Day" : event.startDate.formatted(date: .omitted, time: .shortened))
             .foregroundColor(.gray)
             .font(.caption)
+    }
+}
+
+// MARK: - Event Attendee Handling
+private extension NotchlyEventList {
+    
+    /// Fetches declined attendees, excluding the current user.
+    func declinedAttendees(_ event: EKEvent) -> [String] {
+        let currentUserEmails = fetchCurrentUserEmails()
+
+        return event.attendees?
+            .filter { $0.participantStatus == .declined && !currentUserEmails.contains($0.name ?? "") }
+            .compactMap { $0.name }
+            ?? []
+    }
+
+    /// Fetches attendees who responded "Maybe," excluding the current user.
+    func maybeAttendees(_ event: EKEvent) -> [String] {
+        let currentUserEmails = fetchCurrentUserEmails()
+
+        return event.attendees?
+            .filter { $0.participantStatus == .tentative && !currentUserEmails.contains($0.name ?? "") }
+            .compactMap { $0.name }
+            ?? []
+    }
+
+    /// Determines the event organizer and ensures it's not the current user.
+    func eventOrganizer(_ event: EKEvent) -> String? {
+        // ✅ Step 1: Check Apple's Built-in `isCurrentUser`
+        if event.organizer?.isCurrentUser == true {
+            print("🔹 Skipping organizer because it's the current user: \(event.organizer?.name ?? "Unknown")")
+            return nil
+        }
+
+        // ✅ Step 2: Fetch User Emails from Default Calendar
+        let userEmails = fetchCurrentUserEmails()
+        
+        if let organizerName = event.organizer?.name {
+            // ✅ Step 3: Ensure the organizer is not in the user's known emails
+            if userEmails.contains(organizerName.lowercased()) {
+                print("🔹 Skipping organizer \(organizerName) because it's my own email")
+                return nil
+            }
+            return organizerName // ✅ Organizer is valid, return their name
+        }
+
+        return nil
+    }
+    
+    /// Fetches all possible email addresses associated with the current user.
+    func fetchCurrentUserEmails() -> Set<String> {
+        let eventStore = EKEventStore()
+
+        // 🔥 Attempt to get the primary source
+        if let defaultSource = eventStore.defaultCalendarForNewEvents?.source?.title,
+           defaultSource.contains("@") {
+            return [defaultSource.lowercased()] // ✅ Use this email
+        }
+
+        return []
     }
 }
 
