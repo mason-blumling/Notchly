@@ -202,6 +202,9 @@ private extension NotchlyEventList {
 
     func eventDetails(_ event: EKEvent, isPending: Bool, isAwaitingResponses: Bool) -> some View {
         let awaitingNames = awaitingAttendees(event)
+        let currentUser = EKEventStore().sources.first?.title
+        let organizerName = event.organizer?.name
+        let eventLocation = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(event.title)
@@ -220,6 +223,20 @@ private extension NotchlyEventList {
                 Text("Waiting on \(awaitingNames.joined(separator: ", "))")
                     .foregroundColor(.blue)
                     .font(.caption)
+            }
+
+            /// 👤 Show organizer if not the current user
+            if let organizer = organizerName, organizer != currentUser {
+                Text("Organizer: \(organizer)")
+                    .font(.caption)
+                    .foregroundColor(.gray.opacity(0.8))
+            }
+
+            /// 📍 Show location if available
+            if let location = eventLocation, !location.isEmpty {
+                Text("📍 \(location)")
+                    .font(.caption)
+                    .foregroundColor(.gray.opacity(0.8))
             }
         }
     }
