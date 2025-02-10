@@ -88,7 +88,7 @@ struct GoZoneVector_Preview: View {
             .fill(.white)
             .fill(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.purple]), startPoint: .top, endPoint: .bottom))
             .frame(width: 500, height: 100)
-            .background(Color.black)
+            .background(NotchlyTheme.background)
             .padding()
             .padding()
             .padding()

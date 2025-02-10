@@ -48,7 +48,7 @@ struct NotchlyCalendarView: View {
         HStack {
             Text(selectedDate.formatted(.dateTime.month()))
                 .font(.title2).bold()
-                .foregroundColor(.white)
+                .foregroundColor(NotchlyTheme.primaryText)
             Spacer()
         }
     }

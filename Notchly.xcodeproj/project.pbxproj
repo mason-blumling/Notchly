@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */; };
+		580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20542D59B36600D66D57 /* NotchlyTheme.swift */; };
 		58437E9F2D504D6400FF92AA /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58437E9E2D504D6400FF92AA /* MetalKit.framework */; };
 		587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */; };
 		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
@@ -52,6 +53,7 @@
 
 /* Begin PBXFileReference section */
 		580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyAnimations.swift; sourceTree = "<group>"; };
+		580F20542D59B36600D66D57 /* NotchlyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyTheme.swift; sourceTree = "<group>"; };
 		58437E9E2D504D6400FF92AA /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -122,13 +124,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		580F204F2D59AD0200D66D57 /* Notchly Parts */ = {
+		580F204F2D59AD0200D66D57 /* Core Components */ = {
 			isa = PBXGroup;
 			children = (
 				587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */,
 				58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */,
 			);
-			path = "Notchly Parts";
+			path = "Core Components";
 			sourceTree = "<group>";
 		};
 		58A40D5D2D094923002B5165 = {
@@ -183,7 +185,7 @@
 				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
 				58C97BED2D49ACC3006FFC06 /* Core */,
 				58C97BEC2D49ACBC006FFC06 /* UI */,
-				58C97BEF2D49ACD0006FFC06 /* Helpers */,
+				58C97BEF2D49ACD0006FFC06 /* Utilities */,
 				58C2A7122D3DAD0200764D80 /* Resources */,
 				58C97BF02D49ACDA006FFC06 /* Testing */,
 				58C97BF12D49AD4E006FFC06 /* Xcode Stuff */,
@@ -213,18 +215,19 @@
 				58C97BC92D487E94006FFC06 /* Notchly.swift */,
 				58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */,
 				58C97BCD2D488008006FFC06 /* NotchlyView.swift */,
-				580F204F2D59AD0200D66D57 /* Notchly Parts */,
+				580F204F2D59AD0200D66D57 /* Core Components */,
 			);
 			path = Core;
 			sourceTree = "<group>";
 		};
-		58C97BEF2D49ACD0006FFC06 /* Helpers */ = {
+		58C97BEF2D49ACD0006FFC06 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
 				58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */,
 				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
+				580F20542D59B36600D66D57 /* NotchlyTheme.swift */,
 			);
-			path = Helpers;
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 		58C97BF02D49ACDA006FFC06 /* Testing */ = {
@@ -250,12 +253,12 @@
 			children = (
 				58C2A7362D3DAD6800764D80 /* CalendarManager.swift */,
 				58C97BFA2D4B350D006FFC06 /* NotchlyCalendarView.swift */,
-				58C97C182D5003A4006FFC06 /* Calendar Parts */,
+				58C97C182D5003A4006FFC06 /* Calendar Components */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
 		};
-		58C97C182D5003A4006FFC06 /* Calendar Parts */ = {
+		58C97C182D5003A4006FFC06 /* Calendar Components */ = {
 			isa = PBXGroup;
 			children = (
 				58C97C1B2D5003CA006FFC06 /* NotchlyCalendarUtilities.swift */,
@@ -263,7 +266,7 @@
 				58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */,
 				58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */,
 			);
-			path = "Calendar Parts";
+			path = "Calendar Components";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -418,6 +421,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */,
+				580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */,
 				58C97BCA2D487E98006FFC06 /* Notchly.swift in Sources */,
 				58C97C172D500394006FFC06 /* NotchlyDateSelector.swift in Sources */,
 				58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */,

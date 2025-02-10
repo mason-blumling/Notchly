@@ -75,15 +75,15 @@ struct NotchConfigurationsPreview: View {
                     VStack {
                         Text(name)
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(NotchlyTheme.primaryText)
 
                         NotchlyShape(
                             bottomCornerRadius: config.bottomCornerRadius,
                             topCornerRadius: config.topCornerRadius
                         )
-                        .fill(Color.black)
+                        .fill(NotchlyTheme.background)
                         .frame(width: config.width, height: config.height)
-                        .shadow(color: .black.opacity(0.5), radius: config.shadowRadius)
+                        .shadow(color: NotchlyTheme.shadow, radius: config.shadowRadius)
                     }
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.2)))

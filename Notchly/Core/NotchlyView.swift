@@ -27,7 +27,7 @@ struct NotchView<Content>: View where Content: View {
                         bottomCornerRadius: notchly.configuration.bottomCornerRadius,
                         topCornerRadius: notchly.configuration.topCornerRadius
                     )
-                    .fill(Color.black)
+                    .fill(NotchlyTheme.background)
                     .frame(
                         width: notchly.isMouseInside ? notchly.notchWidth : NotchlyConfiguration.default.width,
                         height: notchly.isMouseInside ? notchly.notchHeight : NotchlyConfiguration.default.height

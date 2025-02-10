@@ -58,16 +58,16 @@ private extension NotchlyDateSelector {
     
     var monthGradient: some View {
         ZStack {
-            Color.black.opacity(1.0)
+            NotchlyTheme.gradientStart
                 .frame(width: 150, height: 45)
                 .offset(x: -50)
                 .allowsHitTesting(false)
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.black.opacity(1.0),
-                    Color.black.opacity(0.9),
-                    Color.black.opacity(0.7),
-                    Color.clear
+                    NotchlyTheme.gradientStart,
+                    NotchlyTheme.gradientMidLeft,
+                    NotchlyTheme.gradientMidRight,
+                    NotchlyTheme.gradientEnd
                 ]),
                 startPoint: .leading,
                 endPoint: .trailing
@@ -117,7 +117,7 @@ private extension NotchlyDateSelector {
                     
                     Text("\(Calendar.current.component(.day, from: date))")
                         .font(.system(size: isSelected ? 20 : 14, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(NotchlyTheme.primaryText)
                         .scaleEffect(isSelected ? 1.25 : 1.0)
                         .offset(y: isSelected ? 3 : 0)
                         .animation(NotchlyAnimations.fastBounce, value: isSelected)

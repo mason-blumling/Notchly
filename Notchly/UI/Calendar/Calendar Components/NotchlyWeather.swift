@@ -57,7 +57,7 @@ struct NotchlyWeatherView: View {
         HStack(spacing: 6) {
             if let weather = weather {
                 Image(systemName: weather.icon).foregroundColor(.yellow)
-                Text(weather.formattedTemperature).font(.footnote).foregroundColor(.white)
+                Text(weather.formattedTemperature).font(.footnote).foregroundColor(NotchlyTheme.primaryText)
             } else {
                 Text("—°").font(.footnote).foregroundColor(.gray)
             }

@@ -49,13 +49,13 @@ struct ContentView: View {
             // Dynamic label that changes based on hover state
             Text("HOWDYYYYYYYY")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(NotchlyTheme.primaryText)
                 .padding()
                 .background(Color.green)
                 .cornerRadius(10)
         }
         .frame(width: 200, height: 40) // Fixed frame size
-        .background(Color.black.opacity(0.8)) // Background for the content
+        .background(NotchlyTheme.gradientMidRight) // Background for the content
         .cornerRadius(20)
     }
 }
