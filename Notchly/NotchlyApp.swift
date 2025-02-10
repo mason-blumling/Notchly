@@ -27,10 +27,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchly: Notchly<ContentView>!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize Notchly with a sample content view
-        notchly = Notchly {
-            ContentView() // Use ContentView as the default notch content
-        }
+        /// Initialize Notchly with a sample content view
+        notchly = Notchly { ContentView() } /// Use ContentView as the default notch content
 
         // Show the Notchly window on the primary screen
         if let screen = NSScreen.main {
@@ -45,23 +43,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 /// A placeholder content view for testing the hover state.
 struct ContentView: View {
     var body: some View {
-        VStack {
-            // Dynamic label that changes based on hover state
-            Text("HOWDYYYYYYYY")
-                .font(.headline)
-                .foregroundColor(NotchlyTheme.primaryText)
-                .padding()
-                .background(Color.green)
-                .cornerRadius(10)
-        }
-        .frame(width: 200, height: 40) // Fixed frame size
-        .background(NotchlyTheme.gradientMidRight) // Background for the content
-        .cornerRadius(20)
+        VStack { Text("HI") }
     }
-}
-
-// MARK: - Preview
-
-#Preview {
-    ContentView() // Preview the sample ContentView
 }

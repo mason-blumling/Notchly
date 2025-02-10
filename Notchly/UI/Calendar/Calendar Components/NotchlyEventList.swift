@@ -144,7 +144,6 @@ private extension NotchlyEventList {
 
 // MARK: - Conflict Handling
 private extension NotchlyEventList {
-    
     func eventsWithConflicts() -> [AnyHashable] {
         var result: [AnyHashable] = []
         let events = eventsForSelectedDate().sorted { $0.startDate < $1.startDate }
@@ -154,9 +153,15 @@ private extension NotchlyEventList {
             let event = events[i]
             result.append(event)
 
+            // ✅ Skip all-day events from conflict checking
+            if event.isAllDay { continue }
+
+            // ✅ Ensure we are not out-of-bounds
             if i < events.count - 1 {
                 let nextEvent = events[i + 1]
-                if conflicts.contains(event.eventIdentifier) && conflicts.contains(nextEvent.eventIdentifier) {
+
+                // ✅ Ensure the next event is not all-day before adding conflict info
+                if !nextEvent.isAllDay && conflicts.contains(event.eventIdentifier) && conflicts.contains(nextEvent.eventIdentifier) {
                     result.append(ConflictInfo(event1: event, event2: nextEvent))
                 }
             }
@@ -166,7 +171,12 @@ private extension NotchlyEventList {
 
     func detectConflictingEvents() -> Set<String> {
         var conflicts: Set<String> = []
-        let sortedEvents = eventsForSelectedDate().sorted { $0.startDate < $1.startDate }
+        let sortedEvents = eventsForSelectedDate()
+            .filter { !$0.isAllDay } // ✅ Exclude all-day events from conflict checks but not from display
+            .sorted { $0.startDate < $1.startDate }
+
+        // ✅ Prevent crash: Ensure at least 2 time-based events exist
+        guard sortedEvents.count > 1 else { return conflicts }
 
         for i in 0..<sortedEvents.count - 1 {
             let currentEvent = sortedEvents[i]

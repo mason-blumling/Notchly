@@ -42,21 +42,4 @@ struct NotchlyCalendarView: View {
         .opacity(isExpanded ? 1 : 0)
         .animation(NotchlyAnimations.smoothTransition, value: isExpanded)
     }
-
-    // MARK: - Month Header
-    private func monthHeader() -> some View {
-        HStack {
-            Text(selectedDate.formatted(.dateTime.month()))
-                .font(.title2).bold()
-                .foregroundColor(NotchlyTheme.primaryText)
-            Spacer()
-        }
-    }
-
-    // MARK: - Fetch Weather
-    private func fetchWeather(for date: Date) {
-        WeatherService.shared.getWeather(for: date) { weather in
-            DispatchQueue.main.async { self.weatherInfo = weather }
-        }
-    }
 }
