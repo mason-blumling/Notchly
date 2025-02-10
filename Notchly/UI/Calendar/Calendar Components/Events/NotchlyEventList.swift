@@ -9,7 +9,7 @@ import SwiftUI
 import EventKit
 
 struct NotchlyEventList: View {
-    @State private var cachedUserEmails: Set<String> = []
+    @State var cachedUserEmails: Set<String> = []
     var selectedDate: Date
     @ObservedObject var calendarManager: CalendarManager
     var calendarWidth: CGFloat
@@ -55,15 +55,6 @@ private extension NotchlyEventList {
             .padding(.vertical, 4)
             .padding(.horizontal, 0)
         }
-    }
-
-    func conflictRow(_ conflict: ConflictInfo) -> some View {
-        Text("⚠️ Conflict from \(conflict.overlapTimeRange)")
-            .foregroundColor(.red)
-            .background(Color.red.opacity(0.1).clipShape(RoundedRectangle(cornerRadius: 8)))
-            .font(.caption).italic()
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, 4)
     }
 }
 
@@ -112,83 +103,6 @@ private extension NotchlyEventList {
             }
             openEventInCalendar(event)
         }
-    }
-}
-
-// MARK: - Event Status Detection
-private extension NotchlyEventList {
-    
-    func isEventPending(_ event: EKEvent) -> Bool {
-        guard let attendees = event.attendees else { return false }
-        return attendees.contains { attendee in
-            attendee.isCurrentUser &&
-            (attendee.participantStatus == .pending || attendee.participantStatus == .unknown)
-        }
-    }
-    
-    func isEventAwaitingResponses(_ event: EKEvent) -> Bool {
-        guard let attendees = event.attendees else { return false }
-        let isOrganizer = event.organizer?.isCurrentUser ?? false
-        return isOrganizer && attendees.contains { attendee in
-            attendee.participantStatus == .pending || attendee.participantStatus == .unknown
-        }
-    }
-    
-    func awaitingAttendees(_ event: EKEvent) -> [String] {
-        guard let attendees = event.attendees else { return [] }
-        return attendees.compactMap { attendee in
-            let firstName = attendee.name?.components(separatedBy: " ").first ?? "Unknown"
-            return (attendee.participantStatus == .pending || attendee.participantStatus == .unknown) ? firstName : nil
-        }
-    }
-}
-
-// MARK: - Conflict Handling
-private extension NotchlyEventList {
-    func eventsWithConflicts() -> [AnyHashable] {
-        var result: [AnyHashable] = []
-        let events = eventsForSelectedDate().sorted { $0.startDate < $1.startDate }
-        let conflicts = detectConflictingEvents()
-
-        for i in 0..<events.count {
-            let event = events[i]
-            result.append(event)
-
-            // ✅ Skip all-day events from conflict checking
-            if event.isAllDay { continue }
-
-            // ✅ Ensure we are not out-of-bounds
-            if i < events.count - 1 {
-                let nextEvent = events[i + 1]
-
-                // ✅ Ensure the next event is not all-day before adding conflict info
-                if !nextEvent.isAllDay && conflicts.contains(event.eventIdentifier) && conflicts.contains(nextEvent.eventIdentifier) {
-                    result.append(ConflictInfo(event1: event, event2: nextEvent))
-                }
-            }
-        }
-        return result
-    }
-
-    func detectConflictingEvents() -> Set<String> {
-        var conflicts: Set<String> = []
-        let sortedEvents = eventsForSelectedDate()
-            .filter { !$0.isAllDay } // ✅ Exclude all-day events from conflict checks but not from display
-            .sorted { $0.startDate < $1.startDate }
-
-        // ✅ Prevent crash: Ensure at least 2 time-based events exist
-        guard sortedEvents.count > 1 else { return conflicts }
-
-        for i in 0..<sortedEvents.count - 1 {
-            let currentEvent = sortedEvents[i]
-            let nextEvent = sortedEvents[i + 1]
-
-            if currentEvent.endDate > nextEvent.startDate {
-                conflicts.insert(currentEvent.eventIdentifier)
-                conflicts.insert(nextEvent.eventIdentifier)
-            }
-        }
-        return conflicts
     }
 }
 
@@ -262,73 +176,6 @@ private extension NotchlyEventList {
     }
 }
 
-// MARK: - Cached User Emails (Fix 1)
-private extension NotchlyEventList {
-    func fetchAndCacheUserEmails() {
-        DispatchQueue.global(qos: .background).async {
-            let emails = fetchCurrentUserEmails()
-            DispatchQueue.main.async {
-                self.cachedUserEmails = emails
-            }
-        }
-    }
-}
-
-// MARK: - Event Attendee Handling
-private extension NotchlyEventList {
-    
-    /// Fetches declined attendees, excluding the current user.
-    func declinedAttendees(_ event: EKEvent) -> [String] {
-        return event.attendees?
-            .filter { $0.participantStatus == .declined && !cachedUserEmails.contains($0.name ?? "") }
-            .compactMap { $0.name }
-            ?? []
-    }
-
-    /// Fetches attendees who responded "Maybe," excluding the current user.
-    func maybeAttendees(_ event: EKEvent) -> [String] {
-        return event.attendees?
-            .filter { $0.participantStatus == .tentative && !cachedUserEmails.contains($0.name ?? "") }
-            .compactMap { $0.name }
-            ?? []
-    }
-
-    /// Determines the event organizer and ensures it's not the current user.
-    func eventOrganizer(_ event: EKEvent) -> String? {
-        if event.organizer?.isCurrentUser == true {
-            print("🔹 Skipping organizer because it's the current user: \(event.organizer?.name ?? "Unknown")")
-            return nil
-        }
-
-        if let organizerName = event.organizer?.name {
-            if cachedUserEmails.contains(organizerName.lowercased()) {
-                print("🔹 Skipping organizer \(organizerName) because it's my own email")
-                return nil
-            }
-            return organizerName
-        }
-
-        return nil
-    }
-
-    /// Fetches all possible email addresses associated with the current user.
-    func fetchCurrentUserEmails() -> Set<String> {
-        let eventStore = EKEventStore()
-        if let defaultSource = eventStore.defaultCalendarForNewEvents?.source?.title,
-           defaultSource.contains("@") {
-            return [defaultSource.lowercased()]
-        }
-        return []
-    }
-}
-
-// MARK: - Lifecycle (Fix 1 - Call `fetchAndCacheUserEmails()`)
-private extension NotchlyEventList {
-    func onAppear() {
-        fetchAndCacheUserEmails()
-    }
-}
-
 // MARK: - Supporting Structs
 private extension NotchlyEventList {
     
@@ -350,23 +197,10 @@ private extension NotchlyEventList {
             .opacity(0.3)
         }
     }
-    
-    struct ConflictInfo: Hashable {
-        let event1: EKEvent
-        let event2: EKEvent
-
-        var overlapTimeRange: String {
-            let overlapStart = max(event1.startDate, event2.startDate)
-            let overlapEnd = min(event1.endDate, event2.endDate)
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return "\(formatter.string(from: overlapStart)) - \(formatter.string(from: overlapEnd))"
-        }
-    }
 }
 
 // MARK: - Event Filtering
-private extension NotchlyEventList {
+extension NotchlyEventList {
     func eventsForSelectedDate() -> [EKEvent] {
         calendarManager.events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
     }
