@@ -4,42 +4,62 @@
 //
 //  Created by Mason Blumling on 1/29/25.
 //
+//  This view displays a compact calendar within the Notchly UI.
+//  It includes a date selector, an event list, and adapts dynamically
+//  to the notch expansion state.
+//
 
 import SwiftUI
 import EventKit
 import AppKit
 
+/// Displays the calendar module inside the Notchly UI.
+/// Integrates date selection and event listing, ensuring smooth UX with animations.
 struct NotchlyCalendarView: View {
-    @ObservedObject var calendarManager: CalendarManager
-    @State private var selectedDate: Date = Date()
-    @State private var weatherInfo: WeatherData? // ✅ Stores fetched weather
-    var notchWidth: CGFloat
-    var isExpanded: Bool // ✅ Receive the notch expansion state
+    
+    // MARK: - Properties
 
+    @ObservedObject var calendarManager: CalendarManager /// Handles fetching and managing calendar events.
+    @State private var selectedDate: Date = Date() /// The currently selected date.
+    @State private var weatherInfo: WeatherData? /// Stores fetched weather data for the selected date (future implementation).
+    var notchWidth: CGFloat /// The width of the notch, controlling the layout constraints.
+    var isExpanded: Bool /// Indicates whether the notch is expanded, controlling visibility.
 
+    // MARK: - Body
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // ✅ Month & Date Selector Stay Fixed
+            
+            // MARK: - Date Selector (Fixed)
             VStack(spacing: 2) {
                 Spacer(minLength: 2)
                 NotchlyDateSelector(selectedDate: $selectedDate,
                                     calendarManager: calendarManager)
             }
-            .frame(maxWidth: .infinity, alignment: .leading) // 🔥 Locks left-alignment
+            .frame(maxWidth: .infinity, alignment: .leading) /// Locks left alignment
 
-            // 🔹 Event List (or "No Events" placeholder)
-            NotchlyEventList(selectedDate: selectedDate,
-                             calendarManager: calendarManager,
-                             calendarWidth: NotchlyConfiguration.large.width * 0.45)
-                .frame(maxHeight: .infinity) // 🔥 Expands dynamically but never shifts things
+            // MARK: - Event List
+            NotchlyEventList(
+                selectedDate: selectedDate,
+                calendarManager: calendarManager,
+                calendarWidth: calendarWidth
+            )
+            .frame(maxHeight: .infinity) /// Expands dynamically but stays within bounds
         }
         .frame(
-            width: NotchlyConfiguration.large.width * 0.45, // ✅ Keeps it within the large notch
-            height: NotchlyConfiguration.large.height - 25 // ✅ Matches notch height with slight buffer
+            width: calendarWidth,
+            height: NotchlyConfiguration.large.height - 25 /// Matches notch height with buffer
         )
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .opacity(isExpanded ? 1 : 0)
         .animation(NotchlyAnimations.smoothTransition, value: isExpanded)
+    }
+    
+    // MARK: - Computed Properties
+    
+    /// Dynamically calculates the width of the calendar section.
+    private var calendarWidth: CGFloat {
+        NotchlyConfiguration.large.width * 0.45
     }
 }

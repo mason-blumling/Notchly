@@ -228,8 +228,8 @@
 		58C97BEC2D49ACBC006FFC06 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				580F20612D59E39900D66D57 /* Weather */,
 				58C97BF32D49B148006FFC06 /* Calendar */,
+				580F20612D59E39900D66D57 /* Weather */,
 			);
 			path = UI;
 			sourceTree = "<group>";

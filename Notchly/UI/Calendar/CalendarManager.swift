@@ -22,7 +22,7 @@ class CalendarManager: ObservableObject {
     init(eventStore: EKEventStore = EKEventStore()) {
         self.eventStore = eventStore
         requestAccess { _ in
-            self.fetchEvents()
+            self.events = self.fetchEvents()
         }
         subscribeToCalendarChanges() // ✅ Listen for event changes
     }
@@ -61,7 +61,7 @@ class CalendarManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             print("🔄 Calendar changed, reloading events...")
-            self?.fetchEvents() // ✅ Auto-refresh on changes
+            self?.events = self?.fetchEvents() ?? []
         }
     }
 }
