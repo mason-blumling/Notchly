@@ -141,6 +141,7 @@ public extension Notchly {
         DispatchQueue.main.async {
             withAnimation(self.animation) {
                 self.resizeNotch(expanded: expand)
+//                self.isMouseInside = expand // ✅ Ensures hover area matches notch expansion
             }
         }
     }

@@ -11,10 +11,14 @@ import SwiftUI
 /// It dynamically expands or contracts based on hover interactions.
 struct NotchView<Content>: View where Content: View {
     @ObservedObject var notchly: Notchly<Content>
-    @StateObject private var calendarManager = CalendarManager() // 🔥 Persist CalendarManager
+    @StateObject private var calendarManager = CalendarManager()
+    @StateObject private var nowPlayingManager: NowPlayingManager = NowPlayingManager() ?? NowPlayingManagerMock()!
 
     // Debounce hover state changes
     @State private var debounceWorkItem: DispatchWorkItem?
+    
+    // MARK: - Matched Geometry for Seamless Expansion
+    @Namespace private var notchAnimation
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,25 +39,42 @@ struct NotchView<Content>: View where Content: View {
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
 
-                    // 🔹 Positioning the Calendar Inside Notch
-                    HStack(spacing: 0) {
-                        Spacer(minLength: NotchlyConfiguration.small.width + 10) // ✅ Ensures space after small notch
-
-                        NotchlyCalendarView(calendarManager: calendarManager,
-                                            notchWidth: notchly.notchWidth,
-                                            isExpanded: notchly.isMouseInside)
+                    // 🔹 Media Player on Left, Calendar on Right
+                    HStack(alignment: .center, spacing: 8) { // ✅ Set fixed spacing
+                        Spacer()
+                            .frame(width: 4)
+                        
+                        NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, nowPlayingManager: nowPlayingManager)
+                            .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                             .frame(
-                                width: notchly.isMouseInside ? NotchlyConfiguration.large.width * 0.55 : NotchlyConfiguration.default.width * 0.55,
-                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
+                                width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : 0,
+                                height: notchly.isMouseInside ? notchly.notchHeight * 0.6 : 0
                             )
+                            .padding(.leading, 4) // 🔥 Adds balance by pushing it slightly right
                             .opacity(notchly.isMouseInside ? 1 : 0)
                             .clipped()
-                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing))) // ✅ Shrinks smoothly
+                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
                             .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
 
-                        Spacer() // ✅ Ensures right alignment doesn't overflow
+                        Spacer()
+                            .frame(width: 6)
+                        
+                        // ✅ Remove separate Spacer() and use padding instead
+                        NotchlyCalendarView(calendarManager: calendarManager,
+                                            isExpanded: notchly.isMouseInside)
+                            .matchedGeometryEffect(id: "calendar", in: notchAnimation)
+                            .frame(
+                                width: notchly.isMouseInside ? notchly.notchWidth * 0.50 : 0,
+                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
+                            )
+                            .padding(.trailing, 4) // 🔥 Adds balance by pulling it slightly left
+                            .opacity(notchly.isMouseInside ? 1 : 0)
+                            .clipped()
+                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
+                            .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
                     }
-                    .frame(width: notchly.notchWidth, alignment: .trailing)
+                    .frame(width: notchly.notchWidth, alignment: .center) // ✅ Forces full width of the Notch
+                    .padding(.horizontal, 4) // ✅ Centers everything without shifting left
                 }
                 .onHover { hovering in
                     debounceHover(hovering)

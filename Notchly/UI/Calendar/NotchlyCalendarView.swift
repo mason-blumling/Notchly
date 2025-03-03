@@ -22,7 +22,6 @@ struct NotchlyCalendarView: View {
     @ObservedObject var calendarManager: CalendarManager /// Handles fetching and managing calendar events.
     @State private var selectedDate: Date = Date() /// The currently selected date.
     @State private var weatherInfo: WeatherData? /// Stores fetched weather data for the selected date (future implementation).
-    var notchWidth: CGFloat /// The width of the notch, controlling the layout constraints.
     var isExpanded: Bool /// Indicates whether the notch is expanded, controlling visibility.
 
     // MARK: - Body
@@ -48,7 +47,7 @@ struct NotchlyCalendarView: View {
         }
         .frame(
             width: calendarWidth,
-            height: NotchlyConfiguration.large.height - 25 /// Matches notch height with buffer
+            height: isExpanded ? NotchlyConfiguration.large.height - 25 : 0 // ✅ Prevents incorrect expansion
         )
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))
