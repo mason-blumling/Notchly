@@ -12,11 +12,11 @@
 		580F20592D59DB3600D66D57 /* NotchlyEventConflicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */; };
 		580F205D2D59E16C00D66D57 /* NotchlyEventAttendees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F205C2D59E14B00D66D57 /* NotchlyEventAttendees.swift */; };
 		580F205F2D59E19100D66D57 /* UserEmailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F205E2D59E18F00D66D57 /* UserEmailCache.swift */; };
-		58437E9F2D504D6400FF92AA /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58437E9E2D504D6400FF92AA /* MetalKit.framework */; };
 		586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */; };
 		586807D22D6EB3C9005D4DB5 /* No Artwork.png in Resources */ = {isa = PBXBuildFile; fileRef = 586807D12D6EB3C9005D4DB5 /* No Artwork.png */; };
+		5871AC642D76E803007D9755 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
+		5871AC672D76E806007D9755 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58437E9E2D504D6400FF92AA /* MetalKit.framework */; };
 		587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */; };
-		58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
 		58B6B36D2D7552EA00F2F709 /* Podcasts Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 58B6B36C2D7552EA00F2F709 /* Podcasts Logo.png */; };
 		58B6B36F2D7552F100F2F709 /* Spotify Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 58B6B36E2D7552F100F2F709 /* Spotify Logo.png */; };
 		58B6B3712D7552FA00F2F709 /* Apple Music Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 58B6B3702D7552FA00F2F709 /* Apple Music Logo.png */; };
@@ -115,12 +115,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				58437E9F2D504D6400FF92AA /* MetalKit.framework in Frameworks */,
 				58C97B8E2D45F3D2006FFC06 /* BitCollections in Frameworks */,
+				5871AC642D76E803007D9755 /* EventKit.framework in Frameworks */,
 				58C97B902D45F3D2006FFC06 /* Collections in Frameworks */,
 				58C97B942D45F3D2006FFC06 /* HashTreeCollections in Frameworks */,
-				58A40DA82D094FDB002B5165 /* EventKit.framework in Frameworks */,
 				58C97B962D45F3D2006FFC06 /* HeapModule in Frameworks */,
+				5871AC672D76E806007D9755 /* MetalKit.framework in Frameworks */,
 				58C97B922D45F3D2006FFC06 /* DequeModule in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -672,7 +672,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Notchly/Xcode Stuff/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Notchly needs access to control media playback (Play/Pause/Skip)";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Notchly need access to media playback data to display a real-time control pane";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
+				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "Notchly needs access to control media playback and detect now-playing applications.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -703,7 +707,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Notchly/Xcode Stuff/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Notchly needs access to control media playback (Play/Pause/Skip)";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Notchly need access to media playback data to display a real-time control pane";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
+				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "Notchly needs access to control media playback and detect now-playing applications.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

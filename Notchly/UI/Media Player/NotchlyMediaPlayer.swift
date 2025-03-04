@@ -10,7 +10,7 @@ import AppKit
 
 struct NotchlyMediaPlayer: View {
     var isExpanded: Bool
-    @ObservedObject var mediaMonitor: MediaPlaybackMonitor // ✅ Track media updates
+    @ObservedObject var mediaMonitor: MediaPlaybackMonitor  // ✅ Tracks media updates
 
     @State private var isHovering = false
 
@@ -24,12 +24,15 @@ struct NotchlyMediaPlayer: View {
                     .transition(.opacity.combined(with: .scale))
             }
         }
+        .onAppear {
+            print("📺 NotchlyMediaPlayer LOADED ✅ Monitoring nowPlaying state...")
+        }
         .frame(width: NotchlyConfiguration.large.width * 0.45,
                height: NotchlyConfiguration.large.height * 0.6)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.9)))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .opacity(isExpanded ? 1 : 0)
-        .animation(NotchlyAnimations.smoothTransition, value: isExpanded)
+        .animation(.easeInOut(duration: 0.3), value: isExpanded)
         .shadow(radius: 4)
     }
     
@@ -109,11 +112,14 @@ struct NotchlyMediaPlayer: View {
                     .foregroundColor(.white.opacity(0.8))
             }
 
-            Image(getMusicSource(from: track.sourceApp).icon) // ✅ Convert bundle ID to `MusicSource`
-                .resizable()
-                .frame(width: 18, height: 18)
-                .clipShape(Circle())
-                .offset(x: -4, y: -4)
+            // ✅ Show correct app icon in the bottom-right corner
+            if let appIcon = getMusicSource(from: track.sourceApp)?.icon {
+                Image(appIcon)
+                    .resizable()
+                    .frame(width: 18, height: 18)
+                    .clipShape(Circle())
+                    .offset(x: -4, y: -4)
+            }
         }
     }
 
@@ -150,12 +156,14 @@ struct NotchlyMediaPlayer: View {
     }
 
     // MARK: - Helper Function
-    private func getMusicSource(from bundleID: String) -> MusicSource {
-        switch bundleID {
-        case "com.apple.Music": return .appleMusic
-        case "com.spotify.client": return .spotify
-        default: return .podcasts
-        }
+    private func getMusicSource(from bundleID: String) -> MusicSource? {
+        let normalizedBundleID = bundleID.lowercased() // Normalize for safety
+        
+        if normalizedBundleID.contains("music") { return .appleMusic }
+        if normalizedBundleID.contains("spotify") { return .spotify }
+        if normalizedBundleID.contains("podcast") { return .podcasts }
+        
+        return nil // No match
     }
 }
 
@@ -193,12 +201,12 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
                         NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingInfo(
                             title: "Dibi Dibi Rek",
                             artist: "Ismaël Lô",
-                            album: "Album Placeholder",  // ✅ Ensure album is provided
-                            duration: 200,               // ✅ Ensure duration is provided
-                            elapsedTime: 10,             // ✅ Ensure elapsedTime is provided
-                            isPlaying: true,             // ✅ Ensure isPlaying is set
+                            album: "Album Placeholder",
+                            duration: 200,
+                            elapsedTime: 10,
+                            isPlaying: true,
                             sourceApp: "com.apple.Music",
-                            artwork: nil                 // ✅ Fix artwork issue (set nil or NSImage)
+                            artwork: nil
                         ))
                     }
                 }
