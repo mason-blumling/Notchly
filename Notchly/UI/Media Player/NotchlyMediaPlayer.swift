@@ -10,12 +10,13 @@ import AppKit
 
 struct NotchlyMediaPlayer: View {
     var isExpanded: Bool
-    @State private var nowPlaying: NowPlayingTrack? = nil // No track playing initially
+    @ObservedObject var mediaMonitor: MediaPlaybackMonitor // ✅ Track media updates
+
     @State private var isHovering = false
 
     var body: some View {
         HStack {
-            if let track = nowPlaying {
+            if let track = mediaMonitor.nowPlaying { // ✅ Use mediaMonitor.nowPlaying directly
                 playingView(track: track)
                     .transition(.opacity.combined(with: .scale))
             } else {
@@ -55,7 +56,7 @@ struct NotchlyMediaPlayer: View {
     struct AppIconButton: View {
         let icon: String
         let appURL: String
-        @State private var isHovering = false // 🔥 Local hover state
+        @State private var isHovering = false
 
         var body: some View {
             Button(action: { openApp(appURL) }) {
@@ -64,11 +65,11 @@ struct NotchlyMediaPlayer: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 48, height: 48)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(radius: isHovering ? 5 : 2) // 🔥 Dynamic shadow effect
-                    .scaleEffect(isHovering ? 1.1 : 1.0) // 🔥 Slight zoom on hover
+                    .shadow(radius: isHovering ? 5 : 2)
+                    .scaleEffect(isHovering ? 1.1 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
             }
-            .buttonStyle(PlainButtonStyle()) // Removes default button styling
+            .buttonStyle(PlainButtonStyle())
             .onHover { hovering in
                 isHovering = hovering
             }
@@ -82,7 +83,7 @@ struct NotchlyMediaPlayer: View {
     }
     
     // MARK: - Playing State
-    private func playingView(track: NowPlayingTrack) -> some View {
+    private func playingView(track: NowPlayingInfo) -> some View {
         HStack(spacing: 10) {
             albumArtView(track: track)
             trackInfoView(track: track)
@@ -92,15 +93,23 @@ struct NotchlyMediaPlayer: View {
         .padding(.horizontal, 12)
     }
 
-    private func albumArtView(track: NowPlayingTrack) -> some View {
+    private func albumArtView(track: NowPlayingInfo) -> some View {
         ZStack(alignment: .bottomTrailing) {
-            Image(track.albumArt)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 50, height: 50)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            
-            Image(track.source.icon)
+            if let nsImage = track.artwork {
+                Image(nsImage: nsImage) // ✅ Convert NSImage to SwiftUI Image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+                Image(systemName: "music.note") // ✅ Fallback image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+
+            Image(getMusicSource(from: track.sourceApp).icon) // ✅ Convert bundle ID to `MusicSource`
                 .resizable()
                 .frame(width: 18, height: 18)
                 .clipShape(Circle())
@@ -108,7 +117,7 @@ struct NotchlyMediaPlayer: View {
         }
     }
 
-    private func trackInfoView(track: NowPlayingTrack) -> some View {
+    private func trackInfoView(track: NowPlayingInfo) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(track.title)
                 .font(.system(size: 14, weight: .bold))
@@ -125,9 +134,9 @@ struct NotchlyMediaPlayer: View {
 
     private func playbackControls() -> some View {
         HStack(spacing: 12) {
-            playbackButton(systemName: "backward.fill", action: previousTrack)
-            playbackButton(systemName: "playpause.fill", action: togglePlayPause)
-            playbackButton(systemName: "forward.fill", action: nextTrack)
+            playbackButton(systemName: "backward.fill", action: mediaMonitor.previousTrack)
+            playbackButton(systemName: "playpause.fill", action: mediaMonitor.togglePlayPause)
+            playbackButton(systemName: "forward.fill", action: mediaMonitor.nextTrack)
         }
     }
 
@@ -139,27 +148,18 @@ struct NotchlyMediaPlayer: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
-    // MARK: - App Opening & Playback Actions
-    private func openApp(_ url: String) {
-        if let appURL = URL(string: url) {
-            NSWorkspace.shared.open(appURL)
+
+    // MARK: - Helper Function
+    private func getMusicSource(from bundleID: String) -> MusicSource {
+        switch bundleID {
+        case "com.apple.Music": return .appleMusic
+        case "com.spotify.client": return .spotify
+        default: return .podcasts
         }
     }
-
-    private func previousTrack() { print("⏮ Previous track") }
-    private func togglePlayPause() { print("⏯ Play/Pause track") }
-    private func nextTrack() { print("⏭ Next track") }
 }
 
 // MARK: - Supporting Models
-struct NowPlayingTrack {
-    var title: String
-    var artist: String
-    var albumArt: String
-    var source: MusicSource
-}
-
 enum MusicSource {
     case appleMusic
     case spotify
@@ -167,9 +167,9 @@ enum MusicSource {
 
     var icon: String {
         switch self {
-        case .appleMusic: return "Apple Music"
-        case .spotify: return "Spotify"
-        case .podcasts: return "Podcasts"
+        case .appleMusic: return "applemusic"
+        case .spotify: return "spotify"
+        case .podcasts: return "podcasts"
         }
     }
 }
@@ -177,23 +177,28 @@ enum MusicSource {
 // MARK: - Preview
 struct NotchlyMediaPlayer_Previews: PreviewProvider {
     static var previews: some View {
+        let mediaMonitor = MediaPlaybackMonitor() // ✅ Create a mock instance
+
         VStack {
             // Idle State Preview
-            NotchlyMediaPlayer(isExpanded: true)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .previewLayout(.sizeThatFits)
                 .padding()
                 .background(Color.blue)
 
             // Playing State Preview
-            NotchlyMediaPlayer(isExpanded: true)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .onAppear {
-                    // Simulating a playing track for the preview
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingTrack(
+                        NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingInfo(
                             title: "Dibi Dibi Rek",
                             artist: "Ismaël Lô",
-                            albumArt: "album_art_placeholder",
-                            source: .appleMusic
+                            album: "Album Placeholder",  // ✅ Ensure album is provided
+                            duration: 200,               // ✅ Ensure duration is provided
+                            elapsedTime: 10,             // ✅ Ensure elapsedTime is provided
+                            isPlaying: true,             // ✅ Ensure isPlaying is set
+                            sourceApp: "com.apple.Music",
+                            artwork: nil                 // ✅ Fix artwork issue (set nil or NSImage)
                         ))
                     }
                 }

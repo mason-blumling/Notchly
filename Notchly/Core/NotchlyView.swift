@@ -1,5 +1,5 @@
 //
-//  NotchView.swift
+//  NotchlyView.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 1/27/25.
@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-/// `NotchView` represents the visual notch UI component inside the floating panel.
+/// `NotchlyView` represents the visual notch UI component inside the floating panel.
 /// It dynamically expands or contracts based on hover interactions.
-struct NotchView<Content>: View where Content: View {
+struct NotchlyView<Content>: View where Content: View {
     @ObservedObject var notchly: Notchly<Content>
     @StateObject private var calendarManager = CalendarManager()
-    @StateObject private var nowPlayingManager: NowPlayingManager = NowPlayingManager() ?? NowPlayingManagerMock()!
+    @StateObject private var mediaMonitor = MediaPlaybackMonitor() // ✅ Track media updates
 
     // Debounce hover state changes
     @State private var debounceWorkItem: DispatchWorkItem?
@@ -44,7 +44,7 @@ struct NotchView<Content>: View where Content: View {
                         Spacer()
                             .frame(width: 4)
                         
-                        NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, nowPlayingManager: nowPlayingManager)
+                        NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
                             .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                             .frame(
                                 width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : 0,

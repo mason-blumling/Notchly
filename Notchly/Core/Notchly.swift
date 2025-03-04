@@ -111,7 +111,7 @@ public extension Notchly {
         )
 
         // Create the SwiftUI hosting view containing the notch
-        let view = NSHostingView(rootView: NotchView(notchly: self).foregroundStyle(.white))
+        let view = NSHostingView(rootView: NotchlyView(notchly: self).foregroundStyle(.white))
 
         // Configure the floating panel
         let panel = NotchlyWindowPanel(
