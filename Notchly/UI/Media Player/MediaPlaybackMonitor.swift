@@ -16,7 +16,6 @@ struct NowPlayingInfo {
     var duration: TimeInterval
     var elapsedTime: TimeInterval
     var isPlaying: Bool
-    var sourceApp: String
     var artwork: NSImage?
 }
 
@@ -101,22 +100,7 @@ class MediaPlaybackMonitor: ObservableObject {
             let artist = infoDict["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "Unknown Artist"
             let album = infoDict["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "Unknown Album"
             let isPlaying = (infoDict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0) > 0
-            var sourceApp = infoDict["kMRMediaRemoteNowPlayingClientBundleIdentifier"] as? String ?? "unknown"
 
-            // ✅ Check if we can extract it from client properties
-            if sourceApp == "unknown",
-               let clientProperties = infoDict["kMRMediaRemoteNowPlayingInfoClientProperties"] as? [String: Any],
-               let bundleID = clientProperties["kMRMediaRemoteNowPlayingClientBundleIdentifier"] as? String {
-                sourceApp = bundleID
-            }
-
-            // 🔥 Special Handling for Apple Music Reporting Issues
-            if sourceApp == "com.apple.WebKit.GPU" {
-                sourceApp = "com.apple.Music"
-            }
-
-            print("🎵 DEBUG: Resolved sourceApp -> \(sourceApp)") // Debugging
-            
             var artworkImage: NSImage? = nil
             if let albumArtData = infoDict["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data {
                 artworkImage = NSImage(data: albumArtData)
@@ -130,8 +114,7 @@ class MediaPlaybackMonitor: ObservableObject {
                     duration: 0,
                     elapsedTime: 0,
                     isPlaying: isPlaying,
-                    sourceApp: sourceApp,
-                    artwork: artworkImage ?? NSImage(systemSymbolName: "music.note", accessibilityDescription: "Default Album Art")
+                    artwork: artworkImage
                 )
                 self.isPlaying = isPlaying
             }

@@ -111,15 +111,6 @@ struct NotchlyMediaPlayer: View {
                     .frame(width: 50, height: 50)
                     .foregroundColor(.white.opacity(0.8))
             }
-
-            // ✅ Show correct app icon in the bottom-right corner
-            if let appIcon = getMusicSource(from: track.sourceApp)?.icon {
-                Image(appIcon)
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .clipShape(Circle())
-                    .offset(x: -4, y: -4)
-            }
         }
     }
 
@@ -154,32 +145,6 @@ struct NotchlyMediaPlayer: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-
-    // MARK: - Helper Function
-    private func getMusicSource(from bundleID: String) -> MusicSource? {
-        let normalizedBundleID = bundleID.lowercased() // Normalize for safety
-        
-        if normalizedBundleID.contains("music") { return .appleMusic }
-        if normalizedBundleID.contains("spotify") { return .spotify }
-        if normalizedBundleID.contains("podcast") { return .podcasts }
-        
-        return nil // No match
-    }
-}
-
-// MARK: - Supporting Models
-enum MusicSource {
-    case appleMusic
-    case spotify
-    case podcasts
-
-    var icon: String {
-        switch self {
-        case .appleMusic: return "applemusic"
-        case .spotify: return "spotify"
-        case .podcasts: return "podcasts"
-        }
-    }
 }
 
 // MARK: - Preview
@@ -205,7 +170,6 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
                             duration: 200,
                             elapsedTime: 10,
                             isPlaying: true,
-                            sourceApp: "com.apple.Music",
                             artwork: nil
                         ))
                     }
