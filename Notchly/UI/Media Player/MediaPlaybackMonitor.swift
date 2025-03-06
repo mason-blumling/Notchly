@@ -5,11 +5,13 @@
 //  Created by Mason Blumling on 3/2/25.
 //
 
-import Foundation
-import Cocoa        // for NSImage
-import CoreAudio    // for AudioObject property access
+import SwiftUI
+import Combine
+import AppKit
+import MediaPlayer
 
-struct NowPlayingInfo {
+// MARK: - NowPlayingInfo
+struct NowPlayingInfo: Equatable {
     var title: String
     var artist: String
     var album: String
@@ -19,121 +21,182 @@ struct NowPlayingInfo {
     var artwork: NSImage?
 }
 
+// MARK: - MediaPlaybackMonitor
 class MediaPlaybackMonitor: ObservableObject {
-    @Published var nowPlaying: NowPlayingInfo? = nil
+    @Published var nowPlaying: NowPlayingInfo?
     @Published var isPlaying: Bool = false
+    @Published var activePlayer: String = "Unknown"
 
-    private var MRMediaRemoteGetNowPlayingInfo: ((DispatchQueue, @escaping ([String: Any]) -> Void) -> Void)?
-    private var MRMediaRemoteSendCommand: ((Int, Any?) -> Bool)?
-    private var MRMediaRemoteSetElapsedTime: ((Double) -> Void)?
-    private var MRMediaRemoteRegisterForNowPlayingNotifications: ((DispatchQueue) -> Void)?
+    private var cancellables = Set<AnyCancellable>()
+    private var spotifyToken = "YOUR_SPOTIFY_ACCESS_TOKEN"
 
-    init() {
-        print("🎵 MediaPlaybackMonitor INIT ✅")
+    private let mediaRemoteBundle: CFBundle
+    private let MRMediaRemoteGetNowPlayingInfo: @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
+    private let MRMediaRemoteRegisterForNowPlayingNotifications: @convention(c) (DispatchQueue) -> Void
 
-        // Load MediaRemote functions
-        loadMediaRemoteFunctions()
+    init?() {
+        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
+              let MRMediaRemoteGetNowPlayingInfoPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteGetNowPlayingInfo" as CFString),
+              let MRMediaRemoteRegisterForNowPlayingNotificationsPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteRegisterForNowPlayingNotifications" as CFString)
+        else { return nil }
 
-        // Register for media playback notifications
-        registerNowPlayingNotifications()
-        
-        // Ensure NowPlaying info is fetched on startup
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        self.mediaRemoteBundle = bundle
+        self.MRMediaRemoteGetNowPlayingInfo = unsafeBitCast(MRMediaRemoteGetNowPlayingInfoPointer, to: (@convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void).self)
+        self.MRMediaRemoteRegisterForNowPlayingNotifications = unsafeBitCast(MRMediaRemoteRegisterForNowPlayingNotificationsPointer, to: (@convention(c) (DispatchQueue) -> Void).self)
+
+        setupRemoteCommands()
+        setupNowPlayingObserver()
+        fetchNowPlayingInfo()
+
+        // Periodic refresh as fallback
+        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
             self.fetchNowPlayingInfo()
         }
-
-        if MRMediaRemoteRegisterForNowPlayingNotifications != nil {
-            MRMediaRemoteRegisterForNowPlayingNotifications?(DispatchQueue.main)
-        }
-
-        print("🎵 Notifications Registered ✅")
     }
 
-    private func loadMediaRemoteFunctions() {
-        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")) else {
-            print("❌ Failed to load MediaRemote.framework")
-            return
+    private func setupRemoteCommands() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+
+        commandCenter.playCommand.addTarget { _ in
+            self.togglePlayPause()
+            return .success
         }
 
-        if let ptr = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteGetNowPlayingInfo" as CFString) {
-            typealias MRNowPlayingInfoFunc = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
-            MRMediaRemoteGetNowPlayingInfo = unsafeBitCast(ptr, to: MRNowPlayingInfoFunc.self)
-        }
-        
-        if let ptr = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString) {
-            typealias MRSendCommandFunc = @convention(c) (Int, Any?) -> Bool
-            MRMediaRemoteSendCommand = unsafeBitCast(ptr, to: MRSendCommandFunc.self)
+        commandCenter.pauseCommand.addTarget { _ in
+            self.togglePlayPause()
+            return .success
         }
 
-        if let ptr = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSetElapsedTime" as CFString) {
-            typealias MRSetElapsedTimeFunc = @convention(c) (Double) -> Void
-            MRMediaRemoteSetElapsedTime = unsafeBitCast(ptr, to: MRSetElapsedTimeFunc.self)
+        commandCenter.nextTrackCommand.addTarget { _ in
+            self.nextTrack()
+            return .success
         }
-        
-        if let ptr = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteRegisterForNowPlayingNotifications" as CFString) {
-            typealias MRRegisterFunc = @convention(c) (DispatchQueue) -> Void
-            MRMediaRemoteRegisterForNowPlayingNotifications = unsafeBitCast(ptr, to: MRRegisterFunc.self)
+
+        commandCenter.previousTrackCommand.addTarget { _ in
+            self.previousTrack()
+            return .success
         }
     }
 
-    private func registerNowPlayingNotifications() {
-        NotificationCenter.default.addObserver(self, selector: #selector(fetchNowPlayingInfo), name: NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(fetchNowPlayingInfo), name: NSNotification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification"), object: nil)
-    }
+    private func setupNowPlayingObserver() {
+        MRMediaRemoteRegisterForNowPlayingNotifications(.main)
 
-    @objc func fetchNowPlayingInfo() {
-        print("🎵 Fetching NowPlaying Info...")
-
-        guard let MRNowPlayingInfo = MRMediaRemoteGetNowPlayingInfo else {
-            print("❌ MRMediaRemoteGetNowPlayingInfo is nil")
-            return
-        }
-
-        MRNowPlayingInfo(DispatchQueue.main) { [weak self] infoDict in
-            guard let self = self else { return }
-            guard !infoDict.isEmpty else {
-                print("🚨 No media info available.")
-                return
+        NotificationCenter.default.publisher(for: NSNotification.Name(rawValue: "kMRMediaRemoteNowPlayingInfoDidChangeNotification"))
+            .merge(with: NotificationCenter.default.publisher(for: NSNotification.Name(rawValue: "kMRMediaRemoteNowPlayingApplicationDidChangeNotification")))
+            .sink { [weak self] _ in
+                self?.fetchNowPlayingInfo()
             }
+            .store(in: &cancellables)
 
-            let title = infoDict["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "Unknown Title"
-            let artist = infoDict["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "Unknown Artist"
-            let album = infoDict["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "Unknown Album"
-            let isPlaying = (infoDict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0) > 0
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.Music.playerInfo"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.fetchNowPlayingInfo()
+        }
 
-            var artworkImage: NSImage? = nil
-            if let albumArtData = infoDict["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data {
-                artworkImage = NSImage(data: albumArtData)
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.fetchNowPlayingInfo()
+        }
+    }
+
+    func fetchNowPlayingInfo() {
+        MRMediaRemoteGetNowPlayingInfo(.main) { [weak self] info in
+            guard let self = self else { return }
+
+            let title = info["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? ""
+            let artist = info["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? ""
+            let album = info["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? ""
+            let duration = info["kMRMediaRemoteNowPlayingInfoDuration"] as? TimeInterval ?? 0
+            let elapsedTime = info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0
+            let timestampDate = info["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date ?? Date()
+            let playbackRate = info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0
+            let isPlaying = playbackRate == 1
+            let artworkData = info["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data
+            let artwork = artworkData != nil ? NSImage(data: artworkData!) : nil
+
+            let adjustedElapsedTime: TimeInterval
+            if isPlaying {
+                adjustedElapsedTime = elapsedTime + Date().timeIntervalSince(timestampDate)
+            } else {
+                adjustedElapsedTime = elapsedTime
             }
 
             DispatchQueue.main.async {
-                self.nowPlaying = NowPlayingInfo(
-                    title: title,
-                    artist: artist,
-                    album: album,
-                    duration: 0,
-                    elapsedTime: 0,
-                    isPlaying: isPlaying,
-                    artwork: artworkImage
-                )
-                self.isPlaying = isPlaying
+                if title.isEmpty && artist.isEmpty && album.isEmpty {
+                    self.nowPlaying = nil
+                    self.isPlaying = false
+                    self.activePlayer = "Unknown"
+                } else {
+                    self.nowPlaying = NowPlayingInfo(
+                        title: title,
+                        artist: artist,
+                        album: album,
+                        duration: duration,
+                        elapsedTime: adjustedElapsedTime,
+                        isPlaying: isPlaying,
+                        artwork: artwork
+                    )
+
+                    self.isPlaying = isPlaying
+                    self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+                }
             }
         }
     }
-    
+
+    // MARK: - Playback Control Methods
     func togglePlayPause() {
-        MRMediaRemoteSendCommand?(2, nil)  // kMRTogglePlayPause = 2
+        sendMediaCommand(isPlaying ? 2 : 0)
     }
 
     func nextTrack() {
-        MRMediaRemoteSendCommand?(4, nil)  // kMRNextTrack = 4
+        sendMediaCommand(4)
     }
 
     func previousTrack() {
-        MRMediaRemoteSendCommand?(5, nil)  // kMRPreviousTrack = 5
+        sendMediaCommand(5)
+    }
+    
+    func seekTo(time: TimeInterval) {
+        MRMediaRemoteSetElapsedTime(time)
     }
 
-    func seek(to time: TimeInterval) {
-        MRMediaRemoteSetElapsedTime?(time)
+    // Add this method alongside existing remote commands
+    private func MRMediaRemoteSetElapsedTime(_ elapsedTime: TimeInterval) {
+        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
+              let pointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSetElapsedTime" as CFString) else {
+            return
+        }
+        typealias MRMediaRemoteSetElapsedTimeFunc = @convention(c) (Double) -> Void
+        let setElapsedTime = unsafeBitCast(pointer, to: MRMediaRemoteSetElapsedTimeFunc.self)
+        setElapsedTime(elapsedTime)
+    }
+
+    private func sendMediaCommand(_ command: Int) {
+        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
+              let pointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString) else { return }
+        typealias MRMediaRemoteSendCommand = @convention(c) (Int, AnyObject?) -> Void
+        let sendCommand = unsafeBitCast(pointer, to: MRMediaRemoteSendCommand.self)
+        sendCommand(command, nil)
+    }
+}
+
+// MARK: - Non-failable fallback initializer
+extension MediaPlaybackMonitor {
+    convenience init?(fallback: Bool) {
+        self.init()
+        nowPlaying = nil
+        isPlaying = false
+        activePlayer = "None"
+    }
+
+    static func fallback() -> MediaPlaybackMonitor {
+        return MediaPlaybackMonitor(fallback: true)!
     }
 }

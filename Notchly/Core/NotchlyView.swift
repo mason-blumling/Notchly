@@ -12,7 +12,7 @@ import SwiftUI
 struct NotchlyView<Content>: View where Content: View {
     @ObservedObject var notchly: Notchly<Content>
     @StateObject private var calendarManager = CalendarManager()
-    @StateObject private var mediaMonitor = MediaPlaybackMonitor() // ✅ Track media updates
+    @StateObject private var mediaMonitor = MediaPlaybackMonitor() ?? MediaPlaybackMonitor.fallback()
 
     // Debounce hover state changes
     @State private var debounceWorkItem: DispatchWorkItem?

@@ -10,13 +10,14 @@ import AppKit
 
 struct NotchlyMediaPlayer: View {
     var isExpanded: Bool
-    @ObservedObject var mediaMonitor: MediaPlaybackMonitor  // ✅ Tracks media updates
-
+    @ObservedObject var mediaMonitor: MediaPlaybackMonitor
+    @State private var currentElapsedTime: TimeInterval = 0
+    @State private var timer: Timer?
     @State private var isHovering = false
 
     var body: some View {
         HStack {
-            if let track = mediaMonitor.nowPlaying { // ✅ Use mediaMonitor.nowPlaying directly
+            if let track = mediaMonitor.nowPlaying {
                 playingView(track: track)
                     .transition(.opacity.combined(with: .scale))
             } else {
@@ -87,13 +88,78 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Playing State
     private func playingView(track: NowPlayingInfo) -> some View {
-        HStack(spacing: 10) {
-            albumArtView(track: track)
-            trackInfoView(track: track)
-            Spacer()
-            playbackControls()
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                albumArtView(track: track)
+                trackInfoView(track: track)
+                Spacer()
+                playbackControls()
+            }
+            .padding(.horizontal, 12)
+
+            // Interactive Progress Bar with padding
+            VStack {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Background bar
+                        Capsule()
+                            .foregroundColor(.white.opacity(0.2))
+                            .frame(height: 4)
+
+                        // Progress bar
+                        Capsule()
+                            .foregroundColor(.white)
+                            .frame(width: progressWidth(geometry: geometry, track: track), height: 4)
+
+                        // Draggable indicator
+                        Circle()
+                            .frame(width: 10, height: 10)
+                            .foregroundColor(.white)
+                            .offset(x: progressWidth(geometry: geometry, track: track) - 5)
+                    }
+                    .contentShape(Rectangle()) // Expands clickable area
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            timer?.invalidate()
+                            let percentage = max(0, min(1, value.location.x / geometry.size.width))
+                            currentElapsedTime = track.duration * percentage
+                        }
+                        .onEnded { value in
+                            let percentage = max(0, min(1, value.location.x / geometry.size.width))
+                            currentElapsedTime = track.duration * percentage
+                            mediaMonitor.seekTo(time: currentElapsedTime)
+                            startTimer(track: track)
+                        }
+                    )
+                }
+                .frame(height: 10) // Compact height
+                .padding(.horizontal, 12) // Padding on sides
+
+                // Time Labels
+                HStack {
+                    Text(formattedTime(currentElapsedTime))
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+
+                    Spacer()
+
+                    Text("-\(formattedTime(track.duration - currentElapsedTime))")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 12)
+            }
+            .padding(.bottom, 4) // Aesthetic spacing below
         }
-        .padding(.horizontal, 12)
+        .onAppear {
+            startTimer(track: track)
+        }
+        .onChange(of: track) { newTrack in
+            startTimer(track: newTrack)
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
     }
 
     private func albumArtView(track: NowPlayingInfo) -> some View {
@@ -116,24 +182,36 @@ struct NotchlyMediaPlayer: View {
 
     private func trackInfoView(track: NowPlayingInfo) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(track.title)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-            
+            MarqueeText(
+                text: track.title,
+                font: .system(size: 14, weight: .bold),
+                color: .white,
+                fadeWidth: 50,       // Adjust fade width as needed
+                animationSpeed: 6.0, // Adjust scrolling speed as desired
+                pauseDuration: 0.5   // Pause before fade out starts
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             Text(track.artist)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.gray)
                 .lineLimit(1)
+            .frame(height: 14)
         }
         .frame(maxWidth: 110, alignment: .leading)
     }
 
     private func playbackControls() -> some View {
         HStack(spacing: 12) {
-            playbackButton(systemName: "backward.fill", action: mediaMonitor.previousTrack)
-            playbackButton(systemName: "playpause.fill", action: mediaMonitor.togglePlayPause)
-            playbackButton(systemName: "forward.fill", action: mediaMonitor.nextTrack)
+            playbackButton(systemName: "backward.fill") {
+                mediaMonitor.previousTrack()
+            }
+            playbackButton(systemName: "playpause.fill") {
+                mediaMonitor.togglePlayPause()
+            }
+            playbackButton(systemName: "forward.fill") {
+                mediaMonitor.nextTrack()
+            }
         }
     }
 
@@ -145,6 +223,32 @@ struct NotchlyMediaPlayer: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    private func formattedTime(_ interval: TimeInterval) -> String {
+        let minutes = Int(interval) / 60
+        let seconds = Int(interval) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func startTimer(track: NowPlayingInfo) {
+        timer?.invalidate()
+        currentElapsedTime = track.elapsedTime
+
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if mediaMonitor.isPlaying {
+                if currentElapsedTime < track.duration {
+                    currentElapsedTime += 1
+                } else {
+                    currentElapsedTime = track.duration
+                }
+            }
+        }
+    }
+    
+    private func progressWidth(geometry: GeometryProxy, track: NowPlayingInfo) -> CGFloat {
+        let percentage = track.duration > 0 ? currentElapsedTime / track.duration : 0
+        return geometry.size.width * CGFloat(min(max(percentage, 0), 1))
+    }
 }
 
 // MARK: - Preview
@@ -154,13 +258,13 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
 
         VStack {
             // Idle State Preview
-            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor!)
                 .previewLayout(.sizeThatFits)
                 .padding()
                 .background(Color.blue)
 
             // Playing State Preview
-            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor!)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingInfo(
