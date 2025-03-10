@@ -29,6 +29,7 @@ struct NotchlyMediaPlayer: View {
 
                     // Playback controls
                     playbackControls()
+                        .padding(.top, 8) // Increased spacing between controls and progress bar
 
                     VStack(spacing: 4) {
                         GeometryReader { geometry in
@@ -45,9 +46,9 @@ struct NotchlyMediaPlayer: View {
 
                                 // Draggable scrubber
                                 Circle()
-                                    .frame(width: 10, height: 10)
+                                    .frame(width: 8, height: 8) // Reduced size of scrubber
                                     .foregroundColor(.white)
-                                    .offset(x: CGFloat(currentElapsedTime / track.duration) * geometry.size.width - 5)
+                                    .offset(x: CGFloat(currentElapsedTime / track.duration) * geometry.size.width - 4) // Adjusted offset for new size
                                     .gesture(DragGesture(minimumDistance: 0)
                                         .onChanged { value in
                                             let percentage = track.duration > 0 ? max(0, min(1, value.location.x / geometry.size.width)) : 0
@@ -242,7 +243,7 @@ struct NotchlyMediaPlayer: View {
     }
 
     private func playbackControls() -> some View {
-        HStack(spacing: 24) { // Improved spacing for better alignment
+        HStack(spacing: 32) { // Improved spacing for better alignment
             playbackButton(systemName: "backward.fill") {
                 mediaMonitor.previousTrack()
                 restartTimerAfterSkip()
@@ -257,6 +258,7 @@ struct NotchlyMediaPlayer: View {
             }
         }
         .font(.system(size: 20, weight: .bold)) // Increased button size for sharper look
+        .frame(maxWidth: .infinity, alignment: .center) // Center-align playback controls
     }
 
     private func restartTimerAfterSkip() {
