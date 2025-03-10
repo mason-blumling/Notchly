@@ -39,8 +39,8 @@ struct NotchlyView<Content>: View where Content: View {
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
 
-                    // 🔹 Media Player on Left, Calendar on Right
-                    HStack(alignment: .center, spacing: 8) { // ✅ Set fixed spacing
+                    /// 🔹 Media Player on Left, Calendar on Right
+                    HStack(alignment: .center, spacing: 6) { // ✅ Set fixed spacing
                         Spacer()
                             .frame(width: 4)
                         
@@ -48,7 +48,7 @@ struct NotchlyView<Content>: View where Content: View {
                             .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                             .frame(
                                 width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : 0,
-                                height: notchly.isMouseInside ? notchly.notchHeight * 0.6 : 0
+                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
                             )
                             .padding(.leading, 4) // 🔥 Adds balance by pushing it slightly right
                             .opacity(notchly.isMouseInside ? 1 : 0)
@@ -57,7 +57,7 @@ struct NotchlyView<Content>: View where Content: View {
                             .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
 
                         Spacer()
-                            .frame(width: 6)
+                            .frame(width: 5)
                         
                         // ✅ Remove separate Spacer() and use padding instead
                         NotchlyCalendarView(calendarManager: calendarManager,

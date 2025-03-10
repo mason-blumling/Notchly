@@ -14,6 +14,8 @@ struct NotchlyMediaPlayer: View {
     @State private var currentElapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     @State private var isHovering = false
+    @State private var backgroundGlowColor: Color = .clear
+    @State private var glowIntensity: CGFloat = 1.0
 
     var body: some View {
         HStack {
@@ -29,8 +31,8 @@ struct NotchlyMediaPlayer: View {
             print("📺 NotchlyMediaPlayer LOADED ✅ Monitoring nowPlaying state...")
         }
         .frame(width: NotchlyConfiguration.large.width * 0.45,
-               height: NotchlyConfiguration.large.height * 0.6)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.9)))
+               height: NotchlyConfiguration.large.height)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.clear))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .opacity(isExpanded ? 1 : 0)
         .animation(.easeInOut(duration: 0.3), value: isExpanded)
@@ -91,6 +93,7 @@ struct NotchlyMediaPlayer: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 albumArtView(track: track)
+                    .padding(.leading, 5) // Shift artwork slightly left
                 trackInfoView(track: track)
                 Spacer()
                 playbackControls()
@@ -98,85 +101,99 @@ struct NotchlyMediaPlayer: View {
             .padding(.horizontal, 12)
 
             // Interactive Progress Bar with padding
-            VStack {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        // Background bar
-                        Capsule()
-                            .foregroundColor(.white.opacity(0.2))
-                            .frame(height: 4)
-
-                        // Progress bar
-                        Capsule()
-                            .foregroundColor(.white)
-                            .frame(width: progressWidth(geometry: geometry, track: track), height: 4)
-
-                        // Draggable indicator
-                        Circle()
-                            .frame(width: 10, height: 10)
-                            .foregroundColor(.white)
-                            .offset(x: progressWidth(geometry: geometry, track: track) - 5)
-                    }
-                    .contentShape(Rectangle()) // Expands clickable area
-                    .gesture(DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            timer?.invalidate()
-                            let percentage = max(0, min(1, value.location.x / geometry.size.width))
-                            currentElapsedTime = track.duration * percentage
-                        }
-                        .onEnded { value in
-                            let percentage = max(0, min(1, value.location.x / geometry.size.width))
-                            currentElapsedTime = track.duration * percentage
-                            mediaMonitor.seekTo(time: currentElapsedTime)
-                            startTimer(track: track)
-                        }
-                    )
+            Slider(value: Binding(
+                get: { currentElapsedTime },
+                set: { newValue in
+                    currentElapsedTime = newValue
+                    mediaMonitor.seekTo(time: currentElapsedTime)
                 }
-                .frame(height: 10) // Compact height
-                .padding(.horizontal, 12) // Padding on sides
+            ), in: 0...track.duration)
+            .tint(Color.white) // Ensures a bright, pure white color
+            .frame(height: 2) // Modern and minimal thickness
+            .padding(.horizontal, 12)
 
-                // Time Labels
-                HStack {
-                    Text(formattedTime(currentElapsedTime))
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
+            // Time Labels
+            HStack {
+                Text(formattedTime(currentElapsedTime))
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
 
-                    Spacer()
+                Spacer()
 
-                    Text("-\(formattedTime(track.duration - currentElapsedTime))")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal, 12)
+                Text("-\(formattedTime(track.duration - currentElapsedTime))")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
             }
-            .padding(.bottom, 4) // Aesthetic spacing below
+            .padding(.horizontal, 12)
         }
         .onAppear {
             startTimer(track: track)
         }
         .onChange(of: track) { newTrack in
             startTimer(track: newTrack)
+            updateGlowColor(with: newTrack.artwork)
         }
         .onDisappear {
             timer?.invalidate()
+            glowIntensity = 1.0 // Reset glow intensity
         }
     }
 
     private func albumArtView(track: NowPlayingInfo) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            if let nsImage = track.artwork {
-                Image(nsImage: nsImage) // ✅ Convert NSImage to SwiftUI Image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else {
-                Image(systemName: "music.note") // ✅ Fallback image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(.white.opacity(0.8))
+        ZStack {
+            // Refined glow effect only around album artwork
+            Circle()
+                .fill(backgroundGlowColor.opacity(0.4))
+                .frame(width: 85, height: 85) // Adjusted for larger artwork
+                .blur(radius: 20)
+                .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true))
+            
+            Button(action: { openAppForTrack(track) }) {
+                if let nsImage = track.artwork {
+                    // 🎨 Album Art
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 65, height: 65) // Updated to 65x65
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .onAppear {
+                            updateGlowColor(with: nsImage)
+                        }
+                } else {
+                    Image(systemName: "music.note")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 65, height: 65) // Updated to 65x65
+                        .foregroundColor(.white.opacity(0.8))
+                }
             }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Overlay icon indicating the app
+            Image(systemName: mediaMonitor.activePlayer == "Spotify" ? "spotify.logo" : "music.note")
+                .resizable()
+                .frame(width: 20, height: 20)
+                .foregroundColor(.white)
+                .padding(5)
+                .background(Color.black.opacity(0.7))
+                .clipShape(Circle())
+                .offset(x: 30, y: 30) // Positioning the overlay icon
+        }
+        .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
+    }
+
+    private func openAppForTrack(_ track: NowPlayingInfo) {
+        // Determine the active media player and open its URL scheme
+        let appURLString: String
+        if mediaMonitor.activePlayer == "Spotify" {
+            appURLString = "spotify://"
+        } else if mediaMonitor.activePlayer == "Apple Music" {
+            appURLString = "music://"
+        } else {
+            appURLString = "music://"
+        }
+        if let url = URL(string: appURLString) {
+            NSWorkspace.shared.open(url)
         }
     }
 
@@ -190,24 +207,28 @@ struct NotchlyMediaPlayer: View {
                 animationSpeed: 6.0, // Adjust scrolling speed as desired
                 pauseDuration: 0.5   // Pause before fade out starts
             )
+            .id(track.title)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(track.artist)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.gray)
                 .lineLimit(1)
-            .frame(height: 14)
+                .frame(height: 14)
         }
         .frame(maxWidth: 150, alignment: .leading) // Adjust as needed for your layout
     }
 
     private func playbackControls() -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) { // Adjusted spacing for better alignment
             playbackButton(systemName: "backward.fill") {
                 mediaMonitor.previousTrack()
             }
-            playbackButton(systemName: "playpause.fill") {
+            playbackButton(systemName: mediaMonitor.isPlaying ? "pause.fill" : "play.fill") {
                 mediaMonitor.togglePlayPause()
+            }
+            .onChange(of: mediaMonitor.isPlaying) { _ in
+                withAnimation(.easeInOut(duration: 0.1)) {}
             }
             playbackButton(systemName: "forward.fill") {
                 mediaMonitor.nextTrack()
@@ -219,7 +240,7 @@ struct NotchlyMediaPlayer: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .foregroundColor(.white.opacity(0.8))
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 15, weight: .bold)) // Increased button size to 20pt
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -240,14 +261,19 @@ struct NotchlyMediaPlayer: View {
                     currentElapsedTime += 1
                 } else {
                     currentElapsedTime = track.duration
+                    glowIntensity = 1.0 // Reset glow intensity when track ends
                 }
             }
         }
     }
     
-    private func progressWidth(geometry: GeometryProxy, track: NowPlayingInfo) -> CGFloat {
-        let percentage = track.duration > 0 ? currentElapsedTime / track.duration : 0
-        return geometry.size.width * CGFloat(min(max(percentage, 0), 1))
+    private func updateGlowColor(with image: NSImage?) {
+        guard image != nil else {
+            backgroundGlowColor = Color.gray.opacity(0.2) // Default subtle color
+            return
+        }
+        // Extract dominant color from the image (improve logic later)
+        backgroundGlowColor = Color.red.opacity(0.8) // Placeholder for now
     }
 }
 

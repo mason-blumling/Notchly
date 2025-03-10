@@ -19,6 +19,7 @@ struct NowPlayingInfo: Equatable {
     var elapsedTime: TimeInterval
     var isPlaying: Bool
     var artwork: NSImage?
+    var appURL: URL?
 }
 
 // MARK: - MediaPlaybackMonitor
@@ -133,6 +134,21 @@ class MediaPlaybackMonitor: ObservableObject {
                     self.isPlaying = false
                     self.activePlayer = "Unknown"
                 } else {
+                    let activeApp = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+
+                    let appURL: URL? = {
+                        switch activeApp.lowercased() {
+                        case "music", "apple music":
+                            return URL(string: "music://")
+                        case "spotify":
+                            return URL(string: "spotify://")
+                        case "podcasts", "apple podcasts":
+                            return URL(string: "podcasts://")
+                        default:
+                            return nil
+                        }
+                    }()
+
                     self.nowPlaying = NowPlayingInfo(
                         title: title,
                         artist: artist,
@@ -140,11 +156,12 @@ class MediaPlaybackMonitor: ObservableObject {
                         duration: duration,
                         elapsedTime: adjustedElapsedTime,
                         isPlaying: isPlaying,
-                        artwork: artwork
+                        artwork: artwork,
+                        appURL: appURL // ✅ Assign appURL here
                     )
 
                     self.isPlaying = isPlaying
-                    self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+                    self.activePlayer = activeApp
                 }
             }
         }
@@ -152,6 +169,9 @@ class MediaPlaybackMonitor: ObservableObject {
 
     // MARK: - Playback Control Methods
     func togglePlayPause() {
+        DispatchQueue.main.async {
+            self.isPlaying.toggle() // ✅ Instantly update state before sending command
+        }
         sendMediaCommand(isPlaying ? 2 : 0)
     }
 
