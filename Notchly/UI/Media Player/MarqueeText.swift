@@ -45,15 +45,16 @@ struct MarqueeText: View {
                             )
                             .frame(width: fadeWidth)
                         }
-                        .frame(width: containerWidth, alignment: .trailing)
                     )
             }
-            .frame(width: geo.size.width, alignment: .leading)
+            .frame(width: containerWidth, alignment: .leading)
             .clipped()
             .onPreferenceChange(TextWidthKey.self) { width in
-                textWidth = width
-                containerWidth = geo.size.width
-                setupAnimationIfNeeded()
+                if width != textWidth {
+                    textWidth = width
+                    containerWidth = geo.size.width
+                    setupAnimationIfNeeded()
+                }
             }
             .onAppear {
                 containerWidth = geo.size.width
@@ -65,8 +66,10 @@ struct MarqueeText: View {
 
     private func setupAnimationIfNeeded() {
         if textWidth > containerWidth {
-            animate = true
-            startAnimationCycle()
+            if !animate {
+                animate = true
+                startAnimationCycle()
+            }
         } else {
             animate = false
             offset = 0
@@ -75,10 +78,7 @@ struct MarqueeText: View {
     }
 
     private func startAnimationCycle() {
-        let totalScrollDistance = (textWidth - containerWidth + fadeWidth)
-
-        offset = fadeWidth
-        opacity = 0
+        let totalScrollDistance = textWidth - containerWidth
 
         withAnimation(.easeIn(duration: 0.8)) {
             opacity = 1
@@ -95,6 +95,7 @@ struct MarqueeText: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + animationSpeed + pauseDuration + 1.0) {
+            offset = fadeWidth
             startAnimationCycle()
         }
     }

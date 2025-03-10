@@ -198,7 +198,7 @@ struct NotchlyMediaPlayer: View {
                 .lineLimit(1)
             .frame(height: 14)
         }
-        .frame(maxWidth: 110, alignment: .leading)
+        .frame(maxWidth: 150, alignment: .leading) // Adjust as needed for your layout
     }
 
     private func playbackControls() -> some View {
