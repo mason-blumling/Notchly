@@ -32,6 +32,7 @@ class MediaPlaybackMonitor: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var playbackManager = MediaPlaybackManager()
     private var pollingTimer: Timer?
+    private var elapsedTimer: Timer?
     private var debounceWorkItem: DispatchWorkItem?
 
     private let mediaRemoteBundle: CFBundle
@@ -112,27 +113,40 @@ class MediaPlaybackMonitor: ObservableObject {
 
             if let error = info["kMRMediaRemoteError"] as? NSError, error.code == 35 { return }
 
+            let playbackRate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0)
+            let isCurrentlyPlaying = playbackRate == 1
+
             let newInfo = NowPlayingInfo(
                 title: info["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
                 artist: info["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",
                 album: info["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "",
                 duration: info["kMRMediaRemoteNowPlayingInfoDuration"] as? TimeInterval ?? 0,
                 elapsedTime: info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0,
-                isPlaying: (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0) == 1,
+                isPlaying: isCurrentlyPlaying,
                 artwork: (info["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data).flatMap { NSImage(data: $0) },
                 appURL: URL(string: "music://")
             )
 
-            self.debounceWorkItem?.cancel()
-            self.debounceWorkItem = DispatchWorkItem {
-                if self.nowPlaying != newInfo {
-                    self.nowPlaying = newInfo
-                    self.isPlaying = newInfo.isPlaying
-                    self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
-                    self.setThrottledPolling(enabled: !newInfo.isPlaying)
+            DispatchQueue.main.async {
+                // Debounce to avoid rapid updates
+                self.debounceWorkItem?.cancel()
+                self.debounceWorkItem = DispatchWorkItem {
+                    if self.nowPlaying?.title != newInfo.title ||
+                       self.nowPlaying?.artist != newInfo.artist ||
+                       self.nowPlaying?.album != newInfo.album ||
+                       self.nowPlaying?.duration != newInfo.duration ||
+                       self.nowPlaying?.isPlaying != newInfo.isPlaying {
+
+                        self.nowPlaying = newInfo
+                        self.isPlaying = newInfo.isPlaying
+                        self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+
+                        self.startElapsedTimer(from: newInfo.elapsedTime, playing: newInfo.isPlaying)
+                        self.setThrottledPolling(enabled: !newInfo.isPlaying)
+                    }
                 }
+                self.debounceWorkItem.map { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: $0) }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: self.debounceWorkItem!)
         }
     }
 
@@ -143,15 +157,47 @@ class MediaPlaybackMonitor: ObservableObject {
         }
     }
 
-    func togglePlayPause() {
-        isPlaying.toggle()
-        if isPlaying { playbackManager?.togglePlayPause(isPlaying: true) } else { playbackManager?.togglePlayPause(isPlaying: false) }
-        fetchNowPlayingInfo()
+    private func startElapsedTimer(from time: TimeInterval, playing: Bool) {
+        elapsedTimer?.invalidate()
+        nowPlaying?.elapsedTime = time
+
+        guard playing, let duration = nowPlaying?.duration else { return }
+
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self, self.isPlaying else { return }
+                if let currentElapsed = self.nowPlaying?.elapsedTime, currentElapsed < duration {
+                    self.nowPlaying?.elapsedTime += 1
+                } else {
+                    self.elapsedTimer?.invalidate()
+                }
+            }
+        }
     }
 
-    func nextTrack() { playbackManager?.nextTrack(); fetchNowPlayingInfo() }
-    func previousTrack() { playbackManager?.previousTrack(); fetchNowPlayingInfo() }
-    func seekTo(time: TimeInterval) { playbackManager?.seekTo(time: time); fetchNowPlayingInfo() }
+    // Optimistic playback toggling
+    func togglePlayPause() {
+        playbackManager?.togglePlayPause(isPlaying: !isPlaying)
+        isPlaying.toggle() // Optimistically update UI immediately
+        if isPlaying {
+            startElapsedTimer(from: nowPlaying?.elapsedTime ?? 0, playing: true)
+        } else {
+            elapsedTimer?.invalidate()
+        }
+    }
+
+    func nextTrack() {
+        playbackManager?.nextTrack()
+    }
+
+    func previousTrack() {
+        playbackManager?.previousTrack()
+    }
+
+    func seekTo(time: TimeInterval) {
+        playbackManager?.seekTo(time: time)
+        nowPlaying?.elapsedTime = time
+    }
 }
 
 // MARK: - Non-failable fallback initializer
