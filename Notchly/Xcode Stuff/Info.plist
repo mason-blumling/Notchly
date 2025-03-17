@@ -10,9 +10,11 @@
 		<true/>
 	</dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Notchly needs acess to your calendar to display upcoming events!</string>
+	<string>Notchly needs access to your Calendar to display any upcoming and past events.</string>
 	<key>SFSafariCorrespondingMacOSAppBundleIdentifier</key>
 	<string></string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Notchly needs access to Apple Music, your music and video activity, and your media library to enable playback control and manage your local audio files.</string>
 	<key>kTCCServiceMediaLibrary</key>
 	<string></string>
 </dict>

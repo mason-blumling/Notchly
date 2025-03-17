@@ -43,6 +43,7 @@
 		58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */; };
 		58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C1B2D5003CA006FFC06 /* NotchlyCalendarUtilities.swift */; };
 		58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */; };
+		58D248BD2D87854200EC39F7 /* MediaPlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +99,7 @@
 		58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventList.swift; sourceTree = "<group>"; };
 		58C97C1B2D5003CA006FFC06 /* NotchlyCalendarUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyCalendarUtilities.swift; sourceTree = "<group>"; };
 		58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyWeather.swift; sourceTree = "<group>"; };
+		58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -176,6 +178,7 @@
 		586807CD2D6EB1C3005D4DB5 /* Media Player */ = {
 			isa = PBXGroup;
 			children = (
+				58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */,
 				588330452D798484006251C1 /* MarqueeText.swift */,
 				58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */,
 				586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */,
@@ -506,6 +509,7 @@
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,
 				58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */,
+				58D248BD2D87854200EC39F7 /* MediaPlaybackManager.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
 				58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */,
