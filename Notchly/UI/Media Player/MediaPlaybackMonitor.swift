@@ -111,41 +111,37 @@ class MediaPlaybackMonitor: ObservableObject {
         MRMediaRemoteGetNowPlayingInfo(.main) { [weak self] info in
             guard let self = self else { return }
 
-            if let error = info["kMRMediaRemoteError"] as? NSError, error.code == 35 { return }
-
             let playbackRate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0)
-            let isCurrentlyPlaying = playbackRate == 1
+            let fetchedElapsedTime = info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0
 
             let newInfo = NowPlayingInfo(
                 title: info["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
                 artist: info["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",
                 album: info["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "",
                 duration: info["kMRMediaRemoteNowPlayingInfoDuration"] as? TimeInterval ?? 0,
-                elapsedTime: info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0,
-                isPlaying: isCurrentlyPlaying,
+                elapsedTime: fetchedElapsedTime,
+                isPlaying: playbackRate == 1,
                 artwork: (info["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data).flatMap { NSImage(data: $0) },
                 appURL: URL(string: "music://")
             )
 
             DispatchQueue.main.async {
-                // Debounce to avoid rapid updates
                 self.debounceWorkItem?.cancel()
                 self.debounceWorkItem = DispatchWorkItem {
-                    if self.nowPlaying?.title != newInfo.title ||
-                       self.nowPlaying?.artist != newInfo.artist ||
-                       self.nowPlaying?.album != newInfo.album ||
-                       self.nowPlaying?.duration != newInfo.duration ||
-                       self.nowPlaying?.isPlaying != newInfo.isPlaying {
+                    self.nowPlaying = newInfo
+                    self.isPlaying = newInfo.isPlaying
+                    self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+                    self.setThrottledPolling(enabled: !newInfo.isPlaying)
 
-                        self.nowPlaying = newInfo
-                        self.isPlaying = newInfo.isPlaying
-                        self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+                    self.elapsedTimer?.invalidate()
 
-                        self.startElapsedTimer(from: newInfo.elapsedTime, playing: newInfo.isPlaying)
-                        self.setThrottledPolling(enabled: !newInfo.isPlaying)
+                    if newInfo.isPlaying {
+                        self.startElapsedTimer(from: newInfo.elapsedTime, playing: true)
+                    } else {
+                        self.nowPlaying?.elapsedTime = newInfo.elapsedTime
                     }
                 }
-                self.debounceWorkItem.map { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: $0) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: self.debounceWorkItem!)
             }
         }
     }
@@ -157,46 +153,57 @@ class MediaPlaybackMonitor: ObservableObject {
         }
     }
 
-    private func startElapsedTimer(from time: TimeInterval, playing: Bool) {
-        elapsedTimer?.invalidate()
-        nowPlaying?.elapsedTime = time
-
-        guard playing, let duration = nowPlaying?.duration else { return }
-
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self = self, self.isPlaying else { return }
-                if let currentElapsed = self.nowPlaying?.elapsedTime, currentElapsed < duration {
-                    self.nowPlaying?.elapsedTime += 1
-                } else {
-                    self.elapsedTimer?.invalidate()
-                }
-            }
-        }
-    }
-
-    // Optimistic playback toggling
     func togglePlayPause() {
         playbackManager?.togglePlayPause(isPlaying: !isPlaying)
-        isPlaying.toggle() // Optimistically update UI immediately
-        if isPlaying {
-            startElapsedTimer(from: nowPlaying?.elapsedTime ?? 0, playing: true)
-        } else {
-            elapsedTimer?.invalidate()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fetchNowPlayingInfo()
         }
     }
 
     func nextTrack() {
         playbackManager?.nextTrack()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fetchNowPlayingInfo()
+        }
     }
 
     func previousTrack() {
         playbackManager?.previousTrack()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fetchNowPlayingInfo()
+        }
     }
 
     func seekTo(time: TimeInterval) {
         playbackManager?.seekTo(time: time)
-        nowPlaying?.elapsedTime = time
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fetchNowPlayingInfo()
+        }
+    }
+
+    private func startElapsedTimer(from elapsed: TimeInterval, playing: Bool) {
+        elapsedTimer?.invalidate()
+
+        guard playing, let duration = nowPlaying?.duration else { return }
+
+        let startTimestamp = Date().timeIntervalSince1970 - elapsed
+
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self, self.isPlaying else { return }
+
+            let currentElapsed = Date().timeIntervalSince1970 - startTimestamp
+
+            DispatchQueue.main.async {
+                if currentElapsed >= duration {
+                    self.elapsedTimer?.invalidate()
+                    self.nowPlaying?.elapsedTime = duration
+                    self.fetchNowPlayingInfo()
+                } else {
+                    self.nowPlaying?.elapsedTime = currentElapsed
+                }
+            }
+        }
     }
 }
 
