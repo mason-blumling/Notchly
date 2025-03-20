@@ -12,6 +12,7 @@
 		580B13292D8BCA35003EF0AA /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B131E2D8BC807003EF0AA /* MediaPlayer.framework */; };
 		580B132B2D8BCA67003EF0AA /* MediaRemote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; };
 		580B132C2D8BCA67003EF0AA /* MediaRemote.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		580B13312D8BCDD7003EF0AA /* MediaPlaybackTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */; };
 		580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */; };
 		580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20542D59B36600D66D57 /* NotchlyTheme.swift */; };
 		580F20592D59DB3600D66D57 /* NotchlyEventConflicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */; };
@@ -84,8 +85,9 @@
 /* Begin PBXFileReference section */
 		580B131E2D8BC807003EF0AA /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
 		580B13202D8BC89A003EF0AA /* MediaToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaToolbox.framework; path = System/Library/Frameworks/MediaToolbox.framework; sourceTree = SDKROOT; };
-		580B13222D8BCA25003EF0AA /* MediaControl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaControl.framework; path = ../../../System/Library/PrivateFrameworks/MediaControl.framework; sourceTree = "<group>"; };
-		580B13232D8BCA25003EF0AA /* MediaRemote.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemote.framework; path = ../../../System/Library/PrivateFrameworks/MediaRemote.framework; sourceTree = "<group>"; };
+		580B13222D8BCA25003EF0AA /* MediaControl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaControl.framework; path = ../../../../System/Library/PrivateFrameworks/MediaControl.framework; sourceTree = "<group>"; };
+		580B13232D8BCA25003EF0AA /* MediaRemote.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemote.framework; path = ../../../../System/Library/PrivateFrameworks/MediaRemote.framework; sourceTree = "<group>"; };
+		580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackTypes.swift; sourceTree = "<group>"; };
 		580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyAnimations.swift; sourceTree = "<group>"; };
 		580F20542D59B36600D66D57 /* NotchlyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyTheme.swift; sourceTree = "<group>"; };
 		580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventConflicts.swift; sourceTree = "<group>"; };
@@ -172,6 +174,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		580B13322D8BD1B4003EF0AA /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				580B13222D8BCA25003EF0AA /* MediaControl.framework */,
+				580B131E2D8BC807003EF0AA /* MediaPlayer.framework */,
+				580B13232D8BCA25003EF0AA /* MediaRemote.framework */,
+				580B13202D8BC89A003EF0AA /* MediaToolbox.framework */,
+			);
+			path = Media;
+			sourceTree = "<group>";
+		};
+		580B13332D8BD1CB003EF0AA /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				58A40DA72D094FDB002B5165 /* EventKit.framework */,
+			);
+			path = Calendar;
+			sourceTree = "<group>";
+		};
 		580F204F2D59AD0200D66D57 /* Core Components */ = {
 			isa = PBXGroup;
 			children = (
@@ -205,6 +226,7 @@
 				588330452D798484006251C1 /* MarqueeText.swift */,
 				58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */,
 				58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */,
+				580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */,
 				586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */,
 			);
 			path = "Media Player";
@@ -245,11 +267,8 @@
 		58A40DA62D094FDB002B5165 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				580B13222D8BCA25003EF0AA /* MediaControl.framework */,
-				580B13232D8BCA25003EF0AA /* MediaRemote.framework */,
-				580B13202D8BC89A003EF0AA /* MediaToolbox.framework */,
-				580B131E2D8BC807003EF0AA /* MediaPlayer.framework */,
-				58A40DA72D094FDB002B5165 /* EventKit.framework */,
+				580B13332D8BD1CB003EF0AA /* Calendar */,
+				580B13322D8BD1B4003EF0AA /* Media */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -533,6 +552,7 @@
 				586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */,
 				58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */,
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,
+				580B13312D8BCDD7003EF0AA /* MediaPlaybackTypes.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,

@@ -41,7 +41,7 @@ struct NotchlyMediaPlayer: View {
                                 Capsule()
                                     .fill(Color.white)
                                     .frame(
-                                        width: track.duration > 0 ? max(0, min(CGFloat(mediaMonitor.currentTime / track.duration), 1)) * geometry.size.width : 0,
+                                        width: track.duration > 0 ? max(0, min(mediaMonitor.currentTime / track.duration, 1)) * geometry.size.width : 0,
                                         height: 3
                                     )
                                     .animation(mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none, value: mediaMonitor.currentTime)
@@ -53,16 +53,15 @@ struct NotchlyMediaPlayer: View {
                                     .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4) // Adjusted offset for new size
                                     .gesture(DragGesture(minimumDistance: 0)
                                         .onChanged { value in
-                                            mediaMonitor.isScrubbing = true // 🔥 Stop automatic updates
-
-                                            let percentage = track.duration > 0 ? max(0, min(1, value.location.x / geometry.size.width)) : 0
+                                            mediaMonitor.isScrubbing = true
+                                            let percentage = track.duration > 0 ?
+                                                max(0, min(1, value.location.x / geometry.size.width)) : 0
                                             mediaMonitor.currentTime = track.duration * percentage
                                         }
                                         .onEnded { _ in
-                                            mediaMonitor.isScrubbing = false // 🔥 Resume updates
+                                            mediaMonitor.isScrubbing = false
                                             mediaMonitor.seekTo(time: mediaMonitor.currentTime)
-
-                                            // 🔥 Ensure immediate sync after seeking
+                                            
                                             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
                                                 mediaMonitor.fetchNowPlaying()
                                             }
@@ -103,6 +102,12 @@ struct NotchlyMediaPlayer: View {
         .opacity(isExpanded ? 1 : 0)
         .animation(.easeInOut(duration: 0.3), value: isExpanded)
         .shadow(radius: 4)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                print("🛠 Manually triggering fetchNowPlaying() from NotchlyMediaPlayer")
+                MediaPlaybackMonitor.shared.fetchNowPlaying()
+            }
+        }
         .onChange(of: mediaMonitor.nowPlaying) { newTrack in
             if let newTrack = newTrack {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Debounce update
@@ -251,7 +256,7 @@ struct NotchlyMediaPlayer: View {
                 restartTimerAfterSkip()
             }
             playbackButton(systemName: mediaMonitor.isPlaying ? "pause.fill" : "play.fill") {
-                mediaMonitor.togglePlayPause()
+                mediaMonitor.togglePlayPause(isPlaying: mediaMonitor.isPlaying)
                 restartTimerAfterSkip()
             }
             playbackButton(systemName: "forward.fill") {

@@ -10,7 +10,6 @@ import AppKit
 
 final class MediaPlaybackManager {
     private let mediaRemoteBundle: CFBundle
-    private var internalIsPlaying = false // Track internal play state
 
     init?() {
         guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")) else { return nil }
@@ -26,7 +25,13 @@ final class MediaPlaybackManager {
         typealias MRMediaRemoteGetNowPlayingInfoFunc = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
         let getNowPlayingInfo = unsafeBitCast(pointer, to: MRMediaRemoteGetNowPlayingInfoFunc.self)
 
+        let fetchStart = Date()
         getNowPlayingInfo(.global()) { infoDict in
+            guard Date().timeIntervalSince(fetchStart) < 1.0 else {
+                completion(nil) // Discard stale responses
+                return
+            }
+
             let playbackRate = infoDict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0
             let elapsedTime = infoDict["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0
             let timestamp = infoDict["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date ?? Date()
@@ -49,8 +54,7 @@ final class MediaPlaybackManager {
     }
 
     func togglePlayPause(isPlaying: Bool) {
-        internalIsPlaying = !isPlaying
-        sendMediaCommand(internalIsPlaying ? 0 : 2)
+        sendMediaCommand(isPlaying ? 0 : 2)
     }
 
     func nextTrack() {
