@@ -8,16 +8,49 @@
 import Foundation
 import AppKit
 
-class MediaPlaybackManager {
+final class MediaPlaybackManager {
     private let mediaRemoteBundle: CFBundle
+    private var internalIsPlaying = false // Track internal play state
 
     init?() {
         guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")) else { return nil }
         self.mediaRemoteBundle = bundle
     }
 
+    func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void) {
+        guard let pointer = CFBundleGetFunctionPointerForName(mediaRemoteBundle, "MRMediaRemoteGetNowPlayingInfo" as CFString) else {
+            completion(nil)
+            return
+        }
+
+        typealias MRMediaRemoteGetNowPlayingInfoFunc = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
+        let getNowPlayingInfo = unsafeBitCast(pointer, to: MRMediaRemoteGetNowPlayingInfoFunc.self)
+
+        getNowPlayingInfo(.global()) { infoDict in
+            let playbackRate = infoDict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0
+            let elapsedTime = infoDict["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0
+            let timestamp = infoDict["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date ?? Date()
+
+            let adjustedElapsedTime = elapsedTime + (playbackRate == 1 ? Date().timeIntervalSince(timestamp) : 0)
+
+            let nowPlayingInfo = NowPlayingInfo(
+                title: infoDict["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
+                artist: infoDict["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",
+                album: infoDict["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "",
+                duration: infoDict["kMRMediaRemoteNowPlayingInfoDuration"] as? TimeInterval ?? 1,
+                elapsedTime: adjustedElapsedTime,
+                isPlaying: playbackRate == 1,
+                artwork: (infoDict["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data).flatMap { NSImage(data: $0) },
+                appName: infoDict["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
+            )
+
+            completion(nowPlayingInfo)
+        }
+    }
+
     func togglePlayPause(isPlaying: Bool) {
-        sendMediaCommand(isPlaying ? 2 : 0)
+        internalIsPlaying = !isPlaying
+        sendMediaCommand(internalIsPlaying ? 0 : 2)
     }
 
     func nextTrack() {
@@ -29,24 +62,16 @@ class MediaPlaybackManager {
     }
 
     func seekTo(time: TimeInterval) {
-        MRMediaRemoteSetElapsedTime(time)
+        guard let pointer = CFBundleGetFunctionPointerForName(mediaRemoteBundle, "MRMediaRemoteSetElapsedTime" as CFString) else { return }
+        typealias MRMediaRemoteSetElapsedTimeFunc = @convention(c) (Double) -> Void
+        let setElapsedTime = unsafeBitCast(pointer, to: MRMediaRemoteSetElapsedTimeFunc.self)
+        setElapsedTime(time)
     }
 
     private func sendMediaCommand(_ command: Int) {
-        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
-              let pointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString) else { return }
+        guard let pointer = CFBundleGetFunctionPointerForName(mediaRemoteBundle, "MRMediaRemoteSendCommand" as CFString) else { return }
         typealias MRMediaRemoteSendCommand = @convention(c) (Int, AnyObject?) -> Void
         let sendCommand = unsafeBitCast(pointer, to: MRMediaRemoteSendCommand.self)
         sendCommand(command, nil)
-    }
-    
-    private func MRMediaRemoteSetElapsedTime(_ elapsedTime: TimeInterval) {
-        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
-              let pointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSetElapsedTime" as CFString) else {
-            return
-        }
-        typealias MRMediaRemoteSetElapsedTimeFunc = @convention(c) (Double) -> Void
-        let setElapsedTime = unsafeBitCast(pointer, to: MRMediaRemoteSetElapsedTimeFunc.self)
-        setElapsedTime(elapsedTime)
     }
 }

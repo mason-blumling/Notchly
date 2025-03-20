@@ -12,8 +12,6 @@ struct NotchlyMediaPlayer: View {
     private let progressBarHeight: CGFloat = 1.0 // Sleek progress bar height
     var isExpanded: Bool
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
-    @State private var currentElapsedTime: TimeInterval = 0
-    @State private var timer: Timer?
     @State private var isHovering = false
     @State private var backgroundGlowColor: Color = .clear
     @State private var glowIntensity: CGFloat = 1.0
@@ -37,26 +35,37 @@ struct NotchlyMediaPlayer: View {
                                 // Background track
                                 Capsule()
                                     .fill(Color.white.opacity(0.2))
-                                    .frame(height: 3) // Adjusted for modern look
-                                                            
+                                    .frame(height: 3)
+
+                                // Active progress bar
                                 Capsule()
                                     .fill(Color.white)
-                                    .frame(width: track.duration > 0 ? max(0, min(CGFloat(currentElapsedTime / track.duration), 1)) * geometry.size.width : 0, height: 3)
-                                    .animation(mediaMonitor.isPlaying ? .linear(duration: 1.0) : .none, value: currentElapsedTime)
+                                    .frame(
+                                        width: track.duration > 0 ? max(0, min(CGFloat(mediaMonitor.currentTime / track.duration), 1)) * geometry.size.width : 0,
+                                        height: 3
+                                    )
+                                    .animation(mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none, value: mediaMonitor.currentTime)
 
                                 // Draggable scrubber
                                 Circle()
                                     .frame(width: 8, height: 8) // Reduced size of scrubber
                                     .foregroundColor(.white)
-                                    .offset(x: CGFloat(currentElapsedTime / track.duration) * geometry.size.width - 4) // Adjusted offset for new size
+                                    .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4) // Adjusted offset for new size
                                     .gesture(DragGesture(minimumDistance: 0)
                                         .onChanged { value in
+                                            mediaMonitor.isScrubbing = true // 🔥 Stop automatic updates
+
                                             let percentage = track.duration > 0 ? max(0, min(1, value.location.x / geometry.size.width)) : 0
-                                            currentElapsedTime = track.duration * percentage
+                                            mediaMonitor.currentTime = track.duration * percentage
                                         }
                                         .onEnded { _ in
-                                            mediaMonitor.seekTo(time: currentElapsedTime)
-                                            startTimer(track: track) // Resume timer after dragging
+                                            mediaMonitor.isScrubbing = false // 🔥 Resume updates
+                                            mediaMonitor.seekTo(time: mediaMonitor.currentTime)
+
+                                            // 🔥 Ensure immediate sync after seeking
+                                            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
+                                                mediaMonitor.fetchNowPlaying()
+                                            }
                                         }
                                     )
                             }
@@ -65,13 +74,13 @@ struct NotchlyMediaPlayer: View {
 
                         // Time labels
                         HStack {
-                            Text(formattedTime(currentElapsedTime))
+                            Text(formattedTime(mediaMonitor.currentTime))
                                 .font(.system(size: 10))
                                 .foregroundColor(.gray)
 
                             Spacer()
 
-                            Text("-\(formattedTime(track.duration - currentElapsedTime))")
+                            Text("-\(formattedTime(track.duration - mediaMonitor.currentTime))")
                                 .font(.system(size: 10))
                                 .foregroundColor(.gray)
                         }
@@ -85,11 +94,6 @@ struct NotchlyMediaPlayer: View {
                     .transition(.opacity.combined(with: .scale))
             }
         }
-        .onAppear {
-            if let track = mediaMonitor.nowPlaying {
-                startTimer(track: track) // ✅ Ensures timer starts when the player appears
-            }
-        }
         .frame(width: NotchlyConfiguration.large.width * 0.45,
                height: NotchlyConfiguration.large.height + 20) // Extend to bottom of the notch
         .padding(.top, 10)  // Shift the media player down slightly
@@ -101,10 +105,8 @@ struct NotchlyMediaPlayer: View {
         .shadow(radius: 4)
         .onChange(of: mediaMonitor.nowPlaying) { newTrack in
             if let newTrack = newTrack {
-                timer?.invalidate() // Stop previous timer
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Debounce update
-                    currentElapsedTime = newTrack.elapsedTime
-                    startTimer(track: newTrack)
+                    mediaMonitor.currentTime = newTrack.elapsedTime
                 }
             }
         }
@@ -263,9 +265,7 @@ struct NotchlyMediaPlayer: View {
 
     private func restartTimerAfterSkip() {
         if let track = mediaMonitor.nowPlaying {
-            timer?.invalidate()
-            currentElapsedTime = track.elapsedTime
-            startTimer(track: track)
+            mediaMonitor.currentTime = track.elapsedTime
         }
     }
 
@@ -282,24 +282,7 @@ struct NotchlyMediaPlayer: View {
         let seconds = Int(interval) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-    
-    private func startTimer(track: NowPlayingInfo) {
-        timer?.invalidate() // ✅ Stop any existing timer
-        currentElapsedTime = track.elapsedTime // ✅ Ensure correct starting point
 
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            DispatchQueue.main.async {
-                guard mediaMonitor.isPlaying else { return } // ✅ Only update when playing
-                if currentElapsedTime < track.duration {
-                    currentElapsedTime += 1
-                } else {
-                    currentElapsedTime = track.duration
-                    timer?.invalidate() // ✅ Stop timer when song ends
-                }
-            }
-        }
-    }
-    
     private func updateGlowColor(with image: NSImage?) {
         guard image != nil else {
             backgroundGlowColor = Color.gray.opacity(0.2) // Default subtle color
@@ -313,17 +296,17 @@ struct NotchlyMediaPlayer: View {
 // MARK: - Preview
 struct NotchlyMediaPlayer_Previews: PreviewProvider {
     static var previews: some View {
-        let mediaMonitor = MediaPlaybackMonitor() // ✅ Create a mock instance
+        let mediaMonitor = MediaPlaybackMonitor.shared // ✅ Create a mock instance
 
         VStack {
             // Idle State Preview
-            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor!)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .previewLayout(.sizeThatFits)
                 .padding()
                 .background(Color.blue)
 
             // Playing State Preview
-            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor!)
+            NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingInfo(
@@ -333,7 +316,8 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
                             duration: 200,
                             elapsedTime: 10,
                             isPlaying: true,
-                            artwork: nil
+                            artwork: nil,
+                            appName: ""
                         ))
                     }
                 }

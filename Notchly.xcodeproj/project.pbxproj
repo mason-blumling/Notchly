@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		580B13212D8BC89A003EF0AA /* MediaToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13202D8BC89A003EF0AA /* MediaToolbox.framework */; };
+		580B13242D8BCA25003EF0AA /* MediaControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13222D8BCA25003EF0AA /* MediaControl.framework */; };
+		580B13292D8BCA35003EF0AA /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B131E2D8BC807003EF0AA /* MediaPlayer.framework */; };
+		580B132B2D8BCA67003EF0AA /* MediaRemote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; };
+		580B132C2D8BCA67003EF0AA /* MediaRemote.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */; };
 		580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20542D59B36600D66D57 /* NotchlyTheme.swift */; };
 		580F20592D59DB3600D66D57 /* NotchlyEventConflicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */; };
@@ -15,7 +20,6 @@
 		586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */; };
 		586807D22D6EB3C9005D4DB5 /* No Artwork.png in Resources */ = {isa = PBXBuildFile; fileRef = 586807D12D6EB3C9005D4DB5 /* No Artwork.png */; };
 		5871AC642D76E803007D9755 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
-		5871AC672D76E806007D9755 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58437E9E2D504D6400FF92AA /* MetalKit.framework */; };
 		587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */; };
 		588330442D79704C006251C1 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = 588330432D79704C006251C1 /* FeedKit */; };
 		588330462D798485006251C1 /* MarqueeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588330452D798484006251C1 /* MarqueeText.swift */; };
@@ -63,13 +67,30 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		580B132D2D8BCA67003EF0AA /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				580B132C2D8BCA67003EF0AA /* MediaRemote.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		580B131E2D8BC807003EF0AA /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
+		580B13202D8BC89A003EF0AA /* MediaToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaToolbox.framework; path = System/Library/Frameworks/MediaToolbox.framework; sourceTree = SDKROOT; };
+		580B13222D8BCA25003EF0AA /* MediaControl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaControl.framework; path = ../../../System/Library/PrivateFrameworks/MediaControl.framework; sourceTree = "<group>"; };
+		580B13232D8BCA25003EF0AA /* MediaRemote.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemote.framework; path = ../../../System/Library/PrivateFrameworks/MediaRemote.framework; sourceTree = "<group>"; };
 		580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyAnimations.swift; sourceTree = "<group>"; };
 		580F20542D59B36600D66D57 /* NotchlyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyTheme.swift; sourceTree = "<group>"; };
 		580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventConflicts.swift; sourceTree = "<group>"; };
 		580F205C2D59E14B00D66D57 /* NotchlyEventAttendees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventAttendees.swift; sourceTree = "<group>"; };
 		580F205E2D59E18F00D66D57 /* UserEmailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserEmailCache.swift; sourceTree = "<group>"; };
-		58437E9E2D504D6400FF92AA /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyMediaPlayer.swift; sourceTree = "<group>"; };
 		586807D12D6EB3C9005D4DB5 /* No Artwork.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "No Artwork.png"; sourceTree = "<group>"; };
 		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
@@ -125,8 +146,11 @@
 				58C97B902D45F3D2006FFC06 /* Collections in Frameworks */,
 				588330442D79704C006251C1 /* FeedKit in Frameworks */,
 				58C97B942D45F3D2006FFC06 /* HashTreeCollections in Frameworks */,
+				580B13242D8BCA25003EF0AA /* MediaControl.framework in Frameworks */,
+				580B132B2D8BCA67003EF0AA /* MediaRemote.framework in Frameworks */,
+				580B13292D8BCA35003EF0AA /* MediaPlayer.framework in Frameworks */,
 				58C97B962D45F3D2006FFC06 /* HeapModule in Frameworks */,
-				5871AC672D76E806007D9755 /* MetalKit.framework in Frameworks */,
+				580B13212D8BC89A003EF0AA /* MediaToolbox.framework in Frameworks */,
 				58C97B922D45F3D2006FFC06 /* DequeModule in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -178,8 +202,8 @@
 		586807CD2D6EB1C3005D4DB5 /* Media Player */ = {
 			isa = PBXGroup;
 			children = (
-				58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */,
 				588330452D798484006251C1 /* MarqueeText.swift */,
+				58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */,
 				58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */,
 				586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */,
 			);
@@ -221,7 +245,10 @@
 		58A40DA62D094FDB002B5165 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				58437E9E2D504D6400FF92AA /* MetalKit.framework */,
+				580B13222D8BCA25003EF0AA /* MediaControl.framework */,
+				580B13232D8BCA25003EF0AA /* MediaRemote.framework */,
+				580B13202D8BC89A003EF0AA /* MediaToolbox.framework */,
+				580B131E2D8BC807003EF0AA /* MediaPlayer.framework */,
 				58A40DA72D094FDB002B5165 /* EventKit.framework */,
 			);
 			name = Frameworks;
@@ -346,6 +373,7 @@
 				58A40D622D094923002B5165 /* Sources */,
 				58A40D632D094923002B5165 /* Frameworks */,
 				58A40D642D094923002B5165 /* Resources */,
+				580B132D2D8BCA67003EF0AA /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -674,11 +702,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Notchly/Xcode Stuff/Notchly.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Notchly/Xcode Stuff/Preview Content\"";
-				DEVELOPMENT_TEAM = VM3X2A65B8;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -699,6 +728,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Debug;
 		};
@@ -709,11 +742,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Notchly/Xcode Stuff/Notchly.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Notchly/Xcode Stuff/Preview Content\"";
-				DEVELOPMENT_TEAM = VM3X2A65B8;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -734,6 +768,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Release;
 		};

@@ -8,7 +8,126 @@
 import SwiftUI
 import Combine
 import AppKit
-import MediaPlayer
+
+@MainActor
+final class MediaPlaybackMonitor: ObservableObject {
+    static let shared = MediaPlaybackMonitor()
+
+    @Published private(set) var nowPlaying: NowPlayingInfo?
+    @Published private(set) var isPlaying: Bool = false
+    @Published private(set) var activePlayer: String = "Unknown"
+
+    @Published var currentTime: TimeInterval = 0
+    @Published var duration: TimeInterval = 1 // Avoid division by zero
+    @Published var isScrubbing: Bool = false
+
+    private var cancellables = Set<AnyCancellable>()
+    private var progressTimer: Timer?
+    private let playbackManager = MediaPlaybackManager()
+
+    private var lastFetchTimestamp: Date = .distantPast // Prevents race conditions
+    private var isToggledManually = false // Track manual play/pause toggles
+    private var debounceToggle: DispatchWorkItem? // Debounce for state sync
+
+    private init() {
+        setupObservers()
+    }
+
+    private func setupObservers() {
+        NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"))
+            .merge(with: NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification")))
+            .merge(with: DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.Music.playerInfo")))
+            .merge(with: DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.spotify.client.PlaybackStateChanged")))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                print("Playback state changed")
+                self?.fetchNowPlaying()
+            }
+            .store(in: &cancellables)
+    }
+
+    // 🔥 Timer for smooth scrubber updates
+    private func startProgressTimer() {
+        progressTimer?.invalidate()
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self, self.isPlaying, !self.isScrubbing else { return }
+            self.fetchNowPlaying() // Fetch actual time instead of estimating
+        }
+    }
+
+    private func stopProgressTimer() {
+        progressTimer?.invalidate()
+    }
+
+    func fetchNowPlaying() {
+        // Prevent excessive fetches within a short time (avoiding race conditions)
+        guard Date().timeIntervalSince(lastFetchTimestamp) > 0.1 else { return }
+        lastFetchTimestamp = Date()
+
+        playbackManager?.getNowPlayingInfo { [weak self] info in
+            guard let self = self, let info = info else { return }
+            DispatchQueue.main.async {
+                let songChanged = (self.nowPlaying?.title != info.title || self.nowPlaying?.artist != info.artist)
+
+                self.duration = max(info.duration, 1)
+                self.activePlayer = info.appName
+
+                // ✅ Only update `isPlaying` if it actually changed and not manually toggled
+                if !self.isToggledManually && info.isPlaying != self.isPlaying {
+                    self.isPlaying = info.isPlaying
+                }
+
+                // ✅ Ensure the scrubber remains accurate
+                let timeDifference = abs(info.elapsedTime - self.currentTime)
+                if songChanged || timeDifference > 1.0 {
+                    self.nowPlaying = info
+                    self.currentTime = info.elapsedTime
+                }
+
+                // ✅ Start or stop tracking based on play state
+                info.isPlaying ? self.startProgressTimer() : self.stopProgressTimer()
+            }
+        }
+    }
+
+    // MARK: - 🎵 Play/Pause (Guaranteed Sync)
+    func togglePlayPause() {
+        // Cancel any pending sync operations
+        debounceToggle?.cancel()
+
+        // Immediate UI feedback
+        isPlaying.toggle()
+        isToggledManually = true
+
+        // Send command to system
+        playbackManager?.togglePlayPause(isPlaying: isPlaying)
+
+        // Sync with actual state after short delay
+        debounceToggle = DispatchWorkItem { [weak self] in
+            self?.isToggledManually = false
+            self?.fetchNowPlaying()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: debounceToggle!)
+    }
+
+    // MARK: - ⏩ Skip Tracks
+    func nextTrack() {
+        playbackManager?.nextTrack()
+        fetchNowPlaying() // Fetch new state immediately
+    }
+
+    func previousTrack() {
+        playbackManager?.previousTrack()
+        fetchNowPlaying() // Fetch new state immediately
+    }
+
+    // MARK: - ⏳ Seeking (Accurate & Responsive)
+    func seekTo(time: TimeInterval) {
+        currentTime = time
+        playbackManager?.seekTo(time: time)
+        fetchNowPlaying()
+    }
+}
 
 // MARK: - NowPlayingInfo
 struct NowPlayingInfo: Equatable {
@@ -19,204 +138,5 @@ struct NowPlayingInfo: Equatable {
     var elapsedTime: TimeInterval
     var isPlaying: Bool
     var artwork: NSImage?
-    var appURL: URL?
-}
-
-// MARK: - MediaPlaybackMonitor
-class MediaPlaybackMonitor: ObservableObject {
-    @Published var nowPlaying: NowPlayingInfo?
-    @Published var isPlaying: Bool = false
-    @Published var activePlayer: String = "Unknown"
-    @Published var hasPermission: Bool = false
-
-    private var cancellables = Set<AnyCancellable>()
-    private var playbackManager = MediaPlaybackManager()
-    private var pollingTimer: Timer?
-    private var elapsedTimer: Timer?
-    private var debounceWorkItem: DispatchWorkItem?
-
-    private let mediaRemoteBundle: CFBundle
-    private let MRMediaRemoteGetNowPlayingInfo: @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
-    private let MRMediaRemoteRegisterForNowPlayingNotifications: @convention(c) (DispatchQueue) -> Void
-
-    init?() {
-        guard let bundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework")),
-              let MRMediaRemoteGetNowPlayingInfoPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteGetNowPlayingInfo" as CFString),
-              let MRMediaRemoteRegisterForNowPlayingNotificationsPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteRegisterForNowPlayingNotifications" as CFString)
-        else { return nil }
-
-        self.mediaRemoteBundle = bundle
-        self.MRMediaRemoteGetNowPlayingInfo = unsafeBitCast(MRMediaRemoteGetNowPlayingInfoPointer, to: (@convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void).self)
-        self.MRMediaRemoteRegisterForNowPlayingNotifications = unsafeBitCast(MRMediaRemoteRegisterForNowPlayingNotificationsPointer, to: (@convention(c) (DispatchQueue) -> Void).self)
-
-        checkUserPermission()
-        setupRemoteCommands()
-        setupNowPlayingObserver()
-        setThrottledPolling(enabled: true)
-    }
-
-    private func checkUserPermission() {
-        if let permission = UserDefaults.standard.object(forKey: "MediaPlaybackPermission") as? Bool {
-            self.hasPermission = permission
-        } else {
-            requestUserPermission()
-        }
-    }
-
-    private func requestUserPermission() {
-        DispatchQueue.main.async {
-            let alert = NSAlert()
-            alert.messageText = "Allow Notchly to Monitor Media Playback?"
-            alert.informativeText = "Notchly can display information about your currently playing media. Do you want to allow this?"
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: "Allow")
-            alert.addButton(withTitle: "Don't Allow")
-
-            let response = alert.runModal()
-            self.hasPermission = (response == .alertFirstButtonReturn)
-            UserDefaults.standard.set(self.hasPermission, forKey: "MediaPlaybackPermission")
-
-            if self.hasPermission { self.fetchNowPlayingInfo() }
-        }
-    }
-
-    private func setupRemoteCommands() {
-        let commandCenter = MPRemoteCommandCenter.shared()
-        commandCenter.playCommand.addTarget { _ in self.togglePlayPause(); return .success }
-        commandCenter.pauseCommand.addTarget { _ in self.togglePlayPause(); return .success }
-        commandCenter.nextTrackCommand.addTarget { _ in self.nextTrack(); return .success }
-        commandCenter.previousTrackCommand.addTarget { _ in self.previousTrack(); return .success }
-    }
-
-    private func setupNowPlayingObserver() {
-        MRMediaRemoteRegisterForNowPlayingNotifications(.main)
-
-        NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"))
-            .merge(with: NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification")))
-            .sink { [weak self] _ in self?.fetchNowPlayingInfo() }
-            .store(in: &cancellables)
-
-        DistributedNotificationCenter.default().addObserver(forName: NSNotification.Name("com.apple.Music.playerInfo"), object: nil, queue: .main) { [weak self] _ in
-            self?.fetchNowPlayingInfo()
-        }
-
-        DistributedNotificationCenter.default().addObserver(forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"), object: nil, queue: .main) { [weak self] _ in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    func fetchNowPlayingInfo() {
-        guard hasPermission else { return }
-
-        MRMediaRemoteGetNowPlayingInfo(.main) { [weak self] info in
-            guard let self = self else { return }
-
-            let playbackRate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double ?? 0)
-            let fetchedElapsedTime = info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? TimeInterval ?? 0
-
-            let newInfo = NowPlayingInfo(
-                title: info["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
-                artist: info["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",
-                album: info["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "",
-                duration: info["kMRMediaRemoteNowPlayingInfoDuration"] as? TimeInterval ?? 0,
-                elapsedTime: fetchedElapsedTime,
-                isPlaying: playbackRate == 1,
-                artwork: (info["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data).flatMap { NSImage(data: $0) },
-                appURL: URL(string: "music://")
-            )
-
-            DispatchQueue.main.async {
-                self.debounceWorkItem?.cancel()
-                self.debounceWorkItem = DispatchWorkItem {
-                    self.nowPlaying = newInfo
-                    self.isPlaying = newInfo.isPlaying
-                    self.activePlayer = info["kMRMediaRemoteNowPlayingApplicationDisplayName"] as? String ?? "Unknown"
-                    self.setThrottledPolling(enabled: !newInfo.isPlaying)
-
-                    self.elapsedTimer?.invalidate()
-
-                    if newInfo.isPlaying {
-                        self.startElapsedTimer(from: newInfo.elapsedTime, playing: true)
-                    } else {
-                        self.nowPlaying?.elapsedTime = newInfo.elapsedTime
-                    }
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: self.debounceWorkItem!)
-            }
-        }
-    }
-
-    private func setThrottledPolling(enabled: Bool) {
-        pollingTimer?.invalidate()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: enabled ? 10 : 2, repeats: true) { [weak self] _ in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    func togglePlayPause() {
-        playbackManager?.togglePlayPause(isPlaying: !isPlaying)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    func nextTrack() {
-        playbackManager?.nextTrack()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    func previousTrack() {
-        playbackManager?.previousTrack()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    func seekTo(time: TimeInterval) {
-        playbackManager?.seekTo(time: time)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.fetchNowPlayingInfo()
-        }
-    }
-
-    private func startElapsedTimer(from elapsed: TimeInterval, playing: Bool) {
-        elapsedTimer?.invalidate()
-
-        guard playing, let duration = nowPlaying?.duration else { return }
-
-        let startTimestamp = Date().timeIntervalSince1970 - elapsed
-
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self, self.isPlaying else { return }
-
-            let currentElapsed = Date().timeIntervalSince1970 - startTimestamp
-
-            DispatchQueue.main.async {
-                if currentElapsed >= duration {
-                    self.elapsedTimer?.invalidate()
-                    self.nowPlaying?.elapsedTime = duration
-                    self.fetchNowPlayingInfo()
-                } else {
-                    self.nowPlaying?.elapsedTime = currentElapsed
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Non-failable fallback initializer
-extension MediaPlaybackMonitor {
-    convenience init?(fallback: Bool) {
-        self.init()
-        nowPlaying = nil
-        isPlaying = false
-        activePlayer = "None"
-    }
-
-    static func fallback() -> MediaPlaybackMonitor {
-        return MediaPlaybackMonitor(fallback: true)!
-    }
+    var appName: String
 }
