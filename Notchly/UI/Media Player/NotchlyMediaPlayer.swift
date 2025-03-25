@@ -8,32 +8,42 @@
 import SwiftUI
 import AppKit
 
+/// A SwiftUI view that displays a media player for macOS using the MacBook notch area.
+/// It presents either an idle view (if no media is playing) or a detailed media player UI
+/// (with album art, track info, a scrubber, and playback controls).
 struct NotchlyMediaPlayer: View {
+    // MARK: - Properties
     private let progressBarHeight: CGFloat = 1.0 // Sleek progress bar height
     var isExpanded: Bool
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
+    
+    // Local state for hover effects and background glow.
     @State private var isHovering = false
     @State private var backgroundGlowColor: Color = .clear
     @State private var glowIntensity: CGFloat = 1.0
     
-    /// Determines whether we have valid duration data.
+    /// Computed property to determine whether we have a valid duration
+    /// (i.e. a duration greater than 1 second) before displaying time labels.
     private var hasValidDuration: Bool {
         mediaMonitor.duration > 1.0
     }
-
+    
+    // MARK: - Body
     var body: some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
+                // Display the album artwork and associated info if a track is playing.
                 albumArtView(track: track)
                     .frame(width: 100)
                     .padding(.leading, 5)
                 VStack(alignment: .leading, spacing: 10) {
                     trackInfoView(track: track)
                     
-                    // Playback controls
+                    // Playback controls (play, pause, next, previous)
                     playbackControls()
                         .padding(.top, 8)
                     
+                    // Scrubber and time labels
                     VStack(spacing: 4) {
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
@@ -46,10 +56,15 @@ struct NotchlyMediaPlayer: View {
                                 Capsule()
                                     .fill(Color.white)
                                     .frame(
-                                        width: track.duration > 0 ? max(0, min(mediaMonitor.currentTime / track.duration, 1)) * geometry.size.width : 0,
+                                        width: track.duration > 0
+                                            ? max(0, min(mediaMonitor.currentTime / track.duration, 1)) * geometry.size.width
+                                            : 0,
                                         height: 3
                                     )
-                                    .animation(mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none, value: mediaMonitor.currentTime)
+                                    .animation(
+                                        mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none,
+                                        value: mediaMonitor.currentTime
+                                    )
                                 
                                 // Draggable scrubber
                                 Circle()
@@ -58,16 +73,18 @@ struct NotchlyMediaPlayer: View {
                                     .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4)
                                     .gesture(DragGesture(minimumDistance: 0)
                                         .onChanged { value in
+                                            // While scrubbing, lock currentTime to user input.
                                             mediaMonitor.isScrubbing = true
-                                            let percentage = track.duration > 0 ?
-                                                max(0, min(1, value.location.x / geometry.size.width)) : 0
+                                            let percentage = track.duration > 0
+                                                ? max(0, min(1, value.location.x / geometry.size.width))
+                                                : 0
                                             mediaMonitor.currentTime = track.duration * percentage
                                         }
                                         .onEnded { _ in
+                                            // When the drag ends, seek to the selected time and trigger an update.
                                             mediaMonitor.isScrubbing = false
-                                            let monitor = mediaMonitor // capture locally to avoid property-wrapper issues.
+                                            let monitor = mediaMonitor  // Capture locally to avoid property-wrapper issues.
                                             monitor.seekTo(time: monitor.currentTime)
-                                            
                                             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
                                                 monitor.updateMediaState()
                                             }
@@ -77,18 +94,20 @@ struct NotchlyMediaPlayer: View {
                         }
                         .frame(height: 10)
                         
-                        // Time labels or loading indicator
+                        // Time Labels or Loading Indicator
                         HStack {
                             if hasValidDuration {
+                                // Left label: elapsed time.
                                 Text(formattedTime(mediaMonitor.currentTime))
                                     .font(.system(size: 10))
                                     .foregroundColor(.gray)
                                 Spacer()
+                                // Right label: remaining time (clamped to 0 if negative).
                                 Text("-\(formattedTime(max(0, track.duration - mediaMonitor.currentTime)))")
                                     .font(.system(size: 10))
                                     .foregroundColor(.gray)
                             } else {
-                                // Show a small loading indicator until a valid duration is available.
+                                // While waiting for valid duration, show a loading indicator.
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .gray))
                                     .frame(width: 24, height: 24)
@@ -99,6 +118,7 @@ struct NotchlyMediaPlayer: View {
                 }
                 .padding(.horizontal, 12)
             } else {
+                // Idle view when no media is playing.
                 idleView()
                     .transition(.opacity.combined(with: .scale))
             }
@@ -120,6 +140,7 @@ struct NotchlyMediaPlayer: View {
         }
         .onChange(of: mediaMonitor.nowPlaying) { newTrack in
             if let newTrack = newTrack {
+                // Slight delay to sync currentTime from new track info.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     mediaMonitor.currentTime = newTrack.elapsedTime
                 }
@@ -127,7 +148,8 @@ struct NotchlyMediaPlayer: View {
         }
     }
     
-    // MARK: - Idle State
+    // MARK: - Idle View
+    /// Returns a view prompting the user to launch a media app if no media is playing.
     private func idleView() -> some View {
         VStack(spacing: 10) {
             Text("No app seems to be running")
@@ -145,6 +167,8 @@ struct NotchlyMediaPlayer: View {
         .padding(.top, 10)
     }
     
+    // MARK: - App Icon Button
+    /// A button that opens a media app.
     struct AppIconButton: View {
         let icon: String
         let appURL: String
@@ -167,6 +191,7 @@ struct NotchlyMediaPlayer: View {
             }
         }
         
+        /// Opens the specified URL using NSWorkspace.
         private func openApp(_ url: String) {
             if let appURL = URL(string: url) {
                 NSWorkspace.shared.open(appURL)
@@ -174,9 +199,11 @@ struct NotchlyMediaPlayer: View {
         }
     }
     
-    // MARK: - Playing State
+    // MARK: - Album Art and Glow
+    /// Displays the album artwork with a subtle animated glow.
     private func albumArtView(track: NowPlayingInfo) -> some View {
         ZStack {
+            // Animated glow effect behind album art.
             Circle()
                 .fill(backgroundGlowColor.opacity(0.4))
                 .frame(width: 100, height: 100)
@@ -203,6 +230,7 @@ struct NotchlyMediaPlayer: View {
             }
             .buttonStyle(PlainButtonStyle())
             
+            // Overlay icon to indicate the active media app (e.g., Apple Music).
             Image("applemusic")
                 .resizable()
                 .frame(width: 35, height: 35)
@@ -215,6 +243,7 @@ struct NotchlyMediaPlayer: View {
         .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
     }
     
+    /// Opens the media app associated with the current track.
     private func openAppForTrack(_ track: NowPlayingInfo) {
         let appURL: String = (mediaMonitor.activePlayer == "Spotify") ? "spotify://" : "music://"
         if let url = URL(string: appURL) {
@@ -222,6 +251,8 @@ struct NotchlyMediaPlayer: View {
         }
     }
     
+    // MARK: - Track Info
+    /// Displays scrolling text (marquee) for the track title and static text for the artist.
     private func trackInfoView(track: NowPlayingInfo) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             MarqueeText(
@@ -244,6 +275,8 @@ struct NotchlyMediaPlayer: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    // MARK: - Playback Controls
+    /// Displays the playback control buttons (previous, play/pause, next).
     private func playbackControls() -> some View {
         HStack(spacing: 32) {
             playbackButton(systemName: "backward.fill") {
@@ -260,6 +293,7 @@ struct NotchlyMediaPlayer: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
     
+    /// A helper to generate a playback button.
     private func playbackButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
@@ -268,18 +302,22 @@ struct NotchlyMediaPlayer: View {
         .buttonStyle(PlainButtonStyle())
     }
     
+    // MARK: - Time Formatting
+    /// Formats a TimeInterval (in seconds) into a string "M:SS".
     private func formattedTime(_ interval: TimeInterval) -> String {
         let minutes = Int(interval) / 60
         let seconds = Int(interval) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
     
+    // MARK: - Glow Color Update
+    /// Updates the background glow color extracted from the album artwork.
     private func updateGlowColor(with image: NSImage?) {
         guard let image = image else {
             backgroundGlowColor = Color.gray.opacity(0.2)
             return
         }
-        // Placeholder for color extraction logic.
+        // TODO: Replace with actual color extraction logic.
         backgroundGlowColor = Color.red.opacity(0.8)
     }
 }
@@ -289,23 +327,29 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
     static var previews: some View {
         let mediaMonitor = MediaPlaybackMonitor.shared
         VStack {
+            // Idle state preview.
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .previewLayout(.sizeThatFits)
                 .padding()
                 .background(Color.blue)
+            
+            // Playing state preview with a mock notification.
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        NotificationCenter.default.post(name: .mockNowPlayingTrack, object: NowPlayingInfo(
-                            title: "Dibi Dibi Rek",
-                            artist: "Ismaël Lô",
-                            album: "Album Placeholder",
-                            duration: 200,
-                            elapsedTime: 10,
-                            isPlaying: true,
-                            artwork: nil,
-                            appName: ""
-                        ))
+                        NotificationCenter.default.post(
+                            name: .mockNowPlayingTrack,
+                            object: NowPlayingInfo(
+                                title: "Dibi Dibi Rek",
+                                artist: "Ismaël Lô",
+                                album: "Album Placeholder",
+                                duration: 200,
+                                elapsedTime: 10,
+                                isPlaying: true,
+                                artwork: nil,
+                                appName: ""
+                            )
+                        )
                     }
                 }
                 .previewLayout(.sizeThatFits)
