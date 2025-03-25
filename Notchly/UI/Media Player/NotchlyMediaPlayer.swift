@@ -22,8 +22,7 @@ struct NotchlyMediaPlayer: View {
     @State private var backgroundGlowColor: Color = .clear
     @State private var glowIntensity: CGFloat = 1.0
     
-    /// Computed property to determine whether we have a valid duration
-    /// (i.e. a duration greater than 1 second) before displaying time labels.
+    /// Computed property to determine whether we have a valid duration (i.e. >1s).
     private var hasValidDuration: Bool {
         mediaMonitor.duration > 1.0
     }
@@ -32,27 +31,27 @@ struct NotchlyMediaPlayer: View {
     var body: some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
-                // Display the album artwork and associated info if a track is playing.
+                // Display album artwork and track info.
                 albumArtView(track: track)
                     .frame(width: 100)
                     .padding(.leading, 5)
                 VStack(alignment: .leading, spacing: 10) {
                     trackInfoView(track: track)
                     
-                    // Playback controls (play, pause, next, previous)
+                    // Playback controls (play, pause, next, previous).
                     playbackControls()
                         .padding(.top, 8)
                     
-                    // Scrubber and time labels
+                    // Scrubber and time labels.
                     VStack(spacing: 4) {
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
-                                // Background track
+                                // Background track.
                                 Capsule()
                                     .fill(Color.white.opacity(0.2))
                                     .frame(height: 3)
                                 
-                                // Active progress bar
+                                // Active progress bar.
                                 Capsule()
                                     .fill(Color.white)
                                     .frame(
@@ -66,14 +65,14 @@ struct NotchlyMediaPlayer: View {
                                         value: mediaMonitor.currentTime
                                     )
                                 
-                                // Draggable scrubber
+                                // Draggable scrubber.
                                 Circle()
                                     .frame(width: 8, height: 8)
                                     .foregroundColor(.white)
                                     .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4)
                                     .gesture(DragGesture(minimumDistance: 0)
                                         .onChanged { value in
-                                            // While scrubbing, lock currentTime to user input.
+                                            // Lock currentTime to user input while scrubbing.
                                             mediaMonitor.isScrubbing = true
                                             let percentage = track.duration > 0
                                                 ? max(0, min(1, value.location.x / geometry.size.width))
@@ -81,12 +80,11 @@ struct NotchlyMediaPlayer: View {
                                             mediaMonitor.currentTime = track.duration * percentage
                                         }
                                         .onEnded { _ in
-                                            // When the drag ends, seek to the selected time and trigger an update.
                                             mediaMonitor.isScrubbing = false
-                                            let monitor = mediaMonitor  // Capture locally to avoid property-wrapper issues.
+                                            let monitor = mediaMonitor // Capture locally.
                                             monitor.seekTo(time: monitor.currentTime)
                                             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
-                                                monitor.updateMediaState()
+                                                Task { await monitor.updateMediaState() }
                                             }
                                         }
                                     )
@@ -94,20 +92,17 @@ struct NotchlyMediaPlayer: View {
                         }
                         .frame(height: 10)
                         
-                        // Time Labels or Loading Indicator
+                        // Time labels computed directly from mediaMonitor.currentTime.
                         HStack {
                             if hasValidDuration {
-                                // Left label: elapsed time.
                                 Text(formattedTime(mediaMonitor.currentTime))
                                     .font(.system(size: 10))
                                     .foregroundColor(.gray)
                                 Spacer()
-                                // Right label: remaining time (clamped to 0 if negative).
                                 Text("-\(formattedTime(max(0, track.duration - mediaMonitor.currentTime)))")
                                     .font(.system(size: 10))
                                     .foregroundColor(.gray)
                             } else {
-                                // While waiting for valid duration, show a loading indicator.
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .gray))
                                     .frame(width: 24, height: 24)
@@ -118,7 +113,7 @@ struct NotchlyMediaPlayer: View {
                 }
                 .padding(.horizontal, 12)
             } else {
-                // Idle view when no media is playing.
+                // Idle view if no media is playing.
                 idleView()
                     .transition(.opacity.combined(with: .scale))
             }
@@ -208,7 +203,7 @@ struct NotchlyMediaPlayer: View {
                 .fill(backgroundGlowColor.opacity(0.4))
                 .frame(width: 100, height: 100)
                 .blur(radius: 20)
-                .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true))
+                .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
             
             Button(action: { openAppForTrack(track) }) {
                 if let nsImage = track.artwork {
@@ -230,7 +225,7 @@ struct NotchlyMediaPlayer: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // Overlay icon to indicate the active media app (e.g., Apple Music).
+            // Overlay icon indicating the active media app.
             Image("applemusic")
                 .resizable()
                 .frame(width: 35, height: 35)
@@ -240,7 +235,6 @@ struct NotchlyMediaPlayer: View {
                 .clipShape(Circle())
                 .offset(x: 40, y: 40)
         }
-        .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
     }
     
     /// Opens the media app associated with the current track.
@@ -276,7 +270,7 @@ struct NotchlyMediaPlayer: View {
     }
     
     // MARK: - Playback Controls
-    /// Displays the playback control buttons (previous, play/pause, next).
+    /// Displays playback control buttons (previous, play/pause, next).
     private func playbackControls() -> some View {
         HStack(spacing: 32) {
             playbackButton(systemName: "backward.fill") {
@@ -313,7 +307,7 @@ struct NotchlyMediaPlayer: View {
     // MARK: - Glow Color Update
     /// Updates the background glow color extracted from the album artwork.
     private func updateGlowColor(with image: NSImage?) {
-        guard let image = image else {
+        guard image != nil else {
             backgroundGlowColor = Color.gray.opacity(0.2)
             return
         }
