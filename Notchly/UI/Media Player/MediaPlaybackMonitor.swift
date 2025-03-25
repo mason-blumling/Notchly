@@ -13,198 +13,262 @@ import ScriptingBridge
 @MainActor
 final class MediaPlaybackMonitor: ObservableObject {
     static let shared = MediaPlaybackMonitor()
-
+    
     @Published private(set) var nowPlaying: NowPlayingInfo?
     @Published private(set) var isPlaying: Bool = false
     @Published private(set) var activePlayer: String = "Unknown"
-
+    
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 1
     @Published var isScrubbing: Bool = false
-
+    
     private var cancellables = Set<AnyCancellable>()
     private var progressTimer: Timer?
-    private let playbackManager = MediaPlaybackManager()
-
-    private var lastFetchTimestamp: Date = .distantPast
+    private var fallbackTimer: Timer?
+    private var expectedStateTimestamp: Date? = nil
+    
+    // Force-initialize the playback manager.
+    private let playbackManager: MediaPlaybackManager = {
+        guard let manager = MediaPlaybackManager() else {
+            fatalError("Failed to initialize MediaPlaybackManager")
+        }
+        return manager
+    }()
+    
+    // Flags & state trackers.
     private var isToggledManually = false
-    private var debounceToggle: DispatchWorkItem?
-
+    private var lastValidUpdate: Date? = nil
+    private var lastValidDuration: TimeInterval = 0
+    
+    /// This property stores the play state that we expect after a user action.
+    private var expectedPlayState: Bool? = nil
+    
     private init() {
         setupObservers()
     }
-
-    // MARK: - Setup Methods
+    
+    // MARK: - Observers: Listen to system media notifications.
     private func setupObservers() {
-        NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"))
-            .merge(with: NotificationCenter.default.publisher(for: NSNotification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification")))
-            .merge(with: DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.Music.playerInfo")))
-            .merge(with: DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.spotify.client.PlaybackStateChanged")))
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.fetchNowPlaying()
-            }
-            .store(in: &cancellables)
+        let notifications = [
+            NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"),
+            NSNotification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification"),
+            NSNotification.Name("com.apple.Music.playerInfo"),
+            NSNotification.Name("com.spotify.client.PlaybackStateChanged")
+        ]
+        for name in notifications {
+            NotificationCenter.default.publisher(for: name)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateMediaState()
+                }
+                .store(in: &cancellables)
+        }
     }
-
-    // MARK: - State Management
-    func fetchNowPlaying() {
-        print("🔍 fetchNowPlaying() CALLED at \(Date())") // Debugging log
-
-        guard !isToggledManually else {
-            print("🚨 fetchNowPlaying() SKIPPED - isToggledManually is TRUE")
+    
+    // MARK: - Main Update Logic: Reconciling Expected State with System Info.
+    func updateMediaState() {
+        if isToggledManually {
+            print("updateMediaState: Skipped due to manual toggle")
             return
         }
-        guard Date().timeIntervalSince(lastFetchTimestamp) > 0.8 else { // 🔹 Slightly longer debounce
-            print("🚨 fetchNowPlaying() SKIPPED - Debounced")
-            return
-        }
-
-        lastFetchTimestamp = Date()
         
-        playbackManager?.getNowPlayingInfo { [weak self] info in
-            guard let self = self, let info = info else { return }
-
+        playbackManager.getNowPlayingInfo { [weak self] info in
+            guard let self = self else { return }
             DispatchQueue.main.async {
-                self.updateState(from: info)
-            }
-        }
-    }
-    
-    func fetchElapsedTime() {
-        playbackManager?.getNowPlayingInfo { [weak self] info in
-            guard let self = self, let info = info else { return }
-            
-            DispatchQueue.main.async {
-                self.currentTime = info.elapsedTime
-            }
-        }
-    }
-    
-    func seekTo(time: TimeInterval) {
-        playbackManager?.seekTo(time: time)
-
-        DispatchQueue.main.async {
-            self.currentTime = time
-            self.fetchNowPlaying() // 🔹 Ensure metadata is accurate after seeking
-        }
-    }
-
-    func previousTrack() {
-        playbackManager?.previousTrack()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            self.fetchNowPlaying()
-        }
-    }
-    
-    func togglePlayPause(isPlaying: Bool) {
-        let expectedState = !isPlaying
-        isToggledManually = true
-
-        print("🎵 Sending Play/Pause Command via MediaRemote")
-        playbackManager?.togglePlayPause(isPlaying: expectedState)
-
-        // LOCK UI STATE IMMEDIATELY (Prevents flicker)
-        DispatchQueue.main.async {
-            self.isPlaying = expectedState
-        }
-
-        // ⏳ DELAY FETCH TO PREVENT STALE STATE
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.80) {
-            self.fetchNowPlaying()
-        }
-
-        // 🔄 FINAL VALIDATION AFTER 1s (Catches delayed system updates)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
-            self.isToggledManually = false
-            self.fetchNowPlaying()
-        }
-    }
-
-    func nextTrack() {
-        playbackManager?.nextTrack()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-            self.fetchNowPlaying()
-        }
-    }
-
-    private func updateState(from info: NowPlayingInfo) {
-        let songChanged = (nowPlaying?.title != info.title || nowPlaying?.artist != info.artist || nowPlaying?.album != info.album)
-
-        duration = max(info.duration, 1)
-        activePlayer = info.appName
-
-        if !isToggledManually && info.isPlaying != isPlaying {
-            isPlaying = info.isPlaying
-        }
-
-        let timeDifference = abs(info.elapsedTime - currentTime)
-
-        DispatchQueue.main.async {
-            if songChanged {
-                // ✅ Fully update everything when a new song starts
+                guard let info = info, !info.title.isEmpty else {
+                    if let lastUpdate = self.lastValidUpdate, Date().timeIntervalSince(lastUpdate) < 3.0 {
+                        let elapsed = Date().timeIntervalSince(lastUpdate)
+                        print("updateMediaState: Empty info, retaining last valid state (last update \(elapsed)s ago)")
+                    } else {
+                        print("updateMediaState: Empty info for too long. Clearing state and starting fallback polling.")
+                        self.clearMediaState()
+                    }
+                    return
+                }
+                
+                // Check for bogus duration.
+                if info.duration <= 1.0 {
+                    // Start high-frequency polling if not already started.
+                    if self.durationPollingTimer == nil {
+                        print("updateMediaState: Bogus duration (\(info.duration)). Starting duration polling.")
+                        self.startDurationPolling()
+                    }
+                    // Don't update UI with bogus data.
+                    return
+                } else {
+                    // If valid duration, cancel the high-frequency polling.
+                    self.cancelDurationPolling()
+                }
+                
+                print("updateMediaState: Received valid info -> \(info)")
+                
+                let durationToUse: TimeInterval = info.duration  // now it's valid
+                self.lastValidDuration = durationToUse
+                self.duration = max(durationToUse, 1)
+                self.activePlayer = info.appName
+                self.lastValidUpdate = Date()
+                
+                // Reconcile expected state if set.
+                if let expected = self.expectedPlayState, let ts = self.expectedStateTimestamp {
+                    let elapsed = Date().timeIntervalSince(ts)
+                    if elapsed < 1.5 {
+                        print("updateMediaState: Within expected window (\(elapsed)s), enforcing expected state (\(expected))")
+                        self.isPlaying = expected
+                    } else {
+                        self.expectedPlayState = nil
+                        self.expectedStateTimestamp = nil
+                        self.isPlaying = info.isPlaying
+                        print("updateMediaState: Expected state stale, trusting system state (\(info.isPlaying))")
+                    }
+                } else {
+                    self.isPlaying = info.isPlaying
+                }
+                
                 self.nowPlaying = info
-            } else {
-                // ✅ If no song change, only update necessary fields (prevent artwork loss)
-                self.nowPlaying = NowPlayingInfo(
-                    title: info.title,
-                    artist: info.artist,
-                    album: info.album,
-                    duration: info.duration,
-                    elapsedTime: info.elapsedTime,
-                    isPlaying: info.isPlaying,
-                    artwork: info.artwork ?? self.nowPlaying?.artwork, // ✅ Preserve old artwork
-                    appName: info.appName
-                )
-            }
-
-            // ✅ Smooth transition for UI updates
-            if timeDifference > 1.0 {
-                self.currentTime = info.elapsedTime // Direct update for large gaps
-            } else {
-                withAnimation(.linear(duration: 0.3)) {
-                    self.currentTime = info.elapsedTime // Smooth transition
+                let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
+                self.currentTime = clampedElapsed
+                
+                if self.isPlaying {
+                    self.cancelFallbackPolling()
+                    self.startProgressTimer()
+                    print("updateMediaState: Media is playing (enforced state: \(self.isPlaying))")
+                } else {
+                    self.stopProgressTimer()
+                    print("updateMediaState: Media is paused (enforced state: \(self.isPlaying))")
                 }
             }
-
-            info.isPlaying ? self.startProgressTimer() : self.stopProgressTimer()
         }
     }
 
-    // MARK: - Helper Methods
-    private func detectActivePlayer() -> PlayerType? {
-        _ = NSWorkspace.shared
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            print("🚨 No frontmost application detected!")
-            return nil
-        }
-
-        print("🔎 Frontmost App Bundle ID: \(frontApp.bundleIdentifier ?? "Unknown")") // ✅ Log active app
-        return .other
-    }
-
-    private func validateState() {
-        guard (nowPlaying?.appName) != nil else { return }
-
-        playbackManager?.getNowPlayingInfo { [weak self] info in
-            guard let self = self, let info = info else { return }
-            if info.isPlaying != self.isPlaying {
-                self.isPlaying = info.isPlaying
+    // MARK: - Fallback Polling: Poll every second when state is cleared.
+    private func startFallbackPolling() {
+        if fallbackTimer != nil { return }
+        fallbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                print("Fallback polling triggered updateMediaState")
+                self?.updateMediaState()
             }
         }
     }
+    
+    // Add this property to your MediaPlaybackMonitor class (near the others):
+    private var durationPollingTimer: Timer? = nil
 
-    // MARK: - Timer Methods
-    private func startProgressTimer() {
+    // New helper functions:
+    private func startDurationPolling() {
+        if durationPollingTimer != nil { return }
+        print("startDurationPolling: Starting high-frequency polling for valid duration")
+        durationPollingTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.updateMediaState()
+        }
+    }
+
+    private func cancelDurationPolling() {
+        durationPollingTimer?.invalidate()
+        durationPollingTimer = nil
+    }
+    
+    private func cancelFallbackPolling() {
+        fallbackTimer?.invalidate()
+        fallbackTimer = nil
+    }
+    
+    // MARK: - Clear State: Clear nowPlaying and start fallback polling.
+    private func clearMediaState() {
+        print("clearMediaState: Clearing nowPlaying state")
+        self.nowPlaying = nil
+        self.isPlaying = false
+        self.currentTime = 0
+        self.lastValidUpdate = nil
+        self.startFallbackPolling()
+    }
+    
+    // MARK: - Progress Timer: Update current time every 0.1s.
+    func startProgressTimer() {
         progressTimer?.invalidate()
         progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.fetchElapsedTime()
         }
     }
-
-    private func stopProgressTimer() {
+    
+    func stopProgressTimer() {
         progressTimer?.invalidate()
+    }
+    
+    /// Updates `currentTime` from the system.
+    func fetchElapsedTime() {
+        playbackManager.getNowPlayingInfo { [weak self] info in
+            guard let self = self, let info = info, self.isPlaying else { return }
+            DispatchQueue.main.async {
+                let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
+                self.currentTime = clampedElapsed
+            }
+        }
+    }
+    
+    // MARK: - Playback Actions
+    
+    /// Delegates previous track command to the system.
+    func previousTrack() {
+        playbackManager.previousTrack()
+        // Trigger multiple updates to catch the new track info quickly.
+        DispatchQueue.main.async {
+            self.updateMediaState()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.updateMediaState()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            self.updateMediaState()
+        }
+    }
+
+    func nextTrack() {
+        playbackManager.nextTrack()
+        // Trigger multiple updates to catch the new track info quickly.
+        DispatchQueue.main.async {
+            self.updateMediaState()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.updateMediaState()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            self.updateMediaState()
+        }
+    }
+    
+    /// Toggles play/pause and sets an expected state.
+
+    func togglePlayPause() {
+        let newState = !self.isPlaying
+        // Store the expected state along with a timestamp.
+        self.expectedPlayState = newState
+        self.expectedStateTimestamp = Date()
+        
+        self.isToggledManually = true
+        self.isPlaying = newState   // Immediately update UI for responsiveness.
+        playbackManager.togglePlayPause(isPlaying: newState)
+        print("togglePlayPause: Toggled to \(newState ? "Playing" : "Paused")")
+        
+        // Delay a re-check after 1.0s.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.updateMediaState()
+        }
+        // Then clear the manual toggle flag after 1.35s and update state.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
+            self.isToggledManually = false
+            self.updateMediaState()
+        }
+    }
+    
+    /// Public method to seek within the track.
+    func seekTo(time: TimeInterval) {
+        playbackManager.seekTo(time: time)
+        DispatchQueue.main.async {
+            self.currentTime = time
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.updateMediaState()
+            }
+        }
     }
 }
