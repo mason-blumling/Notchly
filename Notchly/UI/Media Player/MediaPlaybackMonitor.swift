@@ -11,8 +11,9 @@
     import ScriptingBridge
 
     /// Monitors media playback state using Apple's private MediaRemote framework.
-    /// Listens for system notifications and uses several polling timers (fallback, constant, end-of-track, and duration polling)
-    /// to keep the UI in sync even when the system data is delayed or imperfect.
+    /// Listens for system notifications and uses several polling timers (fallback, constant,
+    /// end-of-track, and duration polling) to keep the UI in sync with the media state,
+    /// even when system data is delayed or imperfect.
     @MainActor
     final class MediaPlaybackMonitor: ObservableObject {
         // MARK: - Singleton Instance
@@ -38,10 +39,12 @@
         private var lastValidUpdate: Date? = nil
         private var lastValidDuration: TimeInterval = 0
         
+        /// When in idle state, log the idle transition only once.
+        private var hasLoggedIdle: Bool = false
+        
         /// Flag to temporarily ignore system updates during a user-initiated toggle.
         private var isToggledManually = false
-        
-        /// Temporarily holds the expected play state (after user actions) along with its timestamp.
+        /// Expected play state after a user action, along with a timestamp.
         private var expectedPlayState: Bool? = nil
         private var expectedStateTimestamp: Date? = nil
         
@@ -59,6 +62,7 @@
         }
         
         // MARK: - Observers Setup
+        /// Subscribes to system notifications for media changes.
         private func setupObservers() {
             let notifications = [
                 NSNotification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification"),
@@ -77,19 +81,21 @@
         }
         
         // MARK: - Main Update Logic
-        /// Queries for the latest now-playing info, reconciles with expected state, and updates published properties.
+        /// Queries for the latest now-playing info, reconciles with any expected state,
+        /// and updates the published properties. If no valid info is received for more than 3 seconds,
+        /// the state is cleared (returning to idle). When idle, fallback polling uses a longer interval.
         func updateMediaState() {
-            if isToggledManually {
-                // Skip updates if a user toggle is in progress.
-                return
-            }
+            if isToggledManually { return }
             
             playbackManager.getNowPlayingInfo { [weak self] info in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
                     // Valid info received.
                     if let info = info, !info.title.isEmpty {
-                        // Log track changes (if any).
+                        // Reset the idle log flag once valid info returns.
+                        self.hasLoggedIdle = false
+                        
+                        // Log track change if title changes.
                         if self.nowPlaying?.title != info.title {
                             print("🎵 Track change: '\(self.nowPlaying?.title ?? "none")' → '\(info.title)'")
                         }
@@ -99,9 +105,9 @@
                         if info.duration <= 1.0 {
                             if let current = self.nowPlaying, current.title == info.title, self.lastValidDuration > 1.0 {
                                 validDuration = self.lastValidDuration
-                                print("🔄 Bogus Media Duration received; reusing cached duration: \(validDuration)s")
+                                print("🔄 Bogus duration; using cached duration: \(validDuration)s")
                             } else {
-                                print("⏱ Bogus Media Duration (\(info.duration)s) – retrying shortly...")
+                                print("⏱ Bogus duration (\(info.duration)s) – retrying shortly...")
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     self.updateMediaState()
                                 }
@@ -126,19 +132,19 @@
                                 self.expectedPlayState = nil
                                 self.expectedStateTimestamp = nil
                                 self.isPlaying = info.isPlaying
-                                print("⌚ Expected state stale – trusting system state (\(info.isPlaying))")
+                                print("⌚ Expected state stale – trusting system (\(info.isPlaying))")
                             }
                         } else {
                             self.isPlaying = info.isPlaying
                         }
                         
                         self.nowPlaying = info
-                        let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
                         if !self.isScrubbing {
+                            let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
                             self.currentTime = clampedElapsed
                         }
                         
-                        // Start or stop the progress timer based on state.
+                        // Start or stop progress timer based on play state.
                         if self.isPlaying {
                             self.cancelFallbackPolling()
                             self.startProgressTimer()
@@ -146,11 +152,14 @@
                             self.stopProgressTimer()
                         }
                     } else {
-                        // No valid info received; retain last state if recent.
-                        if let lastUpdate = self.lastValidUpdate,
-                           Date().timeIntervalSince(lastUpdate) < 3.0 {
-                            // Do nothing—retain state.
+                        // No valid info received.
+                        if let lastUpdate = self.lastValidUpdate, Date().timeIntervalSince(lastUpdate) < 3.0 {
+                            // Retain state if recent.
                         } else {
+                            if !self.hasLoggedIdle {
+                                print("🛑 No valid media info for too long; returning to idle view.")
+                                self.hasLoggedIdle = true
+                            }
                             self.clearMediaState()
                         }
                         self.endPollingTimer?.invalidate()
@@ -165,9 +174,7 @@
                         if self.endPollingTimer == nil {
                             print("⏱ Near track end (\(String(format: "%.1fs", remainingTime)) remaining); polling frequently.")
                             self.endPollingTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-                                DispatchQueue.main.async {
-                                    self?.updateMediaState()
-                                }
+                                DispatchQueue.main.async { self?.updateMediaState() }
                             }
                         }
                     } else {
@@ -188,10 +195,12 @@
         }
         
         // MARK: - Fallback Polling
-        /// Polls every 1 second if no valid info is received.
+        /// Polls every 1 second when no valid media info is received. When idle, you may prefer a longer interval.
         private func startFallbackPolling() {
             if fallbackTimer != nil { return }
-            fallbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            // If idle (nowPlaying is nil), poll every 5 seconds.
+            let interval: TimeInterval = (self.nowPlaying == nil) ? 2.5 : 1.0
+            fallbackTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
                 DispatchQueue.main.async { self?.updateMediaState() }
             }
         }
@@ -240,7 +249,7 @@
         }
         
         // MARK: - Progress Timer
-        /// Starts a timer to update currentTime every 0.1 seconds.
+        /// Starts a timer that updates currentTime every 0.1 seconds.
         func startProgressTimer() {
             progressTimer?.invalidate()
             progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -288,7 +297,7 @@
             self.expectedStateTimestamp = Date()
             
             self.isToggledManually = true
-            self.isPlaying = newState
+            self.isPlaying = newState  // Immediate UI update.
             playbackManager.togglePlayPause(isPlaying: newState)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -300,7 +309,7 @@
             }
         }
         
-        /// Seeks to a given time in the track and then updates state.
+        /// Seeks to a specified time in the current track and triggers an update.
         func seekTo(time: TimeInterval) {
             playbackManager.seekTo(time: time)
             DispatchQueue.main.async {
