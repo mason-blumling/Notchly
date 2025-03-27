@@ -133,14 +133,6 @@ struct NotchlyMediaPlayer: View {
                 mediaMonitor.updateMediaState()
             }
         }
-        .onChange(of: mediaMonitor.nowPlaying) { newTrack in
-            if let newTrack = newTrack {
-                // Slight delay to sync currentTime from new track info.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    mediaMonitor.currentTime = newTrack.elapsedTime
-                }
-            }
-        }
     }
     
     // MARK: - Idle View
@@ -307,7 +299,7 @@ struct NotchlyMediaPlayer: View {
     // MARK: - Glow Color Update
     /// Updates the background glow color extracted from the album artwork.
     private func updateGlowColor(with image: NSImage?) {
-        guard image != nil else {
+        guard let image = image else {
             backgroundGlowColor = Color.gray.opacity(0.2)
             return
         }
