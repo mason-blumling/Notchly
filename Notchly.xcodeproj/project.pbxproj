@@ -12,12 +12,15 @@
 		580B13292D8BCA35003EF0AA /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B131E2D8BC807003EF0AA /* MediaPlayer.framework */; };
 		580B132B2D8BCA67003EF0AA /* MediaRemote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; };
 		580B132C2D8BCA67003EF0AA /* MediaRemote.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 580B13232D8BCA25003EF0AA /* MediaRemote.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		580B13312D8BCDD7003EF0AA /* MediaPlaybackTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */; };
 		580F20512D59ADCD00D66D57 /* NotchlyAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */; };
 		580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20542D59B36600D66D57 /* NotchlyTheme.swift */; };
 		580F20592D59DB3600D66D57 /* NotchlyEventConflicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */; };
 		580F205D2D59E16C00D66D57 /* NotchlyEventAttendees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F205C2D59E14B00D66D57 /* NotchlyEventAttendees.swift */; };
 		580F205F2D59E19100D66D57 /* UserEmailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580F205E2D59E18F00D66D57 /* UserEmailCache.swift */; };
+		583F0A142D9652770034562C /* PlayerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A132D9652740034562C /* PlayerProtocol.swift */; };
+		583F0A162D96529B0034562C /* AppleMusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A152D9652970034562C /* AppleMusicManager.swift */; };
+		583F0A192D965C720034562C /* Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A182D965C6D0034562C /* Music.swift */; };
+		583F0A1B2D965CCC0034562C /* Spotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A1A2D965CC80034562C /* Spotify.swift */; };
 		586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */; };
 		586807D22D6EB3C9005D4DB5 /* No Artwork.png in Resources */ = {isa = PBXBuildFile; fileRef = 586807D12D6EB3C9005D4DB5 /* No Artwork.png */; };
 		5871AC642D76E803007D9755 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
@@ -48,7 +51,6 @@
 		58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */; };
 		58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C1B2D5003CA006FFC06 /* NotchlyCalendarUtilities.swift */; };
 		58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */; };
-		58D248BD2D87854200EC39F7 /* MediaPlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,12 +89,17 @@
 		580B13202D8BC89A003EF0AA /* MediaToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaToolbox.framework; path = System/Library/Frameworks/MediaToolbox.framework; sourceTree = SDKROOT; };
 		580B13222D8BCA25003EF0AA /* MediaControl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaControl.framework; path = ../../../../System/Library/PrivateFrameworks/MediaControl.framework; sourceTree = "<group>"; };
 		580B13232D8BCA25003EF0AA /* MediaRemote.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemote.framework; path = ../../../../System/Library/PrivateFrameworks/MediaRemote.framework; sourceTree = "<group>"; };
-		580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackTypes.swift; sourceTree = "<group>"; };
 		580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyAnimations.swift; sourceTree = "<group>"; };
 		580F20542D59B36600D66D57 /* NotchlyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyTheme.swift; sourceTree = "<group>"; };
 		580F20582D59DB2B00D66D57 /* NotchlyEventConflicts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventConflicts.swift; sourceTree = "<group>"; };
 		580F205C2D59E14B00D66D57 /* NotchlyEventAttendees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventAttendees.swift; sourceTree = "<group>"; };
 		580F205E2D59E18F00D66D57 /* UserEmailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserEmailCache.swift; sourceTree = "<group>"; };
+		583F0A132D9652740034562C /* PlayerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProtocol.swift; sourceTree = "<group>"; };
+		583F0A152D9652970034562C /* AppleMusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicManager.swift; sourceTree = "<group>"; };
+		583F0A182D965C6D0034562C /* Music.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Music.swift; sourceTree = "<group>"; };
+		583F0A1A2D965CC80034562C /* Spotify.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spotify.swift; sourceTree = "<group>"; };
+		583F0A1C2D9660360034562C /* Music.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Music.h; sourceTree = "<group>"; };
+		583F0A1D2D9660AB0034562C /* Notchly-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Notchly-Bridging-Header.h"; sourceTree = "<group>"; };
 		586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyMediaPlayer.swift; sourceTree = "<group>"; };
 		586807D12D6EB3C9005D4DB5 /* No Artwork.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "No Artwork.png"; sourceTree = "<group>"; };
 		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
@@ -122,7 +129,6 @@
 		58C97C192D5003A9006FFC06 /* NotchlyEventList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyEventList.swift; sourceTree = "<group>"; };
 		58C97C1B2D5003CA006FFC06 /* NotchlyCalendarUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyCalendarUtilities.swift; sourceTree = "<group>"; };
 		58C97C1D2D502D74006FFC06 /* NotchlyWeather.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyWeather.swift; sourceTree = "<group>"; };
-		58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -220,14 +226,23 @@
 			path = Weather;
 			sourceTree = "<group>";
 		};
+		583F0A172D965C580034562C /* ScriptingBridge */ = {
+			isa = PBXGroup;
+			children = (
+				583F0A182D965C6D0034562C /* Music.swift */,
+				583F0A1A2D965CC80034562C /* Spotify.swift */,
+			);
+			path = ScriptingBridge;
+			sourceTree = "<group>";
+		};
 		586807CD2D6EB1C3005D4DB5 /* Media Player */ = {
 			isa = PBXGroup;
 			children = (
+				583F0A152D9652970034562C /* AppleMusicManager.swift */,
 				588330452D798484006251C1 /* MarqueeText.swift */,
-				58D248BC2D87853900EC39F7 /* MediaPlaybackManager.swift */,
 				58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */,
-				580B13302D8BCDD1003EF0AA /* MediaPlaybackTypes.swift */,
 				586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */,
+				583F0A132D9652740034562C /* PlayerProtocol.swift */,
 			);
 			path = "Media Player";
 			sourceTree = "<group>";
@@ -293,12 +308,14 @@
 		58C2A71B2D3DAD0200764D80 /* Notchly */ = {
 			isa = PBXGroup;
 			children = (
+				583F0A1C2D9660360034562C /* Music.h */,
+				583F0A1D2D9660AB0034562C /* Notchly-Bridging-Header.h */,
 				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
 				58C97BED2D49ACC3006FFC06 /* Core */,
-				58C97BEC2D49ACBC006FFC06 /* UI */,
-				58C97BEF2D49ACD0006FFC06 /* Utilities */,
 				58C2A7122D3DAD0200764D80 /* Resources */,
 				58C97BF02D49ACDA006FFC06 /* Testing */,
+				58C97BEC2D49ACBC006FFC06 /* UI */,
+				58C97BEF2D49ACD0006FFC06 /* Utilities */,
 				58C97BF12D49AD4E006FFC06 /* Xcode Stuff */,
 			);
 			path = Notchly;
@@ -336,6 +353,7 @@
 		58C97BEF2D49ACD0006FFC06 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				583F0A172D965C580034562C /* ScriptingBridge */,
 				58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */,
 				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
 				580F20542D59B36600D66D57 /* NotchlyTheme.swift */,
@@ -542,9 +560,11 @@
 			files = (
 				58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */,
 				580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */,
+				583F0A142D9652770034562C /* PlayerProtocol.swift in Sources */,
 				58C97BCA2D487E98006FFC06 /* Notchly.swift in Sources */,
 				58C97C172D500394006FFC06 /* NotchlyDateSelector.swift in Sources */,
 				58C97BF72D4A0D87006FFC06 /* NotchlyConfigurations.swift in Sources */,
+				583F0A192D965C720034562C /* Music.swift in Sources */,
 				58C97BD62D4881FE006FFC06 /* BlurAnimation.swift in Sources */,
 				580F205D2D59E16C00D66D57 /* NotchlyEventAttendees.swift in Sources */,
 				580F20592D59DB3600D66D57 /* NotchlyEventConflicts.swift in Sources */,
@@ -552,12 +572,12 @@
 				586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */,
 				58C97BCE2D48800D006FFC06 /* NotchlyView.swift in Sources */,
 				58C97B7F2D45CCE4006FFC06 /* FigmaView.swift in Sources */,
-				580B13312D8BCDD7003EF0AA /* MediaPlaybackTypes.swift in Sources */,
+				583F0A1B2D965CCC0034562C /* Spotify.swift in Sources */,
+				583F0A162D96529B0034562C /* AppleMusicManager.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,
 				58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */,
-				58D248BD2D87854200EC39F7 /* MediaPlaybackManager.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
 				58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */,
@@ -748,6 +768,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Notchly/Notchly-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -789,6 +810,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Notchly/Notchly-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

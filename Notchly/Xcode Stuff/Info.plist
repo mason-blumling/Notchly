@@ -15,6 +15,10 @@
 	<string></string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Notchly needs access to Apple Music, your music and video activity, and your media library to enable playback control and manage your local audio files.</string>
+	<key>CFBundleIdentifier</key>
+	<string></string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Notchly needs access to control Apple Music for media playback management from your notch.</string>
 	<key>kTCCServiceMediaLibrary</key>
 	<string></string>
 </dict>
