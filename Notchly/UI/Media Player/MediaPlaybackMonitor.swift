@@ -31,20 +31,31 @@ final class MediaPlaybackMonitor: ObservableObject {
     private var expectedPlayState: Bool? = nil
     private var expectedStateTimestamp: Date? = nil
     
+    // Baseline for interpolation (if needed)
+    private var baseElapsed: TimeInterval = 0
+    private var lastUpdateTimestamp: Date = Date()
+    
+    // Adaptive polling: current polling interval (in seconds)
+    private var pollingInterval: TimeInterval = 1.0
+    
     // MARK: - Media Provider
     private let mediaProvider: PlayerProtocol = AppleMusicManager(notificationSubject: PassthroughSubject<AlertItem, Never>())
     private var pollingTimerCancellable: AnyCancellable?
+    
+    // (Optional) High-frequency timer for interpolation – you may choose to remove it if you rely solely on adaptive polling.
+    // In this file we’re relying on adaptive polling only.
     private var progressTimer: Timer?
-
+    
     // MARK: - Initialization
     private init() {
         setupObservers()
+        updatePollingInterval() // Set initial polling interval
         startPolling()
     }
     
     // MARK: - Observers Setup
     private func setupObservers() {
-        // In this new design, we only need notifications from Apple Music (and Spotify if needed).
+        // Listen for Music (and Spotify) notifications.
         let notifications = [
             NSNotification.Name("com.apple.Music.playerInfo"),
             NSNotification.Name("com.spotify.client.PlaybackStateChanged")
@@ -58,7 +69,10 @@ final class MediaPlaybackMonitor: ObservableObject {
                 .store(in: &cancellables)
         }
         
-        NotificationCenter.default.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] notification in
+        // When the Music app terminates, clear state.
+        NotificationCenter.default.addObserver(forName: NSWorkspace.didTerminateApplicationNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] notification in
             if let terminatedApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                terminatedApp.bundleIdentifier == "com.apple.Music" {
                 print("🛑 Music app terminated; clearing media state.")
@@ -69,12 +83,36 @@ final class MediaPlaybackMonitor: ObservableObject {
         }
     }
     
+    // MARK: - Adaptive Polling
+    private func updatePollingInterval() {
+        // When playing, poll faster (0.2 s); when paused, poll slower (1.0 s)
+        let desiredInterval: TimeInterval = self.isPlaying ? 0.2 : 1.0
+        if desiredInterval != pollingInterval {
+            pollingInterval = desiredInterval
+            startPolling()  // Restart polling with the new interval.
+        }
+    }
+    
+    private func startPolling() {
+        pollingTimerCancellable?.cancel()
+        pollingTimerCancellable = Timer.publish(every: pollingInterval, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateMediaState()
+            }
+    }
+    
+    private func stopPolling() {
+        pollingTimerCancellable?.cancel()
+        pollingTimerCancellable = nil
+    }
+    
     // MARK: - Main Update Logic
     func updateMediaState() {
-        // Check if the media provider's app is running
+        // First, if the media provider isn't running, clear state.
         if !mediaProvider.isAppRunning() {
             print("🛑 Media app not running; clearing media state.")
-            self.clearMediaState()
+            clearMediaState()
             return
         }
         
@@ -83,88 +121,69 @@ final class MediaPlaybackMonitor: ObservableObject {
         mediaProvider.getNowPlayingInfo { [weak self] info in
             guard let self = self else { return }
             DispatchQueue.main.async {
-                if let info = info, !info.title.isEmpty {
-                    if self.nowPlaying?.title != info.title {
-                        print("🎵 Track change: '\(self.nowPlaying?.title ?? "none")' → '\(info.title)'")
-                    }
-                    
-                    // Validate duration
-                    var validDuration = info.duration
-                    if info.duration <= 1.0 {
-                        if let current = self.nowPlaying, current.title == info.title, self.lastValidDuration > 1.0 {
-                            validDuration = self.lastValidDuration
-                            print("🔄 Bogus duration; using cached duration: \(validDuration)s")
-                        } else {
-                            print("⏱ Bogus duration (\(info.duration)s) – retrying shortly...")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                self.updateMediaState()
-                            }
-                            return
-                        }
-                    } else {
-                        validDuration = info.duration
-                        self.lastValidDuration = validDuration
-                    }
-                    
-                    self.duration = max(validDuration, 1)
-                    self.activePlayer = info.appName
-                    self.lastValidUpdate = Date()
-                    
-                    // Update isPlaying state using expected state logic
-                    if let expected = self.expectedPlayState, let ts = self.expectedStateTimestamp, Date().timeIntervalSince(ts) < 1.5 {
-                        // Only update if the current state isn't already what we expect.
-                        if self.isPlaying != expected {
-                            print("⌚ Enforcing expected state (\(expected)) for \(String(format: "%.1fs", Date().timeIntervalSince(ts)))")
-                            self.isPlaying = expected
-                        }
-                    } else {
-                        // Clear expected state and update only if the fetched state differs.
-                        self.expectedPlayState = nil
-                        self.expectedStateTimestamp = nil
-                        if self.isPlaying != info.isPlaying {
-                             print("⌚ Updating isPlaying to fetched value (\(info.isPlaying))")
-                             self.isPlaying = info.isPlaying
-                        }
-                    }
-                    
-                    self.nowPlaying = info
-                    
-                    // Only update currentTime if user is not scrubbing
-                    if !self.isScrubbing {
-                        let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
-                        self.currentTime = clampedElapsed
-                    } else {
-                        print("updateMediaState: User is scrubbing, preserving currentTime")
-                    }
-                    
-                    // Start or stop the smooth progress timer
-                    if self.isPlaying {
-                        self.startProgressTimer()
-                    } else {
-                        self.stopProgressTimer()
-                    }
-                } else {
-                    // No valid info received.
-                    if let lastUpdate = self.lastValidUpdate, Date().timeIntervalSince(lastUpdate) < 3.0 {
-                        // Retain state if recent.
-                    } else {
+                guard let info = info, !info.title.isEmpty else {
+                    if let lastUpdate = self.lastValidUpdate, Date().timeIntervalSince(lastUpdate) >= 3.0 {
                         print("🛑 No valid media info for too long; returning to idle view.")
                         self.clearMediaState()
                     }
                     return
                 }
-            }
-        }
-    }
-    
-    // MARK: - Progress Timer
-    func fetchElapsedTime() {
-        if self.isScrubbing { return }
-        mediaProvider.getNowPlayingInfo { [weak self] info in
-            guard let self = self, let info = info, self.isPlaying else { return }
-            DispatchQueue.main.async {
-                let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
-                self.currentTime = clampedElapsed
+                
+                if self.nowPlaying?.title != info.title {
+                    print("🎵 Track change: '\(self.nowPlaying?.title ?? "none")' → '\(info.title)'")
+                }
+                
+                // Validate duration.
+                var validDuration = info.duration
+                if info.duration <= 1.0 {
+                    if let current = self.nowPlaying, current.title == info.title, self.lastValidDuration > 1.0 {
+                        validDuration = self.lastValidDuration
+                        print("🔄 Bogus duration; using cached duration: \(validDuration)s")
+                    } else {
+                        print("⏱ Bogus duration (\(info.duration)s) – retrying shortly...")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self.updateMediaState()
+                        }
+                        return
+                    }
+                } else {
+                    validDuration = info.duration
+                    self.lastValidDuration = validDuration
+                }
+                
+                self.duration = max(validDuration, 1)
+                self.activePlayer = info.appName
+                self.lastValidUpdate = Date()
+                
+                // Update isPlaying state.
+                if let expected = self.expectedPlayState,
+                   let ts = self.expectedStateTimestamp,
+                   Date().timeIntervalSince(ts) < 1.5 {
+                    if self.isPlaying != expected {
+                        print("⌚ Enforcing expected state (\(expected))")
+                        self.isPlaying = expected
+                    }
+                } else {
+                    self.expectedPlayState = nil
+                    self.expectedStateTimestamp = nil
+                    if self.isPlaying != info.isPlaying {
+                        print("⌚ Updating isPlaying to fetched value (\(info.isPlaying))")
+                        self.isPlaying = info.isPlaying
+                    }
+                }
+                
+                self.nowPlaying = info
+                
+                // When not scrubbing, update currentTime directly from the source.
+                if !self.isScrubbing {
+                    let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
+                    self.currentTime = clampedElapsed
+                } else {
+                    print("updateMediaState: User is scrubbing, preserving currentTime")
+                }
+                
+                // Adjust polling interval based on updated state.
+                self.updatePollingInterval()
             }
         }
     }
@@ -193,7 +212,6 @@ final class MediaPlaybackMonitor: ObservableObject {
         self.isPlaying = newState
         mediaProvider.playPause()
         
-        // Remove legacy delays: call updateMediaState immediately.
         DispatchQueue.main.async {
             self.updateMediaState()
             self.isToggledManually = false
@@ -207,43 +225,11 @@ final class MediaPlaybackMonitor: ObservableObject {
             self.updateMediaState()
         }
     }
-
+    
     private func clearMediaState() {
         self.nowPlaying = nil
         self.isPlaying = false
         self.currentTime = 0
         self.lastValidUpdate = nil
-    }
-    
-    private func startPolling() {
-        pollingTimerCancellable = Timer.publish(every: 1.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateMediaState()
-            }
-    }
-
-    private func stopPolling() {
-        pollingTimerCancellable?.cancel()
-        pollingTimerCancellable = nil
-    }
-    
-    // MARK: - High-Frequency Progress Timer for Smooth Scrubber Updates
-    private func startProgressTimer() {
-        progressTimer?.invalidate()
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self, self.isPlaying, !self.isScrubbing else { return }
-                self.currentTime += 0.1
-                if self.currentTime >= self.duration {
-                    self.currentTime = self.duration
-                }
-            }
-        }
-    }
-
-    private func stopProgressTimer() {
-        progressTimer?.invalidate()
-        progressTimer = nil
     }
 }
