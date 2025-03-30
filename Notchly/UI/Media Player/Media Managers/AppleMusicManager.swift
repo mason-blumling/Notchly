@@ -135,6 +135,14 @@ final class AppleMusicManager: PlayerProtocol {
 
 /// Constants used by the provider.
 enum Constants {
+    enum AppInfo {
+        static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    }
+    
+    enum Spotify {
+        static let bundleID = "com.spotify.client"
+    }
+    
     enum AppleMusic {
         static let bundleID = "com.apple.Music"
     }
