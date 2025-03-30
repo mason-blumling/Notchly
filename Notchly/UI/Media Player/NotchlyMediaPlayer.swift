@@ -231,7 +231,7 @@ struct NotchlyMediaPlayer: View {
     
     /// Opens the media app associated with the current track.
     private func openAppForTrack(_ track: NowPlayingInfo) {
-        let appURL: String = (mediaMonitor.activePlayer == "Spotify") ? "spotify://" : "music://"
+        let appURL: String = (mediaMonitor.activePlayerName == "Spotify") ? "spotify://" : "music://"
         if let url = URL(string: appURL) {
             NSWorkspace.shared.open(url)
         }

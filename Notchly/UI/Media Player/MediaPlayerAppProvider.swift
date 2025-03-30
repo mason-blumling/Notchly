@@ -15,6 +15,9 @@ class MediaPlayerAppProvider {
     private let appleMusicManager: PlayerProtocol
     private let spotifyManager: PlayerProtocol
     
+    // Store the last active player.
+    private var lastActivePlayer: PlayerProtocol?
+    
     init(notificationSubject: PassthroughSubject<AlertItem, Never>) {
         self.notificationSubject = notificationSubject
         
@@ -32,45 +35,45 @@ class MediaPlayerAppProvider {
     ///    - If neither is playing, returns the default prioritized app (Spotify here).
     ///    - If both are playing, returns the prioritized app (Spotify by default).
     func getActivePlayer() -> PlayerProtocol? {
-        let appleMusicRunning = appleMusicManager.isAppRunning()
+        let appleRunning = appleMusicManager.isAppRunning()
         let spotifyRunning = spotifyManager.isAppRunning()
-        let appleMusicPlaying = appleMusicManager.isPlaying
-        let spotifyPlaying = spotifyManager.isPlaying
-
-        // Case 1: Neither is running.
-        if !appleMusicRunning && !spotifyRunning {
-            print("Neither Apple Music nor Spotify is running. Returning nil.")
+        let applePlaying = appleRunning && appleMusicManager.isPlaying
+        let spotifyPlaying = spotifyRunning && spotifyManager.isPlaying
+        
+        // Neither app running.
+        if !appleRunning && !spotifyRunning {
             return nil
         }
         
-        // Case 2: Only Apple Music is running.
-        if appleMusicRunning && !spotifyRunning {
-            print("Only Apple Music is running.")
+        // Only one app is running.
+        if appleRunning && !spotifyRunning {
+            lastActivePlayer = appleMusicManager
             return appleMusicManager
         }
-        
-        // Case 3: Only Spotify is running.
-        if spotifyRunning && !appleMusicRunning {
-            print("Only Spotify is running.")
+        if spotifyRunning && !appleRunning {
+            lastActivePlayer = spotifyManager
             return spotifyManager
         }
         
-        // Case 4: Both are running.
-        // Check their playing states.
-        if appleMusicPlaying && !spotifyPlaying {
-            print("Both running; Apple Music is playing and Spotify is not.")
+        // Both are running.
+        if applePlaying && !spotifyPlaying {
+            lastActivePlayer = appleMusicManager
             return appleMusicManager
-        } else if spotifyPlaying && !appleMusicPlaying {
-            print("Both running; Spotify is playing and Apple Music is not.")
+        } else if spotifyPlaying && !applePlaying {
+            lastActivePlayer = spotifyManager
             return spotifyManager
-        } else if appleMusicPlaying && spotifyPlaying {
-            // Both are playing; choose based on default priority.
-            print("Both running and both playing; defaulting to Apple Music.")
+        } else if applePlaying && spotifyPlaying {
+            // Both are playing; choose based on user preference (here default to Spotify).
+            lastActivePlayer = appleMusicManager
             return appleMusicManager
         } else {
-            // Neither is playing; choose default based on user preference (defaulting to Spotify).
-            print("Both running but neither is playing; defaulting to Apple Music.")
-            return appleMusicManager
+            // Neither is playing; return the last active player if available.
+            if let lastActive = lastActivePlayer {
+                return lastActive
+            } else {
+                lastActivePlayer = appleMusicManager
+                return appleMusicManager
+            }
         }
     }
 }

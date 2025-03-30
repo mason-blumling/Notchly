@@ -17,7 +17,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     // MARK: - Published Properties
     @Published private(set) var nowPlaying: NowPlayingInfo?
     @Published private(set) var isPlaying: Bool = false
-    @Published private(set) var activePlayer: String = "Unknown"
+    @Published private(set) var activePlayerName: String = "Unknown"
     
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 1
@@ -38,16 +38,17 @@ final class MediaPlaybackMonitor: ObservableObject {
     // Adaptive polling: current polling interval (in seconds)
     private var pollingInterval: TimeInterval = 1.0
     
-    // MARK: - Media Provider
-    private let mediaProvider: PlayerProtocol = AppleMusicManager(notificationSubject: PassthroughSubject<AlertItem, Never>())
-    private var pollingTimerCancellable: AnyCancellable?
+    // Instead of a single mediaProvider, we now use a provider that decides the active player.
+    private let mediaPlayerAppProvider: MediaPlayerAppProvider
     
-    // (Optional) High-frequency timer for interpolation – you may choose to remove it if you rely solely on adaptive polling.
-    // In this file we’re relying on adaptive polling only.
+    private var pollingTimerCancellable: AnyCancellable?
+    // (Optional) High-frequency interpolation timer (if used).
     private var progressTimer: Timer?
     
     // MARK: - Initialization
     private init() {
+        // Initialize provider with a notification subject.
+        self.mediaPlayerAppProvider = MediaPlayerAppProvider(notificationSubject: PassthroughSubject<AlertItem, Never>())
         setupObservers()
         updatePollingInterval() // Set initial polling interval
         startPolling()
@@ -55,7 +56,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     
     // MARK: - Observers Setup
     private func setupObservers() {
-        // Listen for Music (and Spotify) notifications.
+        // Listen for Music and Spotify notifications.
         let notifications = [
             NSNotification.Name("com.apple.Music.playerInfo"),
             NSNotification.Name("com.spotify.client.PlaybackStateChanged")
@@ -85,7 +86,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     
     // MARK: - Adaptive Polling
     private func updatePollingInterval() {
-        // When playing, poll faster (0.2 s); when paused, poll slower (1.0 s)
+        // When playing, poll faster (0.2 s); when paused, poll slower (1.0 s).
         let desiredInterval: TimeInterval = self.isPlaying ? 0.2 : 1.0
         if desiredInterval != pollingInterval {
             pollingInterval = desiredInterval
@@ -109,20 +110,24 @@ final class MediaPlaybackMonitor: ObservableObject {
     
     // MARK: - Main Update Logic
     func updateMediaState() {
-        // First, if the media provider isn't running, clear state.
-        if !mediaProvider.isAppRunning() {
-            print("🛑 Media app not running; clearing media state.")
+        // Query the provider for the active player.
+        guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else {
+            print("No active player found; clearing media state.")
             clearMediaState()
             return
         }
         
+        // Update the activePlayerName for UI display.
+        activePlayerName = activePlayer.appName
+        
         if isToggledManually { return }
         
-        mediaProvider.getNowPlayingInfo { [weak self] info in
+        activePlayer.getNowPlayingInfo { [weak self] info in
             guard let self = self else { return }
             DispatchQueue.main.async {
                 guard let info = info, !info.title.isEmpty else {
-                    if let lastUpdate = self.lastValidUpdate, Date().timeIntervalSince(lastUpdate) >= 3.0 {
+                    if let lastUpdate = self.lastValidUpdate,
+                       Date().timeIntervalSince(lastUpdate) >= 3.0 {
                         print("🛑 No valid media info for too long; returning to idle view.")
                         self.clearMediaState()
                     }
@@ -152,10 +157,9 @@ final class MediaPlaybackMonitor: ObservableObject {
                 }
                 
                 self.duration = max(validDuration, 1)
-                self.activePlayer = info.appName
                 self.lastValidUpdate = Date()
                 
-                // Update isPlaying state.
+                // Update isPlaying using expected state logic.
                 if let expected = self.expectedPlayState,
                    let ts = self.expectedStateTimestamp,
                    Date().timeIntervalSince(ts) < 1.5 {
@@ -190,27 +194,30 @@ final class MediaPlaybackMonitor: ObservableObject {
     
     // MARK: - Playback Actions
     func previousTrack() {
-        mediaProvider.previousTrack()
+        guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else { return }
+        activePlayer.previousTrack()
         DispatchQueue.main.async {
             self.updateMediaState()
         }
     }
     
     func nextTrack() {
-        mediaProvider.nextTrack()
+        guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else { return }
+        activePlayer.nextTrack()
         DispatchQueue.main.async {
             self.updateMediaState()
         }
     }
     
     func togglePlayPause() {
+        guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else { return }
         let newState = !self.isPlaying
         self.expectedPlayState = newState
         self.expectedStateTimestamp = Date()
         
         self.isToggledManually = true
         self.isPlaying = newState
-        mediaProvider.playPause()
+        activePlayer.playPause()
         
         DispatchQueue.main.async {
             self.updateMediaState()
@@ -219,7 +226,8 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     func seekTo(time: TimeInterval) {
-        mediaProvider.seekTo(time: time)
+        guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else { return }
+        activePlayer.seekTo(time: time)
         DispatchQueue.main.async {
             self.currentTime = time
             self.updateMediaState()

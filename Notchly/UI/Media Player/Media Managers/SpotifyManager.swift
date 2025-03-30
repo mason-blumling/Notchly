@@ -13,9 +13,17 @@ import SwiftUI
 import ScriptingBridge
 
 class SpotifyManager: PlayerProtocol {
-    // Use the SpotifyApplication defined in SpotifyApp.swift.
-    var app: SpotifyApplication = SBApplication(bundleIdentifier: Constants.Spotify.bundleID)!
     var notificationSubject: PassthroughSubject<AlertItem, Never>
+    
+    /// Instead of immediately creating an SBApplication, we use a lazy property.
+    /// This property will only be initialized if Spotify is already running.
+    private lazy var app: SpotifyApplication? = {
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Constants.Spotify.bundleID)
+        guard !runningApps.isEmpty else {
+            return nil
+        }
+        return SBApplication(bundleIdentifier: Constants.Spotify.bundleID)
+    }()
     
     // MARK: - PlayerProtocol Conformance
     public var bundleIdentifier: String { Constants.Spotify.bundleID }
@@ -23,10 +31,20 @@ class SpotifyManager: PlayerProtocol {
     public var appPath: URL = URL(fileURLWithPath: "/Applications/Spotify.app")
     public var appNotification: String { "\(bundleIdentifier).PlaybackStateChanged" }
     public var defaultAlbumArt: NSImage { NSImage(named: "DefaultAlbumArt") ?? NSImage() }
-
-    public var playerPosition: Double? { app.playerPosition }
-    public var isPlaying: Bool { app.playerState == .playing }
-    public var volume: CGFloat { CGFloat(app.soundVolume ?? 50) }
+    
+    public var playerPosition: Double? {
+        return app?.playerPosition
+    }
+    
+    public var isPlaying: Bool {
+        if let state = app?.playerState {
+        }
+        return app?.playerState == .playing
+    }
+    
+    public var volume: CGFloat {
+        return CGFloat(app?.soundVolume ?? 50)
+    }
     
     // MARK: - Initialization
     init(notificationSubject: PassthroughSubject<AlertItem, Never>) {
@@ -35,8 +53,8 @@ class SpotifyManager: PlayerProtocol {
     
     // MARK: - PlayerProtocol Methods
     func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void) {
-        // Ensure Spotify is running and there is a current track.
-        guard isAppRunning(), let track = app.currentTrack else {
+        // Ensure Spotify is running and a track is available.
+        guard isAppRunning(), let track = app?.currentTrack else {
             completion(nil)
             return
         }
@@ -44,9 +62,9 @@ class SpotifyManager: PlayerProtocol {
         let title = track.name ?? "Unknown Title"
         let artist = track.artist ?? "Unknown Artist"
         let album = track.album ?? "Unknown Album"
-        // Spotify's duration is defined as an Int (seconds) in your SpotifyApp.swift.
-        let durationSeconds = Double(track.duration ?? 0)
-        let elapsedTime = app.playerPosition ?? 0.0
+        // Spotify's duration is defined as an Int (milliseconds) in your SpotifyApp.swift.
+        let durationSeconds = Double(track.duration ?? 0) / 1000.0
+        let elapsedTime = app?.playerPosition ?? 0.0
         
         // Attempt to fetch album artwork from artworkUrl.
         if let urlString = track.artworkUrl, let url = URL(string: urlString) {
@@ -87,26 +105,27 @@ class SpotifyManager: PlayerProtocol {
     }
     
     func playPause() {
-        app.playpause?()
+        app?.playpause?()
     }
     
     func previousTrack() {
-        app.previousTrack?()
+        app?.previousTrack?()
     }
     
     func nextTrack() {
-        app.nextTrack?()
+        app?.nextTrack?()
     }
     
     func seekTo(time: TimeInterval) {
-        app.setPlayerPosition?(time)
+        app?.setPlayerPosition?(time)
     }
     
     func setVolume(volume: Int) {
-        app.setSoundVolume?(volume)
+        app?.setSoundVolume?(volume)
     }
     
     func isAppRunning() -> Bool {
-        return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == self.bundleIdentifier }
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: self.bundleIdentifier)
+        return !runningApps.isEmpty
     }
 }
