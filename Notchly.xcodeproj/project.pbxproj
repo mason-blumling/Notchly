@@ -25,6 +25,9 @@
 		58832F3F2D9A1D1D00745CF2 /* PodcastsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F3E2D9A1D1800745CF2 /* PodcastsManager.swift */; };
 		58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */; };
 		58832F462D9A2BC800745CF2 /* MediaPlayerConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F452D9A2BBC00745CF2 /* MediaPlayerConstants.swift */; };
+		58832F482D9A3FCC00745CF2 /* LavaLampGlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */; };
+		58832F4A2D9A463500745CF2 /* BouncingBlobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F492D9A462800745CF2 /* BouncingBlobView.swift */; };
+		58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */; };
 		588330442D79704C006251C1 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = 588330432D79704C006251C1 /* FeedKit */; };
 		588330462D798485006251C1 /* MarqueeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588330452D798484006251C1 /* MarqueeText.swift */; };
 		58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */; };
@@ -100,6 +103,9 @@
 		58832F3E2D9A1D1800745CF2 /* PodcastsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastsManager.swift; sourceTree = "<group>"; };
 		58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastsFallbackView.swift; sourceTree = "<group>"; };
 		58832F452D9A2BBC00745CF2 /* MediaPlayerConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerConstants.swift; sourceTree = "<group>"; };
+		58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LavaLampGlowView.swift; sourceTree = "<group>"; };
+		58832F492D9A462800745CF2 /* BouncingBlobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BouncingBlobView.swift; sourceTree = "<group>"; };
+		58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractArtworkColor.swift; sourceTree = "<group>"; };
 		588330452D798484006251C1 /* MarqueeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeText.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -222,6 +228,7 @@
 				586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */,
 				58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */,
 				58832F442D9A2BB300745CF2 /* Constants */,
+				58832F4B2D9A49B800745CF2 /* Lava Lamp Backdrop */,
 				58832F3B2D9A06A200745CF2 /* Managers */,
 				58832F422D9A2B8700745CF2 /* Protocols */,
 				58832F432D9A2BA400745CF2 /* Providers */,
@@ -269,6 +276,16 @@
 				58832F452D9A2BBC00745CF2 /* MediaPlayerConstants.swift */,
 			);
 			path = Constants;
+			sourceTree = "<group>";
+		};
+		58832F4B2D9A49B800745CF2 /* Lava Lamp Backdrop */ = {
+			isa = PBXGroup;
+			children = (
+				58832F492D9A462800745CF2 /* BouncingBlobView.swift */,
+				58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */,
+				58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */,
+			);
+			path = "Lava Lamp Backdrop";
 			sourceTree = "<group>";
 		};
 		58A40D5D2D094923002B5165 = {
@@ -568,6 +585,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */,
+				58832F482D9A3FCC00745CF2 /* LavaLampGlowView.swift in Sources */,
 				58832F3F2D9A1D1D00745CF2 /* PodcastsManager.swift in Sources */,
 				580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */,
 				583F0A142D9652770034562C /* PlayerProtocol.swift in Sources */,
@@ -590,12 +608,14 @@
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */,
+				58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */,
 				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,
 				58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
 				58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */,
 				588330462D798485006251C1 /* MarqueeText.swift in Sources */,
+				58832F4A2D9A463500745CF2 /* BouncingBlobView.swift in Sources */,
 				580F205F2D59E19100D66D57 /* UserEmailCache.swift in Sources */,
 				58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */,
 			);

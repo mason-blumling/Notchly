@@ -218,14 +218,15 @@ struct NotchlyMediaPlayer: View {
     /// Displays the album artwork with a subtle animated glow and overlays the logo of the active media app.
     private func albumArtView(track: NowPlayingInfo) -> some View {
         ZStack {
-            // Animated glow effect behind the album art.
-            Circle()
-                .fill(backgroundGlowColor.opacity(0.4))
-                .frame(width: 100, height: 100)
-                .blur(radius: 20)
-                .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
+            // Place the moving lava lamp glow view behind the album art,
+            // and pass in the dynamic backgroundGlowColor.
+            LavaLampGlowView(blobColor: backgroundGlowColor)
+                .frame(width: NotchlyConfiguration.large.width * 0.55,
+                       height: NotchlyConfiguration.large.height + 20)
+                .opacity(0.50)
             
-            // Button to open the active media app when tapped.
+
+            // Your album art button.
             Button(action: { openAppForTrack(track) }) {
                 if let nsImage = track.artwork {
                     Image(nsImage: nsImage)
@@ -236,8 +237,10 @@ struct NotchlyMediaPlayer: View {
                         .onAppear {
                             updateGlowColor(with: nsImage)
                         }
+                        .onChange(of: track.artwork) { oldValue, newValue in
+                            updateGlowColor(with: newValue)
+                        }
                 } else {
-                    // Fallback image if artwork is missing.
                     Image(systemName: "music.note")
                         .resizable()
                         .scaledToFit()
@@ -258,6 +261,8 @@ struct NotchlyMediaPlayer: View {
                 .clipShape(Circle())
                 .offset(x: 40, y: 40)
         }
+        // Optionally add an overall animation to the ZStack if needed.
+        .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
     }
     
     /// Opens the media app associated with the current track.
@@ -344,12 +349,13 @@ struct NotchlyMediaPlayer: View {
     
     /// Updates the background glow color extracted from the album artwork.
     private func updateGlowColor(with image: NSImage?) {
-        guard image != nil else {
+        if let image = image,
+           let dominant = image.dominantColor(),
+           let vibrant = dominant.vibrantColor() {
+            backgroundGlowColor = Color(nsColor: vibrant)
+        } else {
             backgroundGlowColor = Color.gray.opacity(0.2)
-            return
         }
-        // TODO: Replace with an actual color extraction algorithm if desired.
-        backgroundGlowColor = Color.red.opacity(0.8)
     }
 }
 
@@ -364,7 +370,7 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .previewLayout(.sizeThatFits)
                 .padding()
-                .background(Color.blue)
+                .background(Color.black)
             
             // Playing state preview using a mock notification.
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
