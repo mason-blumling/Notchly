@@ -112,7 +112,6 @@ final class MediaPlaybackMonitor: ObservableObject {
     func updateMediaState() {
         // Query the provider for the active player.
         guard let activePlayer = mediaPlayerAppProvider.getActivePlayer() else {
-            print("No active player found; clearing media state.")
             clearMediaState()
             return
         }
@@ -257,5 +256,6 @@ final class MediaPlaybackMonitor: ObservableObject {
         self.isPlaying = false
         self.currentTime = 0
         self.lastValidUpdate = nil
+        self.activePlayerName = ""
     }
 }

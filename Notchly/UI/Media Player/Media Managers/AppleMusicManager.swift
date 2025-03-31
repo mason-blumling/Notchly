@@ -61,6 +61,7 @@ final class AppleMusicManager: PlayerProtocol {
     }
     
     var isPlaying: Bool {
+        guard isAppRunning() else { return false }
         return (musicApp?.playerState ?? 0) == 1800426320
     }
     
@@ -132,15 +133,5 @@ final class AppleMusicManager: PlayerProtocol {
     func isAppRunning() -> Bool {
         let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: self.bundleIdentifier)
         return !runningApps.isEmpty
-    }
-}
-
-/// Constants used by the provider.
-enum Constants {
-    enum AppleMusic {
-        static let bundleID = "com.apple.Music"
-    }
-    enum Spotify {
-        static let bundleID = "com.spotify.client"
     }
 }

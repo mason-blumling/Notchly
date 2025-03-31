@@ -19,9 +19,7 @@ class SpotifyManager: PlayerProtocol {
     /// This property will only be initialized if Spotify is already running.
     private lazy var app: SpotifyApplication? = {
         let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Constants.Spotify.bundleID)
-        guard !runningApps.isEmpty else {
-            return nil
-        }
+        guard !runningApps.isEmpty else { return nil }
         return SBApplication(bundleIdentifier: Constants.Spotify.bundleID)
     }()
     
@@ -37,6 +35,7 @@ class SpotifyManager: PlayerProtocol {
     }
     
     public var isPlaying: Bool {
+        guard isAppRunning() else { return false }
         return app?.playerState == .playing
     }
     

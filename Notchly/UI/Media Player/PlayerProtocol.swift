@@ -35,7 +35,6 @@ protocol PlayerProtocol {
     func seekTo(time: TimeInterval)
     
     func setVolume(volume: Int)
-    
     func isAppRunning() -> Bool
 }
 

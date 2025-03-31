@@ -8,12 +8,26 @@
 import SwiftUI
 import Combine
 
+/// Constants used by the provider.
+enum Constants {
+    enum Podcasts {
+        static let bundleID = "com.apple.podcasts"
+    }
+    enum AppleMusic {
+        static let bundleID = "com.apple.Music"
+    }
+    enum Spotify {
+        static let bundleID = "com.spotify.client"
+    }
+}
+
 class MediaPlayerAppProvider {
     private var notificationSubject: PassthroughSubject<AlertItem, Never>
     
-    // Instantiate both managers.
+    // Instantiate all three managers.
     private let appleMusicManager: PlayerProtocol
     private let spotifyManager: PlayerProtocol
+    private let podcastsManager: PlayerProtocol
     
     // Store the last active player.
     private var lastActivePlayer: PlayerProtocol?
@@ -24,56 +38,75 @@ class MediaPlayerAppProvider {
         // Initialize with your existing managers.
         self.appleMusicManager = AppleMusicManager(notificationSubject: notificationSubject)
         self.spotifyManager = SpotifyManager(notificationSubject: notificationSubject)
+        self.podcastsManager = PodcastsManager(notificationSubject: notificationSubject)
     }
     
-    /// Returns the currently active media player based on the following scenarios:
-    /// 1. Neither app is running: returns nil (idle view).
-    /// 2. Only Apple Music is running: returns Apple Music.
-    /// 3. Only Spotify is running: returns Spotify.
-    /// 4. Both are running:
-    ///    - If one is playing, returns that one.
-    ///    - If neither is playing, returns the default prioritized app (Spotify here).
-    ///    - If both are playing, returns the prioritized app (Spotify by default).
+    /// Returns the currently active media player.
+    /// Maintains functionality: first check if the app is open, then if it’s playing.
+    /// If none are playing, returns the last active player.
     func getActivePlayer() -> PlayerProtocol? {
         let appleRunning = appleMusicManager.isAppRunning()
         let spotifyRunning = spotifyManager.isAppRunning()
-        let applePlaying = appleRunning && appleMusicManager.isPlaying
-        let spotifyPlaying = spotifyRunning && spotifyManager.isPlaying
+        let podcastsRunning = podcastsManager.isAppRunning()
         
-        // Neither app running.
-        if !appleRunning && !spotifyRunning {
+        // Case 1: None are running.
+        if !appleRunning && !spotifyRunning && !podcastsRunning {
             return nil
         }
         
-        // Only one app is running.
-        if appleRunning && !spotifyRunning {
+        // Case 2: Only one is running.
+        if appleRunning && !spotifyRunning && !podcastsRunning {
             lastActivePlayer = appleMusicManager
             return appleMusicManager
         }
-        if spotifyRunning && !appleRunning {
+        if spotifyRunning && !appleRunning && !podcastsRunning {
             lastActivePlayer = spotifyManager
             return spotifyManager
+        }
+        if podcastsRunning && !appleRunning && !spotifyRunning {
+            lastActivePlayer = podcastsManager
+            return podcastsManager
         }
         
-        // Both are running.
-        if applePlaying && !spotifyPlaying {
-            lastActivePlayer = appleMusicManager
-            return appleMusicManager
-        } else if spotifyPlaying && !applePlaying {
-            lastActivePlayer = spotifyManager
-            return spotifyManager
-        } else if applePlaying && spotifyPlaying {
-            // Both are playing; choose based on user preference (here default to Spotify).
-            lastActivePlayer = appleMusicManager
-            return appleMusicManager
-        } else {
-            // Neither is playing; return the last active player if available.
-            if let lastActive = lastActivePlayer {
-                return lastActive
+        // Case 3: Multiple apps are running.
+        // Determine playing states.
+        let applePlaying = appleRunning && appleMusicManager.isPlaying
+        let spotifyPlaying = spotifyRunning && spotifyManager.isPlaying
+        let podcastsPlaying = podcastsRunning && podcastsManager.isPlaying
+        
+        // If exactly one app is playing, choose that one.
+        let playingApps: [PlayerProtocol] = [appleMusicManager, spotifyManager, podcastsManager].filter { $0.isPlaying }
+        if playingApps.count == 1 {
+            lastActivePlayer = playingApps.first
+            return playingApps.first
+        } else if playingApps.count > 1 {
+            // If more than one is playing, use the last active if available and still playing.
+            if let last = lastActivePlayer, last.isPlaying {
+                return last
             } else {
-                lastActivePlayer = appleMusicManager
-                return appleMusicManager
+                // Or choose a default priority (for example, Podcasts > Spotify > Apple Music).
+                if podcastsPlaying {
+                    lastActivePlayer = podcastsManager
+                    return podcastsManager
+                }
+                if spotifyPlaying {
+                    lastActivePlayer = spotifyManager
+                    return spotifyManager
+                }
+                if applePlaying {
+                    lastActivePlayer = appleMusicManager
+                    return appleMusicManager
+                }
             }
         }
+        
+        // If none are playing but more than one is open, return the last active player.
+        if let last = lastActivePlayer {
+            return last
+        }
+        
+        // Fallback (shouldn't happen)
+        lastActivePlayer = appleMusicManager
+        return appleMusicManager
     }
 }
