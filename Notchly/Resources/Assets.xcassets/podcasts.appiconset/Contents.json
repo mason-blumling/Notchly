@@ -1,0 +1,68 @@
+{
+  "images" : [
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-10 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "16x16"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-9 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-8 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-7 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-6 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-5 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-4 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "256x256"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-2 (dragged) 1.jpg",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-2 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "512x512"
+    },
+    {
+      "filename" : "ad83a219c38c0106905065eb6caa6d47_Apple_Podcasts-1 (dragged).jpg",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "512x512"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

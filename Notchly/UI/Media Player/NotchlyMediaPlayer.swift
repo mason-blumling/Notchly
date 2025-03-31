@@ -146,9 +146,9 @@ struct NotchlyMediaPlayer: View {
                 .font(.system(size: 12, weight: .regular))
                 .foregroundColor(.gray.opacity(0.7))
             HStack(spacing: 20) {
-                AppIconButton(icon: "applemusic", appURL: "music://")
-                AppIconButton(icon: "spotify", appURL: "spotify://")
-                AppIconButton(icon: "podcasts", appURL: "podcasts://")
+                AppIconButton(icon: "appleMusic-Universal", appURL: "music://")
+                AppIconButton(icon: "spotify-Universal", appURL: "spotify://")
+                AppIconButton(icon: "podcasts-Universal", appURL: "podcasts://")
             }
         }
         .padding(.top, 10)
@@ -216,11 +216,12 @@ struct NotchlyMediaPlayer: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
-            // Overlay icon indicating the active media app.
-            Image("applemusic")
+
+            /// Determine the logo based on the active player.
+            let logoName = (mediaMonitor.activePlayerName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal"
+            Image(logoName)
                 .resizable()
-                .frame(width: 35, height: 35)
+                .frame(width: 40, height: 40)
                 .foregroundColor(.white)
                 .padding(5)
                 .background(Color.clear)
