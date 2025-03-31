@@ -156,7 +156,7 @@ final class MediaPlaybackMonitor: ObservableObject {
                     self.lastValidDuration = validDuration
                 }
                 
-                self.duration = max(validDuration, 1)
+                let updatedDuration = max(validDuration, 1)
                 self.lastValidUpdate = Date()
                 
                 // Update isPlaying using expected state logic.
@@ -176,15 +176,33 @@ final class MediaPlaybackMonitor: ObservableObject {
                     }
                 }
                 
-                self.nowPlaying = info
-                
-                // When not scrubbing, update currentTime directly from the source.
+                // When not scrubbing, update the baseline and currentTime.
+                let newElapsed: TimeInterval
                 if !self.isScrubbing {
-                    let clampedElapsed = max(0, min(info.elapsedTime, self.duration))
-                    self.currentTime = clampedElapsed
+                    newElapsed = max(0, min(info.elapsedTime, updatedDuration))
+                    self.baseElapsed = newElapsed
+                    self.lastUpdateTimestamp = Date()
                 } else {
+                    newElapsed = self.currentTime
                     print("updateMediaState: User is scrubbing, preserving currentTime")
                 }
+                
+                // Create a new NowPlayingInfo instance with updated values.
+                let updatedInfo = NowPlayingInfo(
+                    title: info.title,
+                    artist: info.artist,
+                    album: info.album,
+                    duration: updatedDuration,
+                    elapsedTime: newElapsed,
+                    isPlaying: info.isPlaying,
+                    artwork: info.artwork,
+                    appName: info.appName
+                )
+                
+                // Atomically update published properties.
+                self.nowPlaying = updatedInfo
+                self.duration = updatedInfo.duration
+                self.currentTime = updatedInfo.elapsedTime
                 
                 // Adjust polling interval based on updated state.
                 self.updatePollingInterval()

@@ -37,8 +37,6 @@ class SpotifyManager: PlayerProtocol {
     }
     
     public var isPlaying: Bool {
-        if let state = app?.playerState {
-        }
         return app?.playerState == .playing
     }
     
