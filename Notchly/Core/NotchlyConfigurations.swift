@@ -27,7 +27,7 @@ public struct NotchlyConfiguration {
 
     public static let activity = NotchlyConfiguration(
         width: 280,
-        height: 31.75,
+        height: 33.75,
         topCornerRadius: 9,
         bottomCornerRadius: 9,
         shadowRadius: 0

@@ -21,53 +21,81 @@ struct NotchlyView<Content>: View where Content: View {
     @Namespace private var notchAnimation
 
     var body: some View {
-        VStack(spacing: 0) {
+        // Compute the configuration to use based on media playback state and hover state.
+        let currentConfig: NotchlyConfiguration = {
+            if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
+                // When media is playing and the notch is collapsed, use the "activity" configuration.
+                return NotchlyConfiguration.activity
+            } else {
+                // Otherwise, use the current configuration (expanded or default).
+                return notchly.configuration
+            }
+        }()
+        
+        return VStack(spacing: 0) {
             HStack(spacing: 0) {
                 Spacer()
-
+                
                 ZStack {
-                    // 🔥 The Notch Shape (Handles expansion)
+                    // 🔥 The Notch Shape (Handles expansion) using the computed configuration.
                     NotchlyShape(
-                        bottomCornerRadius: notchly.configuration.bottomCornerRadius,
-                        topCornerRadius: notchly.configuration.topCornerRadius
+                        bottomCornerRadius: currentConfig.bottomCornerRadius,
+                        topCornerRadius: currentConfig.topCornerRadius
                     )
                     .fill(NotchlyTheme.background)
                     .frame(
-                        width: notchly.isMouseInside ? notchly.notchWidth : NotchlyConfiguration.default.width,
-                        height: notchly.isMouseInside ? notchly.notchHeight : NotchlyConfiguration.default.height
+                        width: notchly.isMouseInside ? notchly.notchWidth : currentConfig.width,
+                        height: notchly.isMouseInside ? notchly.notchHeight : currentConfig.height
                     )
+                    .shadow(color: NotchlyTheme.shadow, radius: currentConfig.shadowRadius)
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
-
+                    
                     /// 🔹 Media Player on Left, Calendar on Right
-                    HStack(alignment: .center, spacing: 6) { // ✅ Set fixed spacing
+                    HStack(alignment: .center, spacing: 6) {
                         Spacer()
                             .frame(width: 4)
                         
-                        NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
-                            .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
-                            .frame(
-                                width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : 0,
-                                height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
-                            )
-                            .padding(.leading, 4) // 🔥 Adds balance by pushing it slightly right
-                            .opacity(notchly.isMouseInside ? 1 : 0)
-                            .clipped()
-                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
-                            .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
-
+                        /// Conditional media player view based on playback state and notch expansion.
+                        if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
+                            /// Live Activity View (compact live activity) when media is playing and notch is collapsed.
+                            MediaPlayerLiveActivityView(albumArt: mediaMonitor.nowPlaying?.artwork)
+                                .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
+                                .frame(
+                                    width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
+                                    height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
+                                )
+                                .padding(.leading, 4)
+                                .opacity(!notchly.isMouseInside ? 1 : 0)
+                                .clipped()
+                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
+                                .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
+                        } else {
+                            /// Detailed Media Player View when notch is expanded or when media is not playing.
+                            NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
+                                .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
+                                .frame(
+                                    width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
+                                    height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
+                                )
+                                .padding(.leading, 4)
+                                .opacity(notchly.isMouseInside ? 1 : 0)
+                                .clipped()
+                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
+                                .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
+                        }
+                        
                         Spacer()
                             .frame(width: 5)
                         
-                        // ✅ Remove separate Spacer() and use padding instead
-                        NotchlyCalendarView(calendarManager: calendarManager,
-                                            isExpanded: notchly.isMouseInside)
+                        // The calendar module remains unchanged.
+                        NotchlyCalendarView(calendarManager: calendarManager, isExpanded: notchly.isMouseInside)
                             .matchedGeometryEffect(id: "calendar", in: notchAnimation)
                             .frame(
                                 width: notchly.isMouseInside ? notchly.notchWidth * 0.50 : 0,
                                 height: notchly.isMouseInside ? notchly.notchHeight - 5 : 0
                             )
-                            .padding(.trailing, 4) // 🔥 Adds balance by pulling it slightly left
+                            .padding(.trailing, 4)
                             .opacity(notchly.isMouseInside ? 1 : 0)
                             .clipped()
                             .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
@@ -79,7 +107,7 @@ struct NotchlyView<Content>: View where Content: View {
                 .onHover { hovering in
                     debounceHover(hovering)
                 }
-
+                
                 Spacer()
             }
         }

@@ -43,15 +43,26 @@ struct AudioBarsView: View {
 
 // MARK: - MediaPlayerLiveActivityView: Combines album art and animated audio bars.
 struct MediaPlayerLiveActivityView: View {
+    /// Optional album artwork passed from the media monitor.
+    var albumArt: NSImage?
+
     var body: some View {
         LiveActivityView(
             leftContent: {
-                // Album art placeholder scaled to 24x24.
-                Image("podcasts-Universal")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 24, height: 24)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                // If album artwork is available and valid, show it; otherwise, fallback to a placeholder.
+                if let albumArt = albumArt, albumArt.size != NSZeroSize {
+                    Image(nsImage: albumArt)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 24, height: 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    Image("music.note")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 24, height: 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
             },
             rightContent: {
                 // Audio bars animation.
@@ -63,7 +74,7 @@ struct MediaPlayerLiveActivityView: View {
 
 struct MediaPlayerLiveActivityView_Previews: PreviewProvider {
     static var previews: some View {
-        MediaPlayerLiveActivityView()
+        MediaPlayerLiveActivityView(albumArt: nil)
             .previewLayout(.sizeThatFits)
             .padding()
     }
