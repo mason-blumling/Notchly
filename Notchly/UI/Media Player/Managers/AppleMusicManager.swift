@@ -114,7 +114,7 @@ final class AppleMusicManager: PlayerProtocol {
            image.size != NSZeroSize {
             artwork = image
         } else {
-            print("⚠️ Artwork image is empty or invalid.")
+            // print("⚠️ Artwork image is empty or invalid.")
         }
         
         // Build the NowPlayingInfo model.

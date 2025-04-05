@@ -120,7 +120,7 @@ final class PodcastsManager: PlayerProtocol {
            image.size != NSZeroSize {
             artwork = image
         } else {
-            print("⚠️ Artwork image is empty or invalid for Podcasts.")
+            // print("⚠️ Artwork image is empty or invalid for Podcasts.")
         }
         
         let info = NowPlayingInfo(

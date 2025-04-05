@@ -16,6 +16,8 @@
 		583F0A162D96529B0034562C /* AppleMusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A152D9652970034562C /* AppleMusicManager.swift */; };
 		583F0A192D965C720034562C /* Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A182D965C6D0034562C /* Music.swift */; };
 		583F0A1B2D965CCC0034562C /* Spotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0A1A2D965CC80034562C /* Spotify.swift */; };
+		5862FF442DA0AACD0037843C /* LiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5862FF432DA0AABF0037843C /* LiveActivityView.swift */; };
+		5862FF4A2DA0B1480037843C /* MediaPlayerLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5862FF492DA0B13F0037843C /* MediaPlayerLiveActivityView.swift */; };
 		586807CF2D6EB1D7005D4DB5 /* NotchlyMediaPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */; };
 		586807D22D6EB3C9005D4DB5 /* No Artwork.png in Resources */ = {isa = PBXBuildFile; fileRef = 586807D12D6EB3C9005D4DB5 /* No Artwork.png */; };
 		5871AC642D76E803007D9755 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A40DA72D094FDB002B5165 /* EventKit.framework */; };
@@ -95,6 +97,8 @@
 		583F0A1A2D965CC80034562C /* Spotify.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spotify.swift; sourceTree = "<group>"; };
 		583F0A1C2D9660360034562C /* Music.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Music.h; sourceTree = "<group>"; };
 		583F0A1D2D9660AB0034562C /* Notchly-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Notchly-Bridging-Header.h"; sourceTree = "<group>"; };
+		5862FF432DA0AABF0037843C /* LiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityView.swift; sourceTree = "<group>"; };
+		5862FF492DA0B13F0037843C /* MediaPlayerLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerLiveActivityView.swift; sourceTree = "<group>"; };
 		586807CE2D6EB1D6005D4DB5 /* NotchlyMediaPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyMediaPlayer.swift; sourceTree = "<group>"; };
 		586807D12D6EB3C9005D4DB5 /* No Artwork.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "No Artwork.png"; sourceTree = "<group>"; };
 		587D3D4E2D40C4750034FA71 /* NotchlyShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyShape.swift; sourceTree = "<group>"; };
@@ -218,6 +222,15 @@
 				583F0A1A2D965CC80034562C /* Spotify.swift */,
 			);
 			path = ScriptingBridge;
+			sourceTree = "<group>";
+		};
+		5862FF422DA0AAAA0037843C /* Live Activities */ = {
+			isa = PBXGroup;
+			children = (
+				5862FF432DA0AABF0037843C /* LiveActivityView.swift */,
+				5862FF492DA0B13F0037843C /* MediaPlayerLiveActivityView.swift */,
+			);
+			path = "Live Activities";
 			sourceTree = "<group>";
 		};
 		586807CD2D6EB1C3005D4DB5 /* Media Player */ = {
@@ -361,6 +374,7 @@
 		58C97BEC2D49ACBC006FFC06 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				5862FF422DA0AAAA0037843C /* Live Activities */,
 				586807CD2D6EB1C3005D4DB5 /* Media Player */,
 				58C97BF32D49B148006FFC06 /* Calendar */,
 				580F20612D59E39900D66D57 /* Weather */,
@@ -609,8 +623,10 @@
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */,
 				58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */,
+				5862FF4A2DA0B1480037843C /* MediaPlayerLiveActivityView.swift in Sources */,
 				58C97BFB2D4B3512006FFC06 /* NotchlyCalendarView.swift in Sources */,
 				58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */,
+				5862FF442DA0AACD0037843C /* LiveActivityView.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
 				58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */,
