@@ -34,105 +34,101 @@ struct NotchlyMediaPlayer: View {
         mediaMonitor.duration > 1.0
     }
     
-    
     // MARK: - Body
     
     var body: some View {
-        HStack(spacing: 0) {
-            // If the active player is Podcasts, show the fallback view.
+        Group {
             if mediaMonitor.activePlayerName.lowercased() == "podcasts" {
                 PodcastsFallbackView()
                     .frame(width: NotchlyConfiguration.large.width * 0.45,
                            height: NotchlyConfiguration.large.height + 20)
             } else {
-                // Otherwise, if there is now-playing info, show the detailed UI.
                 if let track = mediaMonitor.nowPlaying {
-                    // Album artwork and track info.
-                    albumArtView(track: track)
-                        .frame(width: 100)
-                        .padding(.leading, 5)
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        // Track title and artist info.
-                        trackInfoView(track: track)
+                    ZStack {
+                        /// Glow is overflowing on the bottom, fix later.. 🚨
+                        // Glow layer (only appears when a track exists)
+//                        LavaLampGlowView(blobColor: backgroundGlowColor)
+//                            .frame(width: NotchlyConfiguration.large.width * 0.45,
+//                                   height: NotchlyConfiguration.large.height + 20)
+//                            .opacity(0.50)
                         
-                        // Playback control buttons (previous, play/pause, next).
-                        playbackControls()
-                            .padding(.top, 8)
-                        
-                        // Scrubber and time labels.
-                        VStack(spacing: 4) {
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    // Background track (unfilled portion).
-                                    Capsule()
-                                        .fill(Color.white.opacity(0.2))
-                                        .frame(height: 3)
-                                    
-                                    // Active progress bar (filled portion).
-                                    Capsule()
-                                        .fill(Color.white)
-                                        .frame(
-                                            width: track.duration > 0
-                                                ? max(0, min(mediaMonitor.currentTime / track.duration, 1)) * geometry.size.width
-                                                : 0,
-                                            height: 3
-                                        )
-                                        .animation(
-                                            mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none,
-                                            value: mediaMonitor.currentTime
-                                        )
-                                    
-                                    // Draggable scrubber for seeking.
-                                    Circle()
-                                        .frame(width: 8, height: 8)
-                                        .foregroundColor(.white)
-                                        .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4)
-                                        .gesture(DragGesture(minimumDistance: 0)
-                                            .onChanged { value in
-                                                // While dragging, lock the currentTime to user input.
-                                                mediaMonitor.isScrubbing = true
-                                                let percentage = track.duration > 0
-                                                    ? max(0, min(1, value.location.x / geometry.size.width))
-                                                    : 0
-                                                mediaMonitor.currentTime = track.duration * percentage
-                                            }
-                                            .onEnded { _ in
-                                                mediaMonitor.isScrubbing = false
-                                                // After dragging, perform a seek and update state.
-                                                let monitor = mediaMonitor // Capture locally.
-                                                monitor.seekTo(time: monitor.currentTime)
-                                                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
-                                                    Task { await monitor.updateMediaState() }
-                                                }
-                                            }
-                                        )
-                                }
-                            }
-                            .frame(height: 10)
+                        // Media player content layer
+                        HStack(spacing: 0) {
+                            albumArtView(track: track)
+                                .frame(width: 100)
+                                .padding(.leading, 5)
                             
-                            // Time labels: elapsed time on left and remaining time on right.
-                            HStack {
-                                if hasValidDuration {
-                                    Text(formattedTime(mediaMonitor.currentTime))
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("-\(formattedTime(max(0, track.duration - mediaMonitor.currentTime)))")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.gray)
-                                } else {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-                                        .frame(width: 24, height: 24)
+                            VStack(alignment: .leading, spacing: 10) {
+                                trackInfoView(track: track)
+                                playbackControls()
+                                    .padding(.top, 8)
+                                VStack(spacing: 4) {
+                                    GeometryReader { geometry in
+                                        ZStack(alignment: .leading) {
+                                            Capsule()
+                                                .fill(Color.white.opacity(0.2))
+                                                .frame(height: 3)
+                                            Capsule()
+                                                .fill(Color.white)
+                                                .frame(
+                                                    width: track.duration > 0
+                                                        ? max(0, min(mediaMonitor.currentTime / track.duration, 1)) * geometry.size.width
+                                                        : 0,
+                                                    height: 3
+                                                )
+                                                .animation(
+                                                    mediaMonitor.isPlaying ? .linear(duration: 0.5) : .none,
+                                                    value: mediaMonitor.currentTime
+                                                )
+                                            Circle()
+                                                .frame(width: 8, height: 8)
+                                                .foregroundColor(.white)
+                                                .offset(x: CGFloat(mediaMonitor.currentTime / track.duration) * geometry.size.width - 4)
+                                                .gesture(DragGesture(minimumDistance: 0)
+                                                    .onChanged { value in
+                                                        mediaMonitor.isScrubbing = true
+                                                        let percentage = track.duration > 0
+                                                            ? max(0, min(1, value.location.x / geometry.size.width))
+                                                            : 0
+                                                        mediaMonitor.currentTime = track.duration * percentage
+                                                    }
+                                                    .onEnded { _ in
+                                                        mediaMonitor.isScrubbing = false
+                                                        let monitor = mediaMonitor
+                                                        monitor.seekTo(time: monitor.currentTime)
+                                                        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
+                                                            Task { await monitor.updateMediaState() }
+                                                        }
+                                                    }
+                                                )
+                                        }
+                                    }
+                                    .frame(height: 10)
+                                    
+                                    HStack {
+                                        if hasValidDuration {
+                                            Text(formattedTime(mediaMonitor.currentTime))
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.gray)
+                                            Spacer()
+                                            Text("-\(formattedTime(max(0, track.duration - mediaMonitor.currentTime)))")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.gray)
+                                        } else {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                                                .frame(width: 24, height: 24)
+                                        }
+                                    }
                                 }
+                                .padding(.horizontal, 12)
                             }
+                            .padding(.horizontal, 12)
                         }
-                        .padding(.horizontal, 12)
                     }
-                    .padding(.horizontal, 12)
+                    // Clip the entire ZStack to the desired notch shape.
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 } else {
-                    // If no now-playing info is available, show the idle view.
                     idleView()
                         .transition(.opacity.combined(with: .scale))
                 }
@@ -155,12 +151,13 @@ struct NotchlyMediaPlayer: View {
                 mediaMonitor.updateMediaState()
             }
         }
+        .opacity(isExpanded ? 1 : 0)
+        .animation(.easeInOut(duration: 0.3), value: isExpanded)
     }
     
     
     // MARK: - Idle View
     
-    /// Returns the idle view prompting the user to launch a media app when no media is playing.
     private func idleView() -> some View {
         VStack(spacing: 10) {
             Text("No app seems to be running")
@@ -181,7 +178,6 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - App Icon Button
     
-    /// A reusable button that opens a specified media app.
     struct AppIconButton: View {
         let icon: String
         let appURL: String
@@ -204,7 +200,6 @@ struct NotchlyMediaPlayer: View {
             }
         }
         
-        /// Opens the media app using the provided URL.
         private func openApp(_ url: String) {
             if let appURL = URL(string: url) {
                 NSWorkspace.shared.open(appURL)
@@ -215,16 +210,14 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Album Art and Logo Overlay
     
-    /// Displays the album artwork with a subtle animated glow and overlays the logo of the active media app.
     private func albumArtView(track: NowPlayingInfo) -> some View {
         ZStack {
             // Place the moving lava lamp glow view behind the album art,
             // and pass in the dynamic backgroundGlowColor.
             LavaLampGlowView(blobColor: backgroundGlowColor)
                 .frame(width: NotchlyConfiguration.large.width * 0.55,
-                       height: NotchlyConfiguration.large.height + 20)
+                       height: NotchlyConfiguration.large.height - 10)
                 .opacity(0.50)
-            
 
             // Your album art button.
             Button(action: { openAppForTrack(track) }) {
@@ -250,7 +243,6 @@ struct NotchlyMediaPlayer: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // Logo overlay indicating the active media app.
             let logoName = (mediaMonitor.activePlayerName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal"
             Image(logoName)
                 .resizable()
@@ -261,13 +253,10 @@ struct NotchlyMediaPlayer: View {
                 .clipShape(Circle())
                 .offset(x: 40, y: 40)
         }
-        // Optionally add an overall animation to the ZStack if needed.
         .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
     }
     
-    /// Opens the media app associated with the current track.
     private func openAppForTrack(_ track: NowPlayingInfo) {
-        // Determine the URL based on the active player's name.
         let appURL: String = {
             let lower = mediaMonitor.activePlayerName.lowercased()
             if lower == "spotify" { return "spotify://" }
@@ -282,7 +271,6 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Track Information Display
     
-    /// Displays the track title using a scrolling marquee and the artist as static text.
     private func trackInfoView(track: NowPlayingInfo) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             MarqueeText(
@@ -308,7 +296,6 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Playback Controls
     
-    /// Displays playback control buttons: previous track, play/pause, and next track.
     private func playbackControls() -> some View {
         HStack(spacing: 32) {
             playbackButton(systemName: "backward.fill") {
@@ -325,7 +312,6 @@ struct NotchlyMediaPlayer: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
     
-    /// A helper function that creates a playback button with the given system image.
     private func playbackButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
@@ -337,7 +323,6 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Time Formatting
     
-    /// Formats a TimeInterval (in seconds) into a string of the format "M:SS".
     private func formattedTime(_ interval: TimeInterval) -> String {
         let minutes = Int(interval) / 60
         let seconds = Int(interval) % 60
@@ -347,7 +332,6 @@ struct NotchlyMediaPlayer: View {
     
     // MARK: - Glow Color Update
     
-    /// Updates the background glow color extracted from the album artwork.
     private func updateGlowColor(with image: NSImage?) {
         if let image = image,
            let dominant = image.dominantColor(),
@@ -366,13 +350,11 @@ struct NotchlyMediaPlayer_Previews: PreviewProvider {
     static var previews: some View {
         let mediaMonitor = MediaPlaybackMonitor.shared
         VStack {
-            // Idle state preview.
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .previewLayout(.sizeThatFits)
                 .padding()
                 .background(Color.black)
             
-            // Playing state preview using a mock notification.
             NotchlyMediaPlayer(isExpanded: true, mediaMonitor: mediaMonitor)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {

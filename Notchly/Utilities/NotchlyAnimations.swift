@@ -30,4 +30,19 @@ struct NotchlyAnimations {
 
     /// Opacity animation for fading in/out UI elements.
     static let opacityTransition = Animation.linear(duration: 0.2)
+    
+    static let liveActivityTransition = Animation.spring(response: 0.25, dampingFraction: 0.8, blendDuration: 0.1)
+    
+    static let morphAnimation = Animation.spring(response: 0.3, dampingFraction: 0.8, blendDuration: 0.5)
+}
+
+extension AnyTransition {
+    static var morphingTransition: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.85, anchor: .center)
+                .combined(with: .opacity),
+            removal: .scale(scale: 1.15, anchor: .center)
+                .combined(with: .opacity)
+        )
+    }
 }

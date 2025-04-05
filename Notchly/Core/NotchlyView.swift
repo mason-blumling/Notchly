@@ -55,35 +55,40 @@ struct NotchlyView<Content>: View where Content: View {
                     HStack(alignment: .center, spacing: 6) {
                         Spacer()
                             .frame(width: 4)
-                        
-                        /// Conditional media player view based on playback state and notch expansion.
-                        if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
-                            /// Live Activity View (compact live activity) when media is playing and notch is collapsed.
-                            MediaPlayerLiveActivityView(albumArt: mediaMonitor.nowPlaying?.artwork)
-                                .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
-                                .frame(
-                                    width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
-                                    height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
-                                )
-                                .padding(.leading, 4)
-                                .opacity(!notchly.isMouseInside ? 1 : 0)
-                                .clipped()
-                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
-                                .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
-                        } else {
-                            /// Detailed Media Player View when notch is expanded or when media is not playing.
-                            NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
-                                .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
-                                .frame(
-                                    width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
-                                    height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
-                                )
-                                .padding(.leading, 4)
-                                .opacity(notchly.isMouseInside ? 1 : 0)
-                                .clipped()
-                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .center)))
-                                .animation(NotchlyAnimations.quickTransition, value: notchly.isMouseInside)
+
+                        Group {
+                            if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
+                                // Live Activity View (compact view)
+                                MediaPlayerLiveActivityView(albumArt: mediaMonitor.nowPlaying?.artwork)
+                                    .id("live")
+                                    .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
+                                    .frame(
+                                        width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
+                                        height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
+                                    )
+                                    .padding(.leading, 4)
+                                    .transition(.asymmetric(
+                                        insertion: .scale(scale: 0.9, anchor: .trailing).combined(with: .opacity),
+                                        removal: .opacity.animation(.easeOut(duration: 0.15))
+                                    ))
+                            } else {
+                                // Detailed Media Player View
+                                NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
+                                    .id("detailed")
+                                    .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
+                                    .frame(
+                                        width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
+                                        height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
+                                    )
+                                    .padding(.leading, 4)
+                                    .transition(.asymmetric(
+                                        insertion: .scale(scale: 0.9, anchor: .trailing).combined(with: .opacity),
+                                        removal: .opacity.animation(.easeOut(duration: 0.15))
+                                    ))
+                            }
                         }
+                        // Tie the content animation to the same bounce animation.
+                        .animation(notchly.animation, value: notchly.isMouseInside)
                         
                         Spacer()
                             .frame(width: 5)
@@ -116,6 +121,10 @@ struct NotchlyView<Content>: View where Content: View {
             calendarManager.requestAccess { granted in
                 print("Calendar Access: \(granted)")
             }
+        }
+        // Update the media state in the Notchly controller whenever mediaMonitor.isPlaying changes.
+        .onReceive(mediaMonitor.$isPlaying) { playing in
+            notchly.isMediaPlaying = playing
         }
     }
 

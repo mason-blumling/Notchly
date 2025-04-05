@@ -42,6 +42,9 @@ public class Notchly<Content>: ObservableObject where Content: View {
     /// Tracks whether the mouse is currently inside the notch.
     @Published var isMouseInside: Bool = false
     
+    /// Controls whether media is playing.
+    @Published var isMediaPlaying: Bool = false
+    
     // MARK: - Private Properties
 
     /// Prevents unnecessary updates by debouncing resize operations.
@@ -141,7 +144,6 @@ public extension Notchly {
         DispatchQueue.main.async {
             withAnimation(self.animation) {
                 self.resizeNotch(expanded: expand)
-//                self.isMouseInside = expand // ✅ Ensures hover area matches notch expansion
             }
         }
     }
@@ -149,8 +151,8 @@ public extension Notchly {
     /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
         withAnimation(animation) {
-            let preset = expanded ? NotchlyConfiguration.large : NotchlyConfiguration.default
-            self.configuration = preset // ✅ Update the active configuration
+            let preset = expanded ? NotchlyConfiguration.large : (isMediaPlaying ? NotchlyConfiguration.activity : NotchlyConfiguration.default)
+            self.configuration = preset
 
             self.notchWidth = preset.width
             self.notchHeight = preset.height

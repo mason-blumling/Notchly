@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-// MARK: - LiveActivityView: Base view with left and right slot content.
+/// LiveActivityView: Base view with left and right slot content.
 struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     let configuration: NotchlyConfiguration
     let leftContent: () -> LeftContent
@@ -26,18 +26,25 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
             bottomCornerRadius: configuration.bottomCornerRadius,
             topCornerRadius: configuration.topCornerRadius
         )
-        .fill(NotchlyTheme.background)
+        .fill(.clear)
         .frame(width: configuration.width, height: configuration.height)
         .shadow(color: NotchlyTheme.shadow, radius: configuration.shadowRadius)
         .overlay(
-            HStack {
-                leftContent()
-                    .frame(width: 24, height: 24) // constrained album art
-                Spacer()
-                rightContent()
-                    .frame(width: 30, height: 24) // constrained audio bars view
+            ZStack {
+                HStack {
+                    leftContent()
+                        .frame(width: 24, height: 24)
+                        .padding(.leading, 20)
+                    Spacer()
+                }
+                HStack {
+                    Spacer()
+                    rightContent()
+                        .frame(width: 30, height: 24)
+                        .padding(.trailing, 12)
+                }
             }
-            .padding(.horizontal, 14) // increased from 10 to 16
+            .frame(maxHeight: .infinity, alignment: .center)
         )
     }
 }

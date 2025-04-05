@@ -67,6 +67,11 @@ struct MediaPlayerLiveActivityView: View {
             rightContent: {
                 // Audio bars animation.
                 AudioBarsView()
+                    .scaleEffect(1.0, anchor: .trailing)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9, anchor: .trailing).combined(with: .opacity),
+                        removal: .scale(scale: 1.1, anchor: .trailing).combined(with: .opacity)
+                    ))
             }
         )
     }
