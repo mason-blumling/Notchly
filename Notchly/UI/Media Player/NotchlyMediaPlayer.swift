@@ -8,8 +8,9 @@
 import SwiftUI
 import AppKit
 
-/// This is your NotchlyMediaPlayer minus the album art and shape.
-/// We only show track info, controls, scrubber. The album art is handled by UnifiedMediaPlayerView.
+/// Expanded media player content (no album art).
+/// Includes track info, media controls, and scrubber.
+/// Album art is handled by the parent UnifiedMediaPlayerView.
 struct NotchlyMediaPlayer: View {
     var isExpanded: Bool
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
@@ -18,10 +19,8 @@ struct NotchlyMediaPlayer: View {
         ZStack {
             if let track = mediaMonitor.nowPlaying {
                 VStack(alignment: .leading, spacing: 10) {
-                    // Track Info
                     TrackInfoView(track: track)
 
-                    // Media Controls
                     MediaControlsView(
                         isPlaying: mediaMonitor.isPlaying,
                         onPrevious: { mediaMonitor.previousTrack() },
@@ -30,7 +29,6 @@ struct NotchlyMediaPlayer: View {
                     )
                     .padding(.top, 8)
 
-                    // Scrubber
                     TrackScrubberView(
                         currentTime: mediaMonitor.currentTime,
                         duration: track.duration,
@@ -41,16 +39,16 @@ struct NotchlyMediaPlayer: View {
                         },
                         onScrubEnded: {
                             mediaMonitor.isScrubbing = false
-                            let monitor = mediaMonitor
-                            monitor.seekTo(time: monitor.currentTime)
+                            let time = mediaMonitor.currentTime
+                            mediaMonitor.seekTo(time: time)
                             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
-                                Task { await monitor.updateMediaState() }
+                                Task { await mediaMonitor.updateMediaState() }
                             }
                         }
                     )
                 }
-                .transition(.opacity.combined(with: .scale))
                 .id("expandedContent")
+                .transition(.opacity.combined(with: .scale))
             } else {
                 MediaPlayerIdleView()
             }

@@ -250,12 +250,11 @@
 		5862FF4F2DA36C360037843C /* Media Player Components */ = {
 			isa = PBXGroup;
 			children = (
-				5862FF592DA372C10037843C /* MediaControlsView.swift */,
-				5862FF5B2DA3739C0037843C /* MediaPlayerIdleView.swift */,
-				58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */,
-				5862FF552DA371520037843C /* TrackInfoView.swift */,
-				5862FF572DA3720C0037843C /* TrackScrubberView.swift */,
 				5862FF522DA36FC30037843C /* Artwork */,
+				5862FF5E2DA38DBA0037843C /* Controls */,
+				5862FF5F2DA38DE80037843C /* Idle */,
+				5862FF5D2DA38DB00037843C /* Info */,
+				5862FF602DA38ECE0037843C /* Marquee */,
 			);
 			path = "Media Player Components";
 			sourceTree = "<group>";
@@ -265,15 +264,48 @@
 			children = (
 				5862FF532DA36FD20037843C /* ArtworkContainerView.swift */,
 				5862FF502DA36C5F0037843C /* ArtworkView.swift */,
-				58832F4B2D9A49B800745CF2 /* Lava Lamp Backdrop */,
+				58832F4B2D9A49B800745CF2 /* Effects */,
 			);
 			path = Artwork;
+			sourceTree = "<group>";
+		};
+		5862FF5D2DA38DB00037843C /* Info */ = {
+			isa = PBXGroup;
+			children = (
+				5862FF552DA371520037843C /* TrackInfoView.swift */,
+			);
+			path = Info;
+			sourceTree = "<group>";
+		};
+		5862FF5E2DA38DBA0037843C /* Controls */ = {
+			isa = PBXGroup;
+			children = (
+				5862FF592DA372C10037843C /* MediaControlsView.swift */,
+				5862FF572DA3720C0037843C /* TrackScrubberView.swift */,
+			);
+			path = Controls;
+			sourceTree = "<group>";
+		};
+		5862FF5F2DA38DE80037843C /* Idle */ = {
+			isa = PBXGroup;
+			children = (
+				5862FF5B2DA3739C0037843C /* MediaPlayerIdleView.swift */,
+				58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */,
+			);
+			path = Idle;
+			sourceTree = "<group>";
+		};
+		5862FF602DA38ECE0037843C /* Marquee */ = {
+			isa = PBXGroup;
+			children = (
+				588330452D798484006251C1 /* MarqueeText.swift */,
+			);
+			path = Marquee;
 			sourceTree = "<group>";
 		};
 		586807CD2D6EB1C3005D4DB5 /* Media Player */ = {
 			isa = PBXGroup;
 			children = (
-				588330452D798484006251C1 /* MarqueeText.swift */,
 				58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */,
 				5862FF4D2DA3620A0037843C /* NotchlyMediaPlayer.swift */,
 				5862FF4B2DA355680037843C /* UnifiedMediaPlayerView.swift */,
@@ -320,14 +352,14 @@
 			path = Constants;
 			sourceTree = "<group>";
 		};
-		58832F4B2D9A49B800745CF2 /* Lava Lamp Backdrop */ = {
+		58832F4B2D9A49B800745CF2 /* Effects */ = {
 			isa = PBXGroup;
 			children = (
 				58832F492D9A462800745CF2 /* BouncingBlobView.swift */,
 				58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */,
 				58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */,
 			);
-			path = "Lava Lamp Backdrop";
+			path = Effects;
 			sourceTree = "<group>";
 		};
 		58A40D5D2D094923002B5165 = {
