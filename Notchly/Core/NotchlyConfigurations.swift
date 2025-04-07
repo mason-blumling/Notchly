@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// Defines the notch size, corner radius, and shadow appearance.
-public struct NotchlyConfiguration {
+public struct NotchlyConfiguration: Equatable {
     let width: CGFloat
     let height: CGFloat
     let topCornerRadius: CGFloat

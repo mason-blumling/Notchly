@@ -56,38 +56,16 @@ struct NotchlyView<Content>: View where Content: View {
                         Spacer()
                             .frame(width: 4)
 
-                        Group {
-                            if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
-                                // Live Activity View (compact view)
-                                MediaPlayerLiveActivityView(albumArt: mediaMonitor.nowPlaying?.artwork)
-                                    .id("live")
-                                    .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
-                                    .frame(
-                                        width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
-                                        height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
-                                    )
-                                    .padding(.leading, 4)
-                                    .transition(.asymmetric(
-                                        insertion: .scale(scale: 0.9, anchor: .trailing).combined(with: .opacity),
-                                        removal: .opacity.animation(.easeOut(duration: 0.15))
-                                    ))
-                            } else {
-                                // Detailed Media Player View
-                                NotchlyMediaPlayer(isExpanded: notchly.isMouseInside, mediaMonitor: mediaMonitor)
-                                    .id("detailed")
-                                    .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
-                                    .frame(
-                                        width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
-                                        height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
-                                    )
-                                    .padding(.leading, 4)
-                                    .transition(.asymmetric(
-                                        insertion: .scale(scale: 0.9, anchor: .trailing).combined(with: .opacity),
-                                        removal: .opacity.animation(.easeOut(duration: 0.15))
-                                    ))
-                            }
-                        }
-                        // Tie the content animation to the same bounce animation.
+                        UnifiedMediaPlayerView(
+                            mediaMonitor: mediaMonitor,
+                            isExpanded: notchly.isMouseInside
+                        )
+                        .frame(
+                            width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
+                            height: notchly.isMouseInside ? notchly.notchHeight - 5 : currentConfig.height
+                        )
+                        .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
+                        .padding(.leading, 4)
                         .animation(notchly.animation, value: notchly.isMouseInside)
                         
                         Spacer()
