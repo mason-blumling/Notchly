@@ -8,95 +8,110 @@
 import SwiftUI
 import AppKit
 
-/// Holds both compact and expanded player views, seamlessly morphing between them.
 struct UnifiedMediaPlayerView: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
     var isExpanded: Bool
+    var namespace: Namespace.ID
+    @State private var backgroundGlowColor: Color = .clear
 
-    @Namespace private var mediaPlayerNamespace
-
-    private enum PlayerState {
-        case idle, activity, expanded
-    }
+    private enum PlayerState { case none, idle, activity, expanded }
 
     private var playerState: PlayerState {
-        if mediaMonitor.nowPlaying == nil || !mediaMonitor.isPlaying {
-            return .idle
+        guard let _ = mediaMonitor.nowPlaying else {
+            return isExpanded ? .idle : .none
         }
-        return isExpanded ? .expanded : .activity
+        return mediaMonitor.isPlaying ? (isExpanded ? .expanded : .activity) : (isExpanded ? .expanded : .none)
     }
 
     private var animation: Animation {
         if #available(macOS 14.0, *) {
             return .spring(.bouncy(duration: 0.4))
         } else {
-            return .timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
+            return .easeInOut(duration: 0.4)
         }
     }
 
     var body: some View {
-        if playerState == .idle {
-            EmptyView()
-        } else {
-            HStack(spacing: 0) {
-                if let track = mediaMonitor.nowPlaying {
-                    // MARK: - Album Art
-                    Group {
-                        if playerState == .expanded {
-                            ArtworkContainerView(
-                                track: track,
-                                isExpanded: true,
-                                action: openAppForTrack,
-                                backgroundGlowColor: .constant(.clear)
-                            )
-                        } else {
-                            ArtworkView(
-                                artwork: track.artwork,
-                                isExpanded: false,
-                                action: openAppForTrack
-                            )
-                        }
-                    }
+        ZStack {
+            switch playerState {
+            case .none:
+                EmptyView()
+
+            case .idle:
+                MediaPlayerIdleView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+
+            case .activity, .expanded:
+                mediaContentView
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+            }
+        }
+        .frame(width: playerState == .none ? 0 : nil,
+               height: playerState == .none ? 0 : nil)
+        .clipped()
+        .animation(animation, value: playerState)
+    }
+
+    private var mediaContentView: some View {
+        HStack(spacing: 0) {
+            if let track = mediaMonitor.nowPlaying {
+                artworkView(for: track)
                     .frame(width: playerState == .activity ? 24 : 100,
                            height: playerState == .activity ? 24 : 100)
-                    .padding(.leading, playerState == .activity ? 20 : 5)
-                    .matchedGeometryEffect(id: "albumArt", in: mediaPlayerNamespace)
+                    .padding(.leading, 5)
                     .animation(animation, value: playerState)
 
-                    // MARK: - Right-Side Content
-                    ZStack {
-                        // Compact: Animated audio bars
-                        HStack {
-                            Spacer()
-                            AudioBarsView()
-                                .frame(width: 30, height: 24)
-                        }
+                Spacer(minLength: 8)
+
+                switch playerState {
+                case .activity:
+                    AudioBarsView()
+                        .frame(width: 30, height: 24)
+                        .scaleEffect(playerState == .activity ? 1 : 0.8, anchor: .leading)
                         .opacity(playerState == .activity ? 1 : 0)
                         .animation(animation, value: playerState)
-
-                        // Expanded: Full controls and scrubber
-                        NotchlyMediaPlayer(isExpanded: isExpanded, mediaMonitor: mediaMonitor)
-                            .opacity(playerState == .expanded ? 1 : 0)
-                            .animation(animation, value: playerState)
-                    }
-                    .frame(maxWidth: .infinity, alignment: playerState == .activity ? .trailing : .leading)
-                    .padding(.horizontal, 12)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .leading)))
+                        .clipped()
+                case .expanded:
+                    NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
+                default:
+                    EmptyView()
                 }
             }
-            .matchedGeometryEffect(id: "mediaPlayerContainer", in: mediaPlayerNamespace)
-            .animation(animation, value: playerState)
+        }
+        .padding(.horizontal, 12)
+    }
+
+    @ViewBuilder private func artworkView(for track: NowPlayingInfo) -> some View {
+        if playerState == .expanded {
+            ArtworkContainerView(
+                track: track,
+                isExpanded: true,
+                action: openAppForTrack,
+                backgroundGlowColor: $backgroundGlowColor,
+                namespace: namespace
+            )
+        } else if playerState == .activity {
+            ArtworkView(
+                artwork: track.artwork,
+                isExpanded: false,
+                action: openAppForTrack
+            )
+            .overlay(
+                Image((track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal")
+                    .resizable()
+                    .frame(width: 40, height: 40)
+                    .opacity(0) // <– invisible match target
+                    .matchedGeometryEffect(id: "appLogo", in: namespace)
+            )
         }
     }
 
-    // MARK: - Open App
     private func openAppForTrack() {
-        let urlScheme: String = {
-            switch mediaMonitor.activePlayerName.lowercased() {
-            case "spotify": return "spotify://"
-            case "podcasts": return "podcasts://"
-            default: return "music://"
-            }
-        }()
+        let urlScheme = (mediaMonitor.activePlayerName.lowercased() == "spotify") ? "spotify://" :
+                        (mediaMonitor.activePlayerName.lowercased() == "podcasts") ? "podcasts://" : "music://"
         if let url = URL(string: urlScheme) {
             NSWorkspace.shared.open(url)
         }

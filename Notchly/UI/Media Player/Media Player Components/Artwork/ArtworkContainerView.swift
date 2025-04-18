@@ -14,42 +14,47 @@ struct ArtworkContainerView: View {
     var action: (() -> Void)? = nil
     @Binding var backgroundGlowColor: Color
     var glowIntensity: CGFloat = 1.0
+    var namespace: Namespace.ID
+    
+    @State private var showGlow: Bool = false
 
     var body: some View {
         ZStack {
-            // Background animated glow blobs
             LavaLampGlowView(blobColor: backgroundGlowColor)
-                .frame(width: NotchlyConfiguration.large.width * 0.55,
-                       height: NotchlyConfiguration.large.height - 10)
-                .opacity(0.5)
+                .opacity(isExpanded && showGlow ? 0.5 : 0)
+                .scaleEffect(isExpanded && showGlow ? 1 : 0.95)
+                .animation(.easeOut(duration: 0.3), value: showGlow)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .matchedGeometryEffect(id: "albumGlow", in: namespace)
 
-            // Main artwork
             ArtworkView(
                 artwork: track.artwork,
                 isExpanded: isExpanded,
                 action: action
             )
-            .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .matchedGeometryEffect(id: "albumArt", in: namespace)
             .onAppear {
                 updateGlowColor(with: track.artwork)
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showGlow = true
+                }
             }
-            .onChange(of: track.artwork) { _, newValue in
-                updateGlowColor(with: newValue)
+            .onDisappear {
+                showGlow = false
             }
 
-            // App logo overlay
+            // App icon
             let logoName = (track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal"
             Image(logoName)
                 .resizable()
                 .frame(width: 40, height: 40)
-                .padding(5)
-                .background(Color.clear)
-                .clipShape(Circle())
                 .offset(x: 40, y: 40)
-                .foregroundColor(.white)
+                .matchedGeometryEffect(id: "appLogo", in: namespace)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .animation(.easeOut(duration: 0.3), value: isExpanded)
         }
-        .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowIntensity)
+        .frame(width: 100, height: 100)
     }
 
     private func updateGlowColor(with image: NSImage?) {
@@ -58,29 +63,7 @@ struct ArtworkContainerView: View {
            let vibrant = dominant.vibrantColor() {
             backgroundGlowColor = Color(nsColor: vibrant)
         } else {
-            backgroundGlowColor = Color.gray.opacity(0.2)
+            backgroundGlowColor = Color.gray.opacity(0.25)
         }
-    }
-}
-
-struct ArtworkContainerView_Previews: PreviewProvider {
-    static var previews: some View {
-        ArtworkContainerView(
-            track: NowPlayingInfo(
-                title: "Sample Track",
-                artist: "Sample Artist",
-                album: "Sample Album",
-                duration: 180,
-                elapsedTime: 30,
-                isPlaying: true,
-                artwork: NSImage(named: "SampleArtwork"),
-                appName: "Music"
-            ),
-            isExpanded: true,
-            action: { print("Tapped artwork") },
-            backgroundGlowColor: .constant(.blue)
-        )
-        .frame(width: 200, height: 200)
-        .previewLayout(.sizeThatFits)
     }
 }

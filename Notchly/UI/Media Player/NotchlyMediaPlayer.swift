@@ -12,8 +12,9 @@ import AppKit
 /// Includes track info, media controls, and scrubber.
 /// Album art is handled by the parent UnifiedMediaPlayerView.
 struct NotchlyMediaPlayer: View {
-    var isExpanded: Bool
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
+
+    @State private var appear = false
 
     var body: some View {
         ZStack {
@@ -23,9 +24,9 @@ struct NotchlyMediaPlayer: View {
 
                     MediaControlsView(
                         isPlaying: mediaMonitor.isPlaying,
-                        onPrevious: { mediaMonitor.previousTrack() },
-                        onPlayPause: { mediaMonitor.togglePlayPause() },
-                        onNext: { mediaMonitor.nextTrack() }
+                        onPrevious: mediaMonitor.previousTrack,
+                        onPlayPause: mediaMonitor.togglePlayPause,
+                        onNext: mediaMonitor.nextTrack
                     )
                     .padding(.top, 8)
 
@@ -39,25 +40,23 @@ struct NotchlyMediaPlayer: View {
                         },
                         onScrubEnded: {
                             mediaMonitor.isScrubbing = false
-                            let time = mediaMonitor.currentTime
-                            mediaMonitor.seekTo(time: time)
-                            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.2) {
-                                Task { await mediaMonitor.updateMediaState() }
-                            }
+                            mediaMonitor.seekTo(time: mediaMonitor.currentTime)
                         }
                     )
                 }
-                .id("expandedContent")
-                .transition(.opacity.combined(with: .scale))
-            } else {
-                MediaPlayerIdleView()
-            }
-        }
-        .opacity(isExpanded ? 1 : 0)
-        .animation(.easeInOut(duration: 0.3), value: isExpanded)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                mediaMonitor.updateMediaState()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.clear)
+                .opacity(appear ? 1 : 0)
+                .scaleEffect(appear ? 1 : 0.95)
+                .animation(.easeOut(duration: 0.35), value: appear)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .onAppear {
+                    appear = true
+                }
+                .onDisappear {
+                    appear = false
+                }
             }
         }
     }

@@ -58,7 +58,8 @@ struct NotchlyView<Content>: View where Content: View {
 
                         UnifiedMediaPlayerView(
                             mediaMonitor: mediaMonitor,
-                            isExpanded: notchly.isMouseInside
+                            isExpanded: notchly.isMouseInside,
+                            namespace: notchAnimation
                         )
                         .frame(
                             width: notchly.isMouseInside ? notchly.notchWidth * 0.42 : currentConfig.width,
