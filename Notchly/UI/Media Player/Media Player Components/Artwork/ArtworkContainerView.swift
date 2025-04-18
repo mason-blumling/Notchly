@@ -20,13 +20,6 @@ struct ArtworkContainerView: View {
 
     var body: some View {
         ZStack {
-            LavaLampGlowView(blobColor: backgroundGlowColor)
-                .opacity(isExpanded && showGlow ? 0.5 : 0)
-                .scaleEffect(isExpanded && showGlow ? 1 : 0.95)
-                .animation(.easeOut(duration: 0.3), value: showGlow)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                .matchedGeometryEffect(id: "albumGlow", in: namespace)
-
             ArtworkView(
                 artwork: track.artwork,
                 isExpanded: isExpanded,

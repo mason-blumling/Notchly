@@ -33,6 +33,33 @@ struct UnifiedMediaPlayerView: View {
 
     var body: some View {
         ZStack {
+            if playerState == .expanded {
+                HStack(spacing: 0) {
+                    LavaLampGlowView(blobColor: backgroundGlowColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.trailing, 120)
+                        .scaleEffect(y: 1.2)
+                        .blur(radius: 40)
+                        .mask(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .black, location: 0.0),
+                                    .init(color: .black, location: 0.75),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .opacity(0.5)
+                        .transition(.opacity)
+                        .matchedGeometryEffect(id: "albumGlow", in: namespace)
+                        .allowsHitTesting(false)
+
+                    Spacer()
+                }
+            }
+
             switch playerState {
             case .none:
                 EmptyView()
@@ -52,6 +79,12 @@ struct UnifiedMediaPlayerView: View {
                height: playerState == .none ? 0 : nil)
         .clipped()
         .animation(animation, value: playerState)
+        .onAppear {
+            updateGlowColor(from: mediaMonitor.nowPlaying?.artwork)
+        }
+        .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, newArtwork in
+            updateGlowColor(from: newArtwork)
+        }
     }
 
     private var mediaContentView: some View {
@@ -74,8 +107,10 @@ struct UnifiedMediaPlayerView: View {
                         .animation(animation, value: playerState)
                         .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .leading)))
                         .clipped()
+
                 case .expanded:
                     NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
+
                 default:
                     EmptyView()
                 }
@@ -99,13 +134,26 @@ struct UnifiedMediaPlayerView: View {
                 isExpanded: false,
                 action: openAppForTrack
             )
+            .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay(
                 Image((track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal")
                     .resizable()
                     .frame(width: 40, height: 40)
-                    .opacity(0) // <– invisible match target
+                    .opacity(0)
                     .matchedGeometryEffect(id: "appLogo", in: namespace)
             )
+        }
+    }
+
+    private func updateGlowColor(from image: NSImage?) {
+        if let image = image,
+           let dominant = image.dominantColor(),
+           let vibrant = dominant.vibrantColor() {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                backgroundGlowColor = Color(nsColor: vibrant)
+            }
+        } else {
+            backgroundGlowColor = Color.gray.opacity(0.25)
         }
     }
 
