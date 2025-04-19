@@ -88,6 +88,16 @@ struct NotchlyView<Content>: View where Content: View {
                     .frame(width: notchly.notchWidth, alignment: .center) // ✅ Forces full width of the Notch
                     .padding(.horizontal, 4) // ✅ Centers everything without shifting left
                 }
+                .frame(
+                    width: notchly.isMouseInside ? notchly.notchWidth : currentConfig.width,
+                    height: notchly.isMouseInside ? notchly.notchHeight : currentConfig.height
+                )
+                .clipShape(
+                    NotchlyShape(
+                        bottomCornerRadius: currentConfig.bottomCornerRadius,
+                        topCornerRadius: currentConfig.topCornerRadius
+                    )
+                )
                 .onHover { hovering in
                     debounceHover(hovering)
                 }

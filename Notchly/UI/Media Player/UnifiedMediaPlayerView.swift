@@ -13,6 +13,7 @@ struct UnifiedMediaPlayerView: View {
     var isExpanded: Bool
     var namespace: Namespace.ID
     @State private var backgroundGlowColor: Color = .clear
+    @State private var showBars = false
 
     private enum PlayerState { case none, idle, activity, expanded }
 
@@ -106,13 +107,24 @@ struct UnifiedMediaPlayerView: View {
 
                 switch playerState {
                 case .activity:
-                    AudioBarsView()
-                        .frame(width: 30, height: 24)
-                        .scaleEffect(playerState == .activity ? 1 : 0.8, anchor: .leading)
-                        .opacity(playerState == .activity ? 1 : 0)
-                        .animation(animation, value: playerState)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .leading)))
-                        .clipped()
+                    ZStack {
+                        AudioBarsView()
+                            .frame(width: 30, height: 24)
+                            .scaleEffect(playerState == .activity ? 1 : 0.8, anchor: .center)
+                            .opacity(playerState == .activity ? 1 : 0)
+                            .animation(animation, value: playerState)
+                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                    }
+                    .frame(width: 30, height: 24)
+                    .clipped()
+                    .onAppear {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showBars = true
+                        }
+                    }
+                    .onDisappear {
+                        showBars = false
+                    }
 
                 case .expanded:
                     NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
