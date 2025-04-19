@@ -43,7 +43,7 @@ public struct NotchlyConfiguration: Equatable {
 
     public static let medium = NotchlyConfiguration(
         width: 400,
-        height: 175,
+        height: 180,
         topCornerRadius: 9,
         bottomCornerRadius: 9,
         shadowRadius: 0
@@ -51,7 +51,7 @@ public struct NotchlyConfiguration: Equatable {
 
     public static let large = NotchlyConfiguration(
         width: 750,
-        height: 175,
+        height: 180,
         topCornerRadius: 20,
         bottomCornerRadius: 20,
         shadowRadius: 0

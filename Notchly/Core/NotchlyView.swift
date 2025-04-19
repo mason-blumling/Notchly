@@ -13,6 +13,14 @@ struct NotchlyView<Content>: View where Content: View {
     @ObservedObject var notchly: Notchly<Content>
     @StateObject private var calendarManager = CalendarManager()
     @StateObject private var mediaMonitor = MediaPlaybackMonitor.shared
+    @StateObject private var calendarActivityMonitor: CalendarLiveActivityMonitor
+    
+    init(notchly: Notchly<Content>) {
+        self.notchly = notchly
+        let manager = CalendarManager()
+        _calendarManager = StateObject(wrappedValue: manager)
+        _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: manager))
+    }
 
     // Debounce hover state changes
     @State private var debounceWorkItem: DispatchWorkItem?
@@ -50,6 +58,16 @@ struct NotchlyView<Content>: View where Content: View {
                     .shadow(color: NotchlyTheme.shadow, radius: currentConfig.shadowRadius)
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
+                    
+                    // 🔔 Calendar Live Activity (Alert-style)
+                    if !notchly.isMouseInside,
+                       !mediaMonitor.isPlaying,
+                       calendarActivityMonitor.upcomingEvent != nil {
+                        CalendarLiveActivityView(activityMonitor: calendarActivityMonitor)
+                            .frame(width: notchly.configuration.width, height: notchly.configuration.height)
+                            .transition(.opacity.combined(with: .scale))
+                            .zIndex(999)
+                    }
                     
                     /// 🔹 Media Player on Left, Calendar on Right
                     HStack(alignment: .center, spacing: 6) {
