@@ -62,16 +62,22 @@ struct UnifiedMediaPlayerView: View {
 
             switch playerState {
             case .none:
-                EmptyView()
-
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .opacity(0.0)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+                
             case .idle:
                 MediaPlayerIdleView()
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
-
+                
             case .activity, .expanded:
                 mediaContentView
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .opacity(playerState == .none ? 0 : 1)
+                    .scaleEffect(playerState == .none ? 0.95 : 1)
+                    .animation(animation, value: playerState)
                     .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
             }
         }

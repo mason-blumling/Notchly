@@ -151,11 +151,10 @@ public extension Notchly {
     /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
         withAnimation(animation) {
-            let preset = expanded ? NotchlyConfiguration.large : (isMediaPlaying ? NotchlyConfiguration.activity : NotchlyConfiguration.default)
-            self.configuration = preset
-
-            self.notchWidth = preset.width
-            self.notchHeight = preset.height
+            let targetConfig = expanded ? NotchlyConfiguration.large : (isMediaPlaying ? NotchlyConfiguration.activity : NotchlyConfiguration.default)
+            self.configuration = targetConfig
+            self.notchWidth = targetConfig.width
+            self.notchHeight = targetConfig.height
         }
     }
     

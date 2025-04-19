@@ -27,7 +27,7 @@ public struct NotchlyConfiguration: Equatable {
 
     public static let activity = NotchlyConfiguration(
         width: 280,
-        height: 33.75,
+        height: 35.75,
         topCornerRadius: 9,
         bottomCornerRadius: 9,
         shadowRadius: 0

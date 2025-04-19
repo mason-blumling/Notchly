@@ -104,6 +104,10 @@ struct NotchlyView<Content>: View where Content: View {
         // Update the media state in the Notchly controller whenever mediaMonitor.isPlaying changes.
         .onReceive(mediaMonitor.$isPlaying) { playing in
             notchly.isMediaPlaying = playing
+
+            if !notchly.isMouseInside {
+                notchly.handleHover(expand: false) // this triggers resizeNotch internally
+            }
         }
     }
 

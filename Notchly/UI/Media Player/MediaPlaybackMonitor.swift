@@ -269,10 +269,15 @@ final class MediaPlaybackMonitor: ObservableObject {
     // MARK: - Clearing State
     /// Clears all media-related state to return the UI to the idle view.
     private func clearMediaState() {
-        self.nowPlaying = nil
+        // Step 1: Set isPlaying = false first to trigger transition
         self.isPlaying = false
-        self.currentTime = 0
-        self.lastValidUpdate = nil
-        self.activePlayerName = ""
+
+        // Step 2: Allow the animation to play before killing the model
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.nowPlaying = nil
+            self.currentTime = 0
+            self.lastValidUpdate = nil
+            self.activePlayerName = ""
+        }
     }
 }
