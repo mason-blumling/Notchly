@@ -8,6 +8,8 @@
 import SwiftUI
 import AppKit
 
+/// Displays album artwork with matched geometry, optional glow syncing, and app badge overlay.
+/// Used in the expanded media player state.
 struct ArtworkContainerView: View {
     var track: NowPlayingInfo
     var isExpanded: Bool = false
@@ -20,6 +22,7 @@ struct ArtworkContainerView: View {
 
     var body: some View {
         ZStack {
+            // Album artwork with tap interaction (if provided)
             ArtworkView(
                 artwork: track.artwork,
                 isExpanded: isExpanded,
@@ -37,7 +40,7 @@ struct ArtworkContainerView: View {
                 showGlow = false
             }
 
-            // App icon
+            // App icon overlay (Spotify or Apple Music)
             let logoName = (track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal"
             Image(logoName)
                 .resizable()
@@ -50,9 +53,10 @@ struct ArtworkContainerView: View {
         .frame(width: 100, height: 100)
     }
 
+    /// Extracts the glow color from the provided artwork and applies it to the background binding
     private func updateGlowColor(with image: NSImage?) {
-        if let image = image,
-           let dominant = image.dominantColor(),
+        if let safeImage = image?.copy() as? NSImage,
+           let dominant = safeImage.dominantColor(),
            let vibrant = dominant.vibrantColor() {
             backgroundGlowColor = Color(nsColor: vibrant)
         } else {

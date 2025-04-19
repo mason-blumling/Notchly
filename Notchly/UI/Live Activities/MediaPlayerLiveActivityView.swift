@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-// MARK: - MediaPlayerLiveActivityView: Combines album art and animated audio bars.
+/// Displays a compact media live activity: album art on the left, animated audio bars on the right.
+/// Used when the notch is in the "activity" state while media is playing.
 struct MediaPlayerLiveActivityView: View {
     /// Optional album artwork passed from the media monitor.
     var albumArt: NSImage?
@@ -15,7 +16,7 @@ struct MediaPlayerLiveActivityView: View {
     var body: some View {
         LiveActivityView(
             leftContent: {
-                // If album artwork is available and valid, show it; otherwise, fallback to a placeholder.
+                // Show album artwork if available, else fallback to placeholder.
                 if let albumArt = albumArt, albumArt.size != NSZeroSize {
                     Image(nsImage: albumArt)
                         .resizable()
@@ -31,7 +32,7 @@ struct MediaPlayerLiveActivityView: View {
                 }
             },
             rightContent: {
-                // Audio bars animation.
+                // Animated waveform for audio playback.
                 AudioBarsView()
                     .scaleEffect(1.0, anchor: .trailing)
                     .transition(.asymmetric(

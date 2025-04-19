@@ -7,15 +7,18 @@
 
 import SwiftUI
 
-/// LiveActivityView: Base view with left and right slot content.
+/// A reusable layout for displaying live content inside the notch shape.
+/// Left and right slots are used for compact representations of dynamic activity (e.g., media, calendar).
 struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     let configuration: NotchlyConfiguration
     let leftContent: () -> LeftContent
     let rightContent: () -> RightContent
 
-    init(configuration: NotchlyConfiguration = .activity,
-         @ViewBuilder leftContent: @escaping () -> LeftContent,
-         @ViewBuilder rightContent: @escaping () -> RightContent) {
+    init(
+        configuration: NotchlyConfiguration = .activity,
+        @ViewBuilder leftContent: @escaping () -> LeftContent,
+        @ViewBuilder rightContent: @escaping () -> RightContent
+    ) {
         self.configuration = configuration
         self.leftContent = leftContent
         self.rightContent = rightContent
@@ -31,12 +34,15 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
         .shadow(color: NotchlyTheme.shadow, radius: configuration.shadowRadius)
         .overlay(
             ZStack {
+                // Left slot
                 HStack {
                     leftContent()
                         .frame(width: 24, height: 24)
                         .padding(.leading, 20)
                     Spacer()
                 }
+
+                // Right slot
                 HStack {
                     Spacer()
                     rightContent()

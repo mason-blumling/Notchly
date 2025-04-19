@@ -40,6 +40,7 @@
 		58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */; };
 		588330442D79704C006251C1 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = 588330432D79704C006251C1 /* FeedKit */; };
 		588330462D798485006251C1 /* MarqueeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588330452D798484006251C1 /* MarqueeText.swift */; };
+		58A0A8AD2DB35B5200854FE6 /* RenderSafeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8AC2DB35B5100854FE6 /* RenderSafeView.swift */; };
 		58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
@@ -127,6 +128,7 @@
 		58832F492D9A462800745CF2 /* BouncingBlobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BouncingBlobView.swift; sourceTree = "<group>"; };
 		58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractArtworkColor.swift; sourceTree = "<group>"; };
 		588330452D798484006251C1 /* MarqueeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeText.swift; sourceTree = "<group>"; };
+		58A0A8AC2DB35B5100854FE6 /* RenderSafeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderSafeView.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -438,9 +440,10 @@
 		58C97BEC2D49ACBC006FFC06 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				58A0A8AC2DB35B5100854FE6 /* RenderSafeView.swift */,
+				58C97BF32D49B148006FFC06 /* Calendar */,
 				5862FF422DA0AAAA0037843C /* Live Activities */,
 				586807CD2D6EB1C3005D4DB5 /* Media Player */,
-				58C97BF32D49B148006FFC06 /* Calendar */,
 				580F20612D59E39900D66D57 /* Weather */,
 			);
 			path = UI;
@@ -704,6 +707,7 @@
 				5862FF622DB1F7F20037843C /* AudioBarsView.swift in Sources */,
 				588330462D798485006251C1 /* MarqueeText.swift in Sources */,
 				58832F4A2D9A463500745CF2 /* BouncingBlobView.swift in Sources */,
+				58A0A8AD2DB35B5200854FE6 /* RenderSafeView.swift in Sources */,
 				580F205F2D59E19100D66D57 /* UserEmailCache.swift in Sources */,
 				58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */,
 			);

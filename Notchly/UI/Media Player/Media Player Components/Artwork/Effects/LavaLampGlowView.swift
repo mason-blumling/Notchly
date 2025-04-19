@@ -7,9 +7,11 @@
 
 import SwiftUI
 
+/// Displays a layered glow effect made of animated blobs.
+/// Used behind the media player in expanded state.
 struct LavaLampGlowView: View {
-    let blobCount: Int = 3  // Number of blobs to display
-    var blobColor: Color    // The dynamic color to use for all blobs
+    let blobCount: Int = 3         // Number of blobs rendered
+    var blobColor: Color           // Base color for all blobs (usually album dominant color)
 
     var body: some View {
         GeometryReader { geometry in
@@ -20,7 +22,7 @@ struct LavaLampGlowView: View {
                         color: blobColor.opacity(Double.random(in: 0.3...0.6)),
                         blurRadius: 15
                     )
-                    // Ensure each blob fills the container’s frame.
+                    // Each blob fills the entire glow canvas
                     .frame(width: geometry.size.width, height: geometry.size.height)
                 }
             }

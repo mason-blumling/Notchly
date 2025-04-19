@@ -9,34 +9,41 @@ import SwiftUI
 
 // MARK: - AudioBarsView: Animated audio bars that pulsate.
 struct AudioBarsView: View {
-    @State private var barHeights: [CGFloat] = [6, 8, 7, 9, 8, 7]
     private let barCount = 6
-    private let minBarHeight: CGFloat = 3
-    private let maxBarHeight: CGFloat = 12
     private let barWidth: CGFloat = 2
-    private let animationDuration: Double = 0.25
+    private let minHeight: CGFloat = 3
+    private let maxHeight: CGFloat = 12
+    private let spacing: CGFloat = 2
+    private let updateInterval: TimeInterval = 0.15  // ← faster updates
+
+    @State private var barHeights: [CGFloat] = Array(repeating: 6, count: 6)
+    @State private var isAnimating = true
 
     var body: some View {
-        HStack(spacing: 2) {
-            ForEach(0..<barCount, id: \.self) { index in
+        HStack(spacing: spacing) {
+            ForEach(0..<barCount, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 1)
                     .fill(Color.primary)
-                    .frame(width: barWidth, height: barHeights[index])
+                    .frame(width: barWidth, height: barHeights[i])
+                    .animation(.linear(duration: updateInterval), value: barHeights[i])
             }
         }
         .frame(height: 24)
-        .onAppear {
-            startAnimating()
+        .task {
+            await animateLoop()
         }
+        .onDisappear { isAnimating = false }
+        .onAppear { isAnimating = true }
     }
 
-    private func startAnimating() {
-        Timer.scheduledTimer(withTimeInterval: animationDuration, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: animationDuration)) {
-                barHeights = (0..<barCount).map { _ in
-                    CGFloat.random(in: minBarHeight...maxBarHeight)
+    private func animateLoop() async {
+        while isAnimating {
+            await MainActor.run {
+                barHeights = barHeights.map { _ in
+                    CGFloat.random(in: minHeight...maxHeight)
                 }
             }
+            try? await Task.sleep(nanoseconds: UInt64(updateInterval * 1_000_000_000))
         }
     }
 }
