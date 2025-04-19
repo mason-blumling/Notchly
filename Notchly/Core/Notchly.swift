@@ -56,6 +56,8 @@ public class Notchly<Content>: ObservableObject where Content: View {
     /// Collection of subscriptions to manage memory properly.
     private var subscriptions = Set<AnyCancellable>()
 
+    @Published var calendarHasLiveActivity: Bool = false
+
     // MARK: - Animations
 
     /// Defines the hover and expansion animations.
@@ -150,8 +152,17 @@ public extension Notchly {
 
     /// Dynamically resizes the notch based on hover state.
     func resizeNotch(expanded: Bool) {
+        let targetConfig: NotchlyConfiguration
+
+        if expanded {
+            targetConfig = .large
+        } else if isMediaPlaying || calendarHasLiveActivity {
+            targetConfig = .activity
+        } else {
+            targetConfig = .default
+        }
+
         withAnimation(animation) {
-            let targetConfig = expanded ? NotchlyConfiguration.large : (isMediaPlaying ? NotchlyConfiguration.activity : NotchlyConfiguration.default)
             self.configuration = targetConfig
             self.notchWidth = targetConfig.width
             self.notchHeight = targetConfig.height

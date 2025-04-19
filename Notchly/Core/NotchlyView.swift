@@ -27,17 +27,28 @@ struct NotchlyView<Content>: View where Content: View {
     
     // MARK: - Matched Geometry for Seamless Expansion
     @Namespace private var notchAnimation
+    
+    // MARK: - Live Activity Conditions
+
+    private var shouldShowCalendarLiveActivity: Bool {
+        return !notchly.isMouseInside &&
+               !mediaMonitor.isPlaying &&
+               calendarActivityMonitor.upcomingEvent != nil &&
+               !calendarActivityMonitor.timeRemainingString.isEmpty
+    }
 
     var body: some View {
         // Compute the configuration to use based on media playback state and hover state.
         let currentConfig: NotchlyConfiguration = {
-            if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying && !notchly.isMouseInside {
-                // When media is playing and the notch is collapsed, use the "activity" configuration.
-                return NotchlyConfiguration.activity
-            } else {
-                // Otherwise, use the current configuration (expanded or default).
-                return notchly.configuration
+            if !notchly.isMouseInside {
+                if mediaMonitor.nowPlaying != nil && mediaMonitor.isPlaying {
+                    return NotchlyConfiguration.activity
+                }
+                if calendarActivityMonitor.upcomingEvent != nil {
+                    return NotchlyConfiguration.activity
+                }
             }
+            return notchly.configuration
         }()
         
         return VStack(spacing: 0) {
@@ -59,15 +70,16 @@ struct NotchlyView<Content>: View where Content: View {
                     .animation(notchly.animation, value: notchly.isMouseInside)
                     .clipped()
                     
-                    // 🔔 Calendar Live Activity (Alert-style)
-                    if !notchly.isMouseInside,
-                       !mediaMonitor.isPlaying,
-                       calendarActivityMonitor.upcomingEvent != nil {
-                        CalendarLiveActivityView(activityMonitor: calendarActivityMonitor)
-                            .frame(width: notchly.configuration.width, height: notchly.configuration.height)
-                            .transition(.opacity.combined(with: .scale))
-                            .zIndex(999)
+                    /// 🔔 Calendar Live Activity (Alert-style)
+                    Group {
+                        if shouldShowCalendarLiveActivity {
+                            CalendarLiveActivityView(activityMonitor: calendarActivityMonitor)
+                                .frame(width: notchly.configuration.width, height: notchly.configuration.height)
+                                .transition(.scale.combined(with: .opacity))
+                                .zIndex(999)
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.3), value: calendarActivityMonitor.upcomingEvent)
                     
                     /// 🔹 Media Player on Left, Calendar on Right
                     HStack(alignment: .center, spacing: 6) {
@@ -127,6 +139,10 @@ struct NotchlyView<Content>: View where Content: View {
         .onAppear {
             calendarManager.requestAccess { granted in
                 print("Calendar Access: \(granted)")
+                print("📆 Loaded \(calendarManager.events.count) events")
+
+                // Kick off the calendar monitor after events load
+                calendarActivityMonitor.evaluateLiveActivity()
             }
         }
         // Update the media state in the Notchly controller whenever mediaMonitor.isPlaying changes.

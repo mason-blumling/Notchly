@@ -47,7 +47,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
                     Spacer()
                     rightContent()
                         .frame(width: 30, height: 24)
-                        .padding(.trailing, 12)
+                        .padding(.trailing, 15)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .center)

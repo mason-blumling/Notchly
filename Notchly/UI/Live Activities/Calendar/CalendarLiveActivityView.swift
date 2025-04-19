@@ -23,9 +23,12 @@ struct CalendarLiveActivityView: View {
             },
             rightContent: {
                 Text(activityMonitor.timeRemainingString)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 4)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .truncationMode(.tail)
+                    .padding(.vertical, 3)
                     .background(Color.black.opacity(0.4))
                     .clipShape(Capsule())
             }
