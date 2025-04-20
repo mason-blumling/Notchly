@@ -9,6 +9,7 @@ import Foundation
 import EventKit
 import Combine
 
+@MainActor
 final class CalendarLiveActivityMonitor: ObservableObject {
     @Published var upcomingEvent: EKEvent?
     @Published var timeRemainingString: String = ""
@@ -18,6 +19,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var previousRemaining: TimeInterval?
     private var dismissedEventID: String?
     private var lastShownPhase: String?
+
     private let calendarManager: CalendarManager
 
     init(calendarManager: CalendarManager) {
@@ -29,7 +31,9 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.pauseTimers()
+            Task { @MainActor in
+                self?.pauseTimers()
+            }
         }
 
         NotificationCenter.default.addObserver(
@@ -37,24 +41,41 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.resumeTimers()
+            Task { @MainActor in
+                self?.resumeTimers()
+            }
         }
     }
 
-    func startTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            Task { @MainActor in self.evaluateLiveActivity() }
-        }
-    }
-    
-    func pauseTimers() {
+    deinit {
+        print("🧹 CalendarLiveActivityMonitor deinit")
         timer?.invalidate()
         expirationTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    func pauseTimers() {
+        timer?.invalidate()
+        timer = nil
+
+        expirationTimer?.invalidate()
+        expirationTimer = nil
     }
 
     func resumeTimers() {
+        pauseTimers()
         startTimer()
+        evaluateLiveActivity()
+    }
+
+    private func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.evaluateLiveActivity()
+            }
+        }
     }
 
     func evaluateLiveActivity() {
@@ -67,7 +88,6 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         let now = Date()
         let remaining = event.startDate.timeIntervalSince(now)
 
-        // Skip countdown if we already showed the alert and it's expired
         if previousRemaining == nil {
             previousRemaining = remaining
         }
@@ -75,13 +95,13 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         if remaining < 0 {
             reset()
         } else if remaining < 60 {
-            // ✅ Always show live countdown
             timeRemainingString = "\(Int(remaining))s"
             upcomingEvent = event
             expirationTimer?.invalidate()
             lastShownPhase = "countdown"
         } else if remaining < 300 {
             if previousRemaining! > 300 && lastShownPhase != "5m" {
+                print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
                 timeRemainingString = "5m"
                 upcomingEvent = event
                 lastShownPhase = "5m"
@@ -89,6 +109,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             }
         } else if remaining < 900 {
             if previousRemaining! > 900 && lastShownPhase != "15m" {
+                print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
                 timeRemainingString = "15m"
                 upcomingEvent = event
                 lastShownPhase = "15m"
@@ -102,7 +123,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private func scheduleExpiration(for event: EKEvent) {
         let id = event.eventIdentifier
         expirationTimer?.invalidate()
-        expirationTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { _ in
+        expirationTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
                 self.upcomingEvent = nil
                 self.timeRemainingString = ""

@@ -14,10 +14,10 @@ struct AudioBarsView: View {
     private let minHeight: CGFloat = 3
     private let maxHeight: CGFloat = 12
     private let spacing: CGFloat = 2
-    private let updateInterval: TimeInterval = 0.15  // ← faster updates
+    private let updateInterval: TimeInterval = 0.15
 
     @State private var barHeights: [CGFloat] = Array(repeating: 6, count: 6)
-    @State private var isAnimating = true
+    @State private var animationTask: Task<Void, Never>?
 
     var body: some View {
         HStack(spacing: spacing) {
@@ -29,15 +29,19 @@ struct AudioBarsView: View {
             }
         }
         .frame(height: 24)
-        .task {
-            await animateLoop()
+        .onAppear {
+            animationTask = Task {
+                await animateLoop()
+            }
         }
-        .onDisappear { isAnimating = false }
-        .onAppear { isAnimating = true }
+        .onDisappear {
+            animationTask?.cancel()
+            animationTask = nil
+        }
     }
 
     private func animateLoop() async {
-        while isAnimating {
+        while !Task.isCancelled {
             await MainActor.run {
                 barHeights = barHeights.map { _ in
                     CGFloat.random(in: minHeight...maxHeight)

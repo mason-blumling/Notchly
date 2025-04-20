@@ -7,24 +7,42 @@
 
 import SwiftUI
 
-/// Displays a layered glow effect made of animated blobs.
-/// Used behind the media player in expanded state.
+struct GlowBlob: Identifiable {
+    let id = UUID()
+    let size: CGFloat
+    let opacity: Double
+}
+
 struct LavaLampGlowView: View {
-    let blobCount: Int = 3         // Number of blobs rendered
-    var blobColor: Color           // Base color for all blobs (usually album dominant color)
+    let blobCount: Int = 3
+    var blobColor: Color
+
+    @State private var blobs: [GlowBlob] = []
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ForEach(0..<blobCount, id: \.self) { _ in
+                ForEach(blobs) { blob in
                     BouncingGlowBlob(
-                        size: CGFloat.random(in: 10...100),
-                        color: blobColor.opacity(Double.random(in: 0.3...0.6)),
+                        size: blob.size,
+                        color: blobColor.opacity(blob.opacity),
                         blurRadius: 15
                     )
-                    // Each blob fills the entire glow canvas
                     .frame(width: geometry.size.width, height: geometry.size.height)
                 }
+            }
+            .onAppear {
+                if blobs.isEmpty {
+                    blobs = (0..<blobCount).map { _ in
+                        GlowBlob(
+                            size: CGFloat.random(in: 10...100),
+                            opacity: Double.random(in: 0.3...0.6)
+                        )
+                    }
+                }
+            }
+            .onDisappear {
+                blobs = []
             }
         }
     }
