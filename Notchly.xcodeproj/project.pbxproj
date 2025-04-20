@@ -445,10 +445,9 @@
 				58A0A8B62DB4A57800854FE6 /* AppEnvironment.swift */,
 				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
 				58C97BED2D49ACC3006FFC06 /* Core */,
-				58C2A7122D3DAD0200764D80 /* Resources */,
-				58C97BF02D49ACDA006FFC06 /* Testing */,
 				58C97BEC2D49ACBC006FFC06 /* UI */,
 				58C97BEF2D49ACD0006FFC06 /* Utilities */,
+				58C2A7122D3DAD0200764D80 /* Resources */,
 				58C97BF12D49AD4E006FFC06 /* Xcode Stuff */,
 			);
 			path = Notchly;
@@ -488,10 +487,11 @@
 		58C97BEF2D49ACD0006FFC06 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				583F0A172D965C580034562C /* ScriptingBridge */,
 				58C97BD52D4881F9006FFC06 /* BlurAnimation.swift */,
 				580F20502D59ADC700D66D57 /* NotchlyAnimations.swift */,
 				580F20542D59B36600D66D57 /* NotchlyTheme.swift */,
+				583F0A172D965C580034562C /* ScriptingBridge */,
+				58C97BF02D49ACDA006FFC06 /* Testing */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
