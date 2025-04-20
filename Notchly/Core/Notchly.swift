@@ -2,65 +2,30 @@
 //  Notchly.swift
 //  Notchly
 //
-//  Created by Mason Blumling on 1/27/25.
+//  Created by Mason Blumling on 4/19/25.
 //
 
 import Combine
 import SwiftUI
 
-// MARK: - Notchly (Main Class)
-
-/// `Notchly` is responsible for managing the floating notch UI component.
-/// It handles hover-based expansion, resizing, and dynamic content rendering.
+/// `Notchly` manages the floating notch logic and state.
 public class Notchly<Content>: ObservableObject where Content: View {
-
-    // MARK: - Window Properties
-
-    /// The main window controller that manages the floating notch window.
     public var windowController: NSWindowController?
 
-    // MARK: - Notch Content
-
-    /// The SwiftUI content displayed inside the notch.
     @Published var content: () -> Content
-    
-    /// A unique identifier for the current content (to force UI updates).
     @Published var contentUUID: UUID
-
-    /// Controls the visibility of the notch.
     @Published var isVisible: Bool = false
-
-    // MARK: - Notch Size & Hover State
-
-    /// Default notch dimensions (small state).
     @Published var notchWidth: CGFloat = 200
     @Published var notchHeight: CGFloat = 35
-
-    /// Use configuration instead of raw values
     @Published var configuration: NotchlyConfiguration = .default
-
-    /// Tracks whether the mouse is currently inside the notch.
     @Published var isMouseInside: Bool = false
-    
-    /// Controls whether media is playing.
     @Published var isMediaPlaying: Bool = false
-    
-    // MARK: - Private Properties
-
-    /// Prevents unnecessary updates by debouncing resize operations.
-    private var workItem: DispatchWorkItem?
-
-    /// Subscription to monitor screen changes.
-    private var subscription: AnyCancellable?
-
-    /// Collection of subscriptions to manage memory properly.
-    private var subscriptions = Set<AnyCancellable>()
-
     @Published var calendarHasLiveActivity: Bool = false
 
-    // MARK: - Animations
+    private var workItem: DispatchWorkItem?
+    private var subscription: AnyCancellable?
+    private var subscriptions = Set<AnyCancellable>()
 
-    /// Defines the hover and expansion animations.
     var animation: Animation {
         if #available(macOS 14.0, *) {
             return Animation.spring(.bouncy(duration: 0.4))
@@ -69,74 +34,45 @@ public class Notchly<Content>: ObservableObject where Content: View {
         }
     }
 
-    // MARK: - Initializer
-
-    /// Initializes a `Notchly` instance with a dynamic SwiftUI content view.
     public init(contentID: UUID = .init(), @ViewBuilder content: @escaping () -> Content) {
         self.contentUUID = contentID
         self.content = content
-        
-        // Monitor screen parameter changes to adjust window positioning.
+
         self.subscription = NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
                 guard let self, let screen = NSScreen.screens.first else { return }
                 self.initializeWindow(screen: screen)
             }
-        
-        // Observe hover state changes and trigger notch expansion or collapse.
+
         $isMouseInside
             .sink { [weak self] inside in
                 self?.handleHover(expand: inside)
             }
             .store(in: &subscriptions)
-        
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.willSleepNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
+
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
             Task { @MainActor in
                 MediaPlaybackMonitor.shared.pausePolling()
                 CalendarManager.shared?.suspendUpdates()
             }
         }
 
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
-                // Wake-related tasks in sequence
                 MediaPlaybackMonitor.shared.resumePolling()
                 CalendarManager.shared?.reloadEvents()
-
-                // Resize notch for UI state correction
                 self?.handleHover(expand: self?.isMouseInside ?? false)
-
-                // Trigger fresh media sync
                 MediaPlaybackMonitor.shared.updateMediaState()
             }
         }
     }
-}
 
-// MARK: - Public Methods
-
-public extension Notchly {
-    
-    /// Initializes and displays the floating notch window on a given screen.
-    func initializeWindow(screen: NSScreen) {
-        guard windowController == nil else { return } // Prevent duplicate windows
-
-        print("Creating the notch window...")
-
-        // 🔥 Define a fixed maximum size for the window (prevents resizing)
+    public func initializeWindow(screen: NSScreen) {
+        guard windowController == nil else { return }
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
 
-        // Calculate position: Always anchored to the top center of the screen.
         let frame = NSRect(
             x: screen.frame.midX - (maxWidth / 2),
             y: screen.frame.maxY - maxHeight,
@@ -144,10 +80,8 @@ public extension Notchly {
             height: maxHeight
         )
 
-        // Create the SwiftUI hosting view containing the notch
-        let view = NSHostingView(rootView: NotchlyView(notchly: self).foregroundStyle(.white))
+        let view = NSHostingView(rootView: NotchlyContainerView(notchly: self).foregroundStyle(.white))
 
-        // Configure the floating panel
         let panel = NotchlyWindowPanel(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -155,7 +89,6 @@ public extension Notchly {
             defer: true
         )
 
-        // Prevent accidental movement and enforce proper positioning
         panel.isMovable = false
         panel.isMovableByWindowBackground = false
         panel.setFrame(frame, display: true)
@@ -166,12 +99,10 @@ public extension Notchly {
         panel.level = .screenSaver
         panel.orderFrontRegardless()
 
-        // Store the window reference
         windowController = NSWindowController(window: panel)
     }
 
-    /// Handles hover interactions and triggers notch expansion or contraction.
-    func handleHover(expand: Bool) {
+    public func handleHover(expand: Bool) {
         DispatchQueue.main.async {
             withAnimation(self.animation) {
                 self.resizeNotch(expanded: expand)
@@ -179,17 +110,16 @@ public extension Notchly {
         }
     }
 
-    /// Dynamically resizes the notch based on hover state.
-    func resizeNotch(expanded: Bool) {
-        let targetConfig: NotchlyConfiguration
-
-        if expanded {
-            targetConfig = .large
-        } else if isMediaPlaying || calendarHasLiveActivity {
-            targetConfig = .activity
-        } else {
-            targetConfig = .default
-        }
+    public func resizeNotch(expanded: Bool) {
+        let targetConfig: NotchlyConfiguration = {
+            if expanded {
+                return .large
+            } else if isMediaPlaying || calendarHasLiveActivity {
+                return .activity
+            } else {
+                return .default
+            }
+        }()
 
         withAnimation(animation) {
             self.configuration = targetConfig
@@ -197,28 +127,19 @@ public extension Notchly {
             self.notchHeight = targetConfig.height
         }
     }
-    
-    func updateConfiguration(to newConfiguration: NotchlyConfiguration) {
-        withAnimation(animation) {
-            self.configuration = newConfiguration
-        }
-    }
-    
-    /// Updates the notch content dynamically.
-    func setContent(contentID: UUID = .init(), content: @escaping () -> Content) {
+
+    public func setContent(contentID: UUID = .init(), content: @escaping () -> Content) {
         self.content = content
         self.contentUUID = contentID
     }
-    
-    /// Forces the notch to be visible on the given screen.
-    func show(on screen: NSScreen = NSScreen.screens[0]) {
+
+    public func show(on screen: NSScreen = NSScreen.screens[0]) {
         guard let window = windowController?.window else { return }
         window.orderFrontRegardless()
         isVisible = true
     }
-    
-    /// Hides the notch window.
-    func hide() {
+
+    public func hide() {
         isVisible = false
     }
 }
