@@ -2,12 +2,14 @@
 
 <div align="center">
 
-![Icon-256](https://github.com/user-attachments/assets/bbf0181d-e624-4839-92a7-be6e38652ecb)
-![Icon-256](https://github.com/user-attachments/assets/58a55997-dc03-4013-ae90-69a526bc9681)
-![Icon-256](https://github.com/user-attachments/assets/bbf0181d-e624-4839-92a7-be6e38652ecb)
+![Icon-256](https://github.com/user-attachments/assets/a8821599-f304-4a76-bbdd-77d38af7a571)
+![Icon-256](https://github.com/user-attachments/assets/a8821599-f304-4a76-bbdd-77d38af7a571)
+![Icon-256](https://github.com/user-attachments/assets/a8821599-f304-4a76-bbdd-77d38af7a571)
 
 Notchly is a macOS app that transforms the underutilized notch area on MacBook displays into a dynamic productivity hub. Inspired by the iPhone's Dynamic Island, Notchly combines elegance with powerful functionality to enhance your user experience through seamless tool integration and smooth animations.
 </div>
+
+---
 
 ## Vision
 
@@ -42,60 +44,102 @@ Notchly aims to create a lightweight, user-friendly app that unlocks the full po
 
 ---
 
+## File Map (Documentation)
+
+Here’s a plain-English breakdown of the entire project — what each file does, and how the parts connect:
+
+### 🧠 Core App Structure
+- `NotchlyApp.swift`: App entry point. Initializes `MenuBarController`, sets up SwiftUI environment.
+- `Notchly.swift`: Main app controller. Manages window, hover tracking, content transitions.
+- `NotchlyView.swift`: Visual layout logic. Hosts calendar/media modules based on state.
+- `NotchlyConfigurations.swift`: Defines notch size presets (Collapsed, Activity, Expanded).
+- `NotchlyWindowPanel.swift`: Custom NSPanel subclass for notch-level behavior.
+
+### 📅 Calendar Module
+- `CalendarManager.swift`: Handles permissions + fetching events using EventKit.
+- `NotchlyCalendarView.swift`: Full calendar view inside the notch.
+- `NotchlyDateSelector.swift`: Horizontally scrolling date picker.
+- `NotchlyEventList.swift`: Shows daily events with status (pending, conflict, etc.).
+- `NotchlyCalendarUtilities.swift`: Shared utilities like date formatters.
+- `UserEmailCache.swift`: Caches user’s calendar email addresses.
+- `NotchlyEventAttendees.swift`: Detects declined/tentative attendees.
+- `NotchlyEventConflicts.swift`: Highlights overlapping calendar events.
+- `RenderSafeView.swift`: Optimizes GPU rendering for blur-heavy views.
+
+### 📆 Calendar Live Activities
+- `CalendarLiveActivityMonitor.swift`: Observes events starting in 15m/5m/1m.
+- `CalendarLiveActivityView.swift`: UI for upcoming event warnings.
+- `NotchlyCalendarLiveActivity.swift`: Extension to get “next starting soon” event.
+
+### 🎵 Media Player
+- `MediaPlaybackMonitor.swift`: Core state manager for now-playing info.
+- `UnifiedMediaPlayerView.swift`: Morphs between compact/expanded media views.
+- `NotchlyMediaPlayer.swift`: Expanded media controls (title, controls, scrubber).
+- `MediaControlsView.swift`: Play/pause/skip buttons.
+- `TrackInfoView.swift`: Displays title + artist.
+- `TrackScrubberView.swift`: Drag-enabled time scrubber.
+- `MediaPlayerIdleView.swift`: Shown when no media is active.
+- `PodcastsFallbackView.swift`: Friendly fallback when Podcasts lacks control support.
+- `ArtworkContainerView.swift`: Manages artwork display with glow + app icon overlay.
+- `ArtworkView.swift`: Displays image or placeholder.
+- `AudioBarsView.swift`: Animated bars for compact media view.
+- `LavaLampGlowView.swift`: Dynamic blob background for expanded view.
+- `BouncingBlobView.swift`: Self-bouncing glow blobs used by the lava lamp.
+- `ExtractArtworkColor.swift`: Extracts dominant/vibrant color from artwork.
+- `MediaPlayerConstants.swift`: Bundle IDs + config for Apple Music, Spotify, Podcasts.
+
+### 🎶 Media Providers
+- `MediaPlayerAppProvider.swift`: Chooses the active media app.
+- `AppleMusicManager.swift`: Talks to Music using ScriptingBridge.
+- `SpotifyManager.swift`: Controls Spotify playback + fetches artwork from URL.
+- `PodcastsManager.swift`: Placeholder logic; Podcasts lacks scripting support.
+
+### 🌦️ Weather
+- `NotchlyWeather.swift`: Mocked weather module (eventually real API).
+
+---
+
 ## Future Roadmap
 
 - **iPhone Connectivity**  
-  - When an iPhone is connected to your MacBook, additional controls appear (e.g., battery status, notifications).  
-  - Offers features such as device restart, erase, or sync settings.  
-  - Real-time animations will highlight the connection between devices.
+  - Adds interaction between Mac + iPhone when tethered or nearby.
+
+- **Live Activities + Alerts**  
+  - Compact alerts in the notch for meetings, music, timers.
 
 - **Customization Options**  
-  - Choose which modules are displayed in the notch (calendar, music, notifications, etc.).  
-  - Customize themes and animations for a personalized look.  
-  - Expand theme options and UI tweaks for a fully personalized experience.
+  - Choose what content shows in the notch. Add animation themes.
 
-- **Enhanced Media State Management**  
-  - Refine media detection and transitions for rapid state changes.
-
-- **Additional App Integrations**  
-  - Explore productivity features and potential integration with other apps:
-    - Notes
-    - Auto-Size Window via Drag
-    - Clipboard History
-
-- **Performance Optimizations**  
-  - Fine-tune polling and state updates to ensure a super responsive experience.
+- **Performance**  
+  - Lower CPU/GPU usage when idle. Prioritize energy efficiency.
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-
-- **MacBook:** With or without a notch (works best on those with one).
-- **macOS 14.0 or later**
-- **Xcode 15.0 or later**
+- MacBook (ideally with a notch)
+- macOS 14.0+
+- Xcode 15.0+
 
 ### Installation
-
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/mason-blumling/Notchly.git
-   cd Notchly
-
-2. **Open the Project in Xcode:**
-    Navigate to the project folder and open the .xcodeproj or .xcworkspace file.
-
-3. **Build and Run:**
-    Set your scheme to your desired configuration and press Run.
+```bash
+git clone https://github.com/mason-blumling/Notchly.git
+cd Notchly
+```
+Open `Notchly.xcodeproj` in Xcode, build, and run.
 
 ---
 
 ## Contributing
 
-Contributions are welcome! If you have ideas, bug fixes, or improvements, please feel free to open an issue or submit a pull request. Please follow the existing code style and include tests where applicable.
+Issues, pull requests, and stars are all welcome 💫
+Please follow the existing Swift/SwiftUI conventions and use modern Apple frameworks.
 
 ---
 
-## Enjoy Notchly, and thanks for supporting the project! Heres to learning App Development ❤️
+## Thanks
+
+Thanks for supporting Notchly.
+This project started as my first app and is becoming something way cooler. ❤️
+
