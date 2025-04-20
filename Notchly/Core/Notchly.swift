@@ -33,6 +33,12 @@ public class Notchly<Content>: ObservableObject where Content: View {
             return Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
         }
     }
+    
+    func environmentInjectedContainerView() -> some View {
+        NotchlyContainerView(notchly: self)
+            .environmentObject(AppDelegate.shared.appEnvironment)
+            .foregroundStyle(.white)
+    }
 
     public init(contentID: UUID = .init(), @ViewBuilder content: @escaping () -> Content) {
         self.contentUUID = contentID
@@ -80,7 +86,7 @@ public class Notchly<Content>: ObservableObject where Content: View {
             height: maxHeight
         )
 
-        let view = NSHostingView(rootView: NotchlyContainerView(notchly: self).foregroundStyle(.white))
+        let view = NSHostingView(rootView: self.environmentInjectedContainerView())
 
         let panel = NotchlyWindowPanel(
             contentRect: frame,

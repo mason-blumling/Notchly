@@ -11,19 +11,14 @@ import SwiftUI
 /// Displays the expanding/collapsing notch, calendar, media, and live activities.
 struct NotchlyContainerView<Content>: View where Content: View {
     @ObservedObject var notchly: Notchly<Content>
-    @StateObject private var calendarManager = CalendarManager()
-    @StateObject private var mediaMonitor = MediaPlaybackMonitor.shared
-    @StateObject private var calendarActivityMonitor: CalendarLiveActivityMonitor
+    @EnvironmentObject var appEnvironment: AppEnvironment
 
     @Namespace private var notchAnimation
     @State private var debounceWorkItem: DispatchWorkItem?
 
-    init(notchly: Notchly<Content>) {
-        self.notchly = notchly
-        CalendarManager.shared = CalendarManager()
-        _calendarManager = StateObject(wrappedValue: CalendarManager.shared!)
-        _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: CalendarManager.shared!))
-    }
+    private var mediaMonitor: MediaPlaybackMonitor { appEnvironment.mediaMonitor }
+    private var calendarManager: CalendarManager { appEnvironment.calendarManager }
+    private var calendarActivityMonitor: CalendarLiveActivityMonitor { appEnvironment.calendarActivityMonitor }
 
     private var shouldShowCalendarLiveActivity: Bool {
         !notchly.isMouseInside &&
