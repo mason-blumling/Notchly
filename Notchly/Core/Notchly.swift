@@ -90,6 +90,35 @@ public class Notchly<Content>: ObservableObject where Content: View {
                 self?.handleHover(expand: inside)
             }
             .store(in: &subscriptions)
+        
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                MediaPlaybackMonitor.shared.pausePolling()
+                CalendarManager.shared?.suspendUpdates()
+            }
+        }
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                // Wake-related tasks in sequence
+                MediaPlaybackMonitor.shared.resumePolling()
+                CalendarManager.shared?.reloadEvents()
+
+                // Resize notch for UI state correction
+                self?.handleHover(expand: self?.isMouseInside ?? false)
+
+                // Trigger fresh media sync
+                MediaPlaybackMonitor.shared.updateMediaState()
+            }
+        }
     }
 }
 

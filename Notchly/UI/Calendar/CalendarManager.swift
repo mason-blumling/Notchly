@@ -16,15 +16,17 @@ import EventKit
 /// Manages access to and retrieval of calendar events.
 /// This class handles permissions, data fetching, and exposing events to the UI.
 class CalendarManager: ObservableObject {
+    static var shared: CalendarManager? = nil
+
     private let eventStore: EKEventStore
     @Published var events: [EKEvent] = []
     
     init(eventStore: EKEventStore = EKEventStore()) {
         self.eventStore = eventStore
-        requestAccess { _ in
-            self.events = self.fetchEvents()
+        subscribeToCalendarChanges() // ✅ Safe
+        requestAccess { granted in
+            print("📆 Calendar permission granted: \(granted)")
         }
-        subscribeToCalendarChanges() // ✅ Listen for event changes
     }
 
     func requestAccess(completion: @escaping (Bool) -> Void) {
@@ -52,6 +54,21 @@ class CalendarManager: ObservableObject {
         self.events = eventStore.events(matching: predicate)
         return self.events
     }
+    
+    // MARK: - Sleep/Wake Integration
+
+    /// Suspends all monitoring (e.g., before sleep)
+    func suspendUpdates() {
+        print("🛑 Suspending calendar updates...")
+        NotificationCenter.default.post(name: .NotchlySuspendCalendarUpdates, object: nil)
+    }
+
+    /// Reloads all calendar data and resumes monitoring (e.g., after wake)
+    func reloadEvents() {
+        print("🔄 Reloading calendar events after wake...")
+        self.events = self.fetchEvents()
+        NotificationCenter.default.post(name: .NotchlyResumeCalendarUpdates, object: nil)
+    }
 
     /// ✅ Listens for event changes in the system calendar
     private func subscribeToCalendarChanges() {
@@ -64,4 +81,9 @@ class CalendarManager: ObservableObject {
             self?.events = self?.fetchEvents() ?? []
         }
     }
+}
+
+extension Notification.Name {
+    static let NotchlySuspendCalendarUpdates = Notification.Name("NotchlySuspendCalendarUpdates")
+    static let NotchlyResumeCalendarUpdates = Notification.Name("NotchlyResumeCalendarUpdates")
 }

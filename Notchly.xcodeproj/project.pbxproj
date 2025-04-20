@@ -43,6 +43,7 @@
 		58A0A8AF2DB36CEF00854FE6 /* NotchlyCalendarLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8AE2DB36CEC00854FE6 /* NotchlyCalendarLiveActivity.swift */; };
 		58A0A8B12DB36D1000854FE6 /* CalendarLiveActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8B02DB36D0C00854FE6 /* CalendarLiveActivityMonitor.swift */; };
 		58A0A8B52DB36DAC00854FE6 /* CalendarLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8B42DB36DA900854FE6 /* CalendarLiveActivityView.swift */; };
+		58A0A8B72DB4A57900854FE6 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8B62DB4A57800854FE6 /* AppEnvironment.swift */; };
 		58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
@@ -133,6 +134,7 @@
 		58A0A8AE2DB36CEC00854FE6 /* NotchlyCalendarLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyCalendarLiveActivity.swift; sourceTree = "<group>"; };
 		58A0A8B02DB36D0C00854FE6 /* CalendarLiveActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarLiveActivityMonitor.swift; sourceTree = "<group>"; };
 		58A0A8B42DB36DA900854FE6 /* CalendarLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarLiveActivityView.swift; sourceTree = "<group>"; };
+		58A0A8B62DB4A57800854FE6 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -440,11 +442,12 @@
 			children = (
 				583F0A1C2D9660360034562C /* Music.h */,
 				583F0A1D2D9660AB0034562C /* Notchly-Bridging-Header.h */,
+				58A0A8B62DB4A57800854FE6 /* AppEnvironment.swift */,
 				58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */,
 				58C97BED2D49ACC3006FFC06 /* Core */,
-				58C97BEC2D49ACBC006FFC06 /* UI */,
-				58C97BF02D49ACDA006FFC06 /* Testing */,
 				58C2A7122D3DAD0200764D80 /* Resources */,
+				58C97BF02D49ACDA006FFC06 /* Testing */,
+				58C97BEC2D49ACBC006FFC06 /* UI */,
 				58C97BEF2D49ACD0006FFC06 /* Utilities */,
 				58C97BF12D49AD4E006FFC06 /* Xcode Stuff */,
 			);
@@ -692,6 +695,7 @@
 				5862FF4C2DA3556B0037843C /* UnifiedMediaPlayerView.swift in Sources */,
 				58832F3F2D9A1D1D00745CF2 /* PodcastsManager.swift in Sources */,
 				580F20552D59B36B00D66D57 /* NotchlyTheme.swift in Sources */,
+				58A0A8B72DB4A57900854FE6 /* AppEnvironment.swift in Sources */,
 				583F0A142D9652770034562C /* PlayerProtocol.swift in Sources */,
 				58832F3A2D9A04A700745CF2 /* SpotifyManager.swift in Sources */,
 				58A0A8AF2DB36CEF00854FE6 /* NotchlyCalendarLiveActivity.swift in Sources */,
@@ -895,8 +899,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Notchly/Xcode Stuff/Notchly.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -910,6 +915,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Notchly needs access to control media playback (Play/Pause/Skip)";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Notchly need access to media playback data to display a real-time control pane";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "Notchly needs access to control media playback and detect now-playing applications.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -917,9 +923,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Notchly/Notchly-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -938,8 +945,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Notchly/Xcode Stuff/Notchly.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -953,6 +961,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Notchly needs access to control media playback (Play/Pause/Skip)";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Notchly need access to media playback data to display a real-time control pane";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "Notchly needs access to control media playback and detect now-playing applications.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -960,9 +969,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Notchly/Notchly-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

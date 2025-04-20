@@ -17,9 +17,9 @@ struct NotchlyView<Content>: View where Content: View {
     
     init(notchly: Notchly<Content>) {
         self.notchly = notchly
-        let manager = CalendarManager()
-        _calendarManager = StateObject(wrappedValue: manager)
-        _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: manager))
+        CalendarManager.shared = CalendarManager()
+        _calendarManager = StateObject(wrappedValue: CalendarManager.shared!)
+        _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: CalendarManager.shared!))
     }
 
     // Debounce hover state changes

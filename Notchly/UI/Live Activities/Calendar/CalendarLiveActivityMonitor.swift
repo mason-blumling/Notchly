@@ -23,6 +23,22 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     init(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
         startTimer()
+
+        NotificationCenter.default.addObserver(
+            forName: .NotchlySuspendCalendarUpdates,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.pauseTimers()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .NotchlyResumeCalendarUpdates,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.resumeTimers()
+        }
     }
 
     func startTimer() {
@@ -30,6 +46,15 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in self.evaluateLiveActivity() }
         }
+    }
+    
+    func pauseTimers() {
+        timer?.invalidate()
+        expirationTimer?.invalidate()
+    }
+
+    func resumeTimers() {
+        startTimer()
     }
 
     func evaluateLiveActivity() {

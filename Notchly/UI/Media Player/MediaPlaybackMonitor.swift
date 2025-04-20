@@ -93,6 +93,16 @@ final class MediaPlaybackMonitor: ObservableObject {
         }
     }
     
+    func pausePolling() {
+        pollingTimerCancellable?.cancel()
+        pollingTimerCancellable = nil
+    }
+
+    func resumePolling() {
+        updatePollingInterval()
+        startPolling()
+    }
+    
     // MARK: - Adaptive Polling
     /// Adjusts the polling interval based on whether media is playing.
     private func updatePollingInterval() {
