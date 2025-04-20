@@ -7,11 +7,13 @@
 
 @MainActor
 final class AppEnvironment: ObservableObject {
+    static let shared = AppEnvironment()
+
     let calendarManager: CalendarManager
     let mediaMonitor: MediaPlaybackMonitor
     let calendarActivityMonitor: CalendarLiveActivityMonitor
 
-    init() {
+    private init() {
         self.calendarManager = CalendarManager.shared ?? CalendarManager()
         self.mediaMonitor = MediaPlaybackMonitor.shared
         self.calendarActivityMonitor = CalendarLiveActivityMonitor(calendarManager: calendarManager)

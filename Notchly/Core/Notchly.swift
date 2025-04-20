@@ -34,9 +34,10 @@ public class Notchly<Content>: ObservableObject where Content: View {
         }
     }
     
+    @MainActor
     func environmentInjectedContainerView() -> some View {
         NotchlyContainerView(notchly: self)
-            .environmentObject(AppDelegate.shared.appEnvironment)
+            .environmentObject(AppEnvironment.shared)
             .foregroundStyle(.white)
     }
 
@@ -48,7 +49,9 @@ public class Notchly<Content>: ObservableObject where Content: View {
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
                 guard let self, let screen = NSScreen.screens.first else { return }
-                self.initializeWindow(screen: screen)
+                Task { @MainActor in
+                    await self.initializeWindow(screen: screen)
+                }
             }
 
         $isMouseInside
@@ -74,7 +77,8 @@ public class Notchly<Content>: ObservableObject where Content: View {
         }
     }
 
-    public func initializeWindow(screen: NSScreen) {
+    @MainActor
+    public func initializeWindow(screen: NSScreen) async {
         guard windowController == nil else { return }
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
@@ -105,7 +109,7 @@ public class Notchly<Content>: ObservableObject where Content: View {
         panel.level = .screenSaver
         panel.orderFrontRegardless()
 
-        windowController = NSWindowController(window: panel)
+        self.windowController = NSWindowController(window: panel)
     }
 
     public func handleHover(expand: Bool) {
