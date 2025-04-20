@@ -14,8 +14,8 @@ final class AppEnvironment: ObservableObject {
     let calendarActivityMonitor: CalendarLiveActivityMonitor
 
     private init() {
-        self.calendarManager = CalendarManager.shared ?? CalendarManager()
-        self.mediaMonitor = MediaPlaybackMonitor.shared
+        self.calendarManager = CalendarManager()
+        self.mediaMonitor = MediaPlaybackMonitor()
         self.calendarActivityMonitor = CalendarLiveActivityMonitor(calendarManager: calendarManager)
     }
 }

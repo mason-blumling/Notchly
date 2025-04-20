@@ -15,10 +15,7 @@ import AppKit
 /// properties (like nowPlaying, isPlaying, currentTime, etc.) so the UI can reflect the current state.
 @MainActor
 final class MediaPlaybackMonitor: ObservableObject {
-    
-    // MARK: - Singleton
-    static let shared = MediaPlaybackMonitor()
-    
+
     // MARK: - Published Properties (UI Observables)
     @Published private(set) var nowPlaying: NowPlayingInfo?
     @Published private(set) var isPlaying: Bool = false
@@ -54,7 +51,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     private var progressTimer: Timer?
     
     // MARK: - Initialization
-    private init() {
+    init() {
         // Initialize the provider with a notification subject.
         self.mediaPlayerAppProvider = MediaPlayerAppProvider(notificationSubject: PassthroughSubject<AlertItem, Never>())
         setupObservers()

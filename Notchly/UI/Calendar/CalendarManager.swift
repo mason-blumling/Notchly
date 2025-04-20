@@ -16,8 +16,6 @@ import EventKit
 /// Manages access to and retrieval of calendar events.
 /// This class handles permissions, data fetching, and exposing events to the UI.
 class CalendarManager: ObservableObject {
-    static var shared: CalendarManager? = nil
-
     private let eventStore: EKEventStore
     @Published var events: [EKEvent] = []
     
