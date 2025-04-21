@@ -15,7 +15,7 @@ struct NotchlyContainerView<Content>: View where Content: View {
     @EnvironmentObject var appEnvironment: AppEnvironment
 
     @Namespace private var notchAnimation
-    
+
     @State private var debounceWorkItem: DispatchWorkItem?
     @State private var cancellables = Set<AnyCancellable>()
     @State private var showMediaAfterCalendar: Bool = false
@@ -150,7 +150,7 @@ struct NotchlyContainerView<Content>: View where Content: View {
                             withAnimation(NotchlyAnimations.quickTransition) {
                                 showMediaAfterCalendar = false
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + NotchlyAnimations.Durations.quick) {
                                 notchly.handleHover(expand: true)
                             }
                         } else {
@@ -159,7 +159,7 @@ struct NotchlyContainerView<Content>: View where Content: View {
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()) {
                                 if mediaMonitor.isPlaying {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                    withAnimation(NotchlyAnimations.smoothTransition) {
                                         showMediaAfterCalendar = true
                                     }
                                     notchly.handleHover(expand: true)

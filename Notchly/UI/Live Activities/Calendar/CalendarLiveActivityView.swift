@@ -10,7 +10,8 @@ import SwiftUI
 struct CalendarLiveActivityView: View {
     @ObservedObject var activityMonitor: CalendarLiveActivityMonitor
     var namespace: Namespace.ID
-    
+    @State private var appear = false
+
     var body: some View {
         LiveActivityView(
             leftContent: {
@@ -22,6 +23,9 @@ struct CalendarLiveActivityView: View {
                     .background(Color.blue.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .matchedGeometryEffect(id: "calendarIcon", in: namespace)
+                    .scaleEffect(appear ? 1 : 0.8)
+                    .opacity(appear ? 1 : 0)
+                    .animation(NotchlyAnimations.notchExpansion, value: appear)
             },
             rightContent: {
                 Text(activityMonitor.timeRemainingString)
@@ -34,8 +38,17 @@ struct CalendarLiveActivityView: View {
                     .background(Color.black.opacity(0.4))
                     .clipShape(Capsule())
                     .matchedGeometryEffect(id: "calendarTimeText", in: namespace)
+                    .scaleEffect(appear ? 1 : 0.8)
+                    .opacity(appear ? 1 : 0)
+                    .animation(NotchlyAnimations.notchExpansion, value: appear)
             }
         )
-        .transition(.opacity.combined(with: .scale))
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .onAppear {
+            appear = true
+        }
+        .onDisappear {
+            appear = false
+        }
     }
 }

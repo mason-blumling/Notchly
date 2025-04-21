@@ -98,9 +98,21 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         } else if remaining < 60 {
             timeRemainingString = "\(Int(remaining))s"
             upcomingEvent = event
-            expirationTimer?.invalidate()
-            lastShownPhase = "countdown"
-            isLiveActivityVisible = true
+
+            if lastShownPhase != "countdown" {
+                print("⏱️ Showing countdown for event: \(event.title ?? "Unknown")")
+                expirationTimer?.invalidate()
+                lastShownPhase = "countdown"
+                isLiveActivityVisible = true
+
+                let eventID = event.eventIdentifier
+                expirationTimer = Timer.scheduledTimer(withTimeInterval: remaining + 1.0, repeats: false) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.reset()
+                        self?.dismissedEventID = eventID
+                    }
+                }
+            }
         } else if remaining < 300 {
             if previousRemaining! > 300 && lastShownPhase != "5m" {
                 print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
