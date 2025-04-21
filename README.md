@@ -17,129 +17,106 @@ Notchly aims to create a lightweight, user-friendly app that unlocks the full po
 
 ---
 
-## V1 Features
+## V2.0.0 Highlights
 
-- **Calendar Integration**  
-  - Display upcoming events, reminders, and appointments.  
-  - Quick access to detailed schedules by hovering over or clicking the notch.  
-  - Syncs with iCloud Calendar and other calendar services.
+### 🚀 New Features
 
-- **Music Control**  
-  - Displays now-playing information and media controls.  
-  - Shows album art and progress bars with subtle, elegant animations.  
-  - Integrates with Apple Music, Spotify, and other media apps.
+- **Media Player Live Activities**  
+  Displays compact now-playing info in the notch when media is playing but not expanded.
 
-- **Simple, Animated UI**  
-  - Enjoy smooth transitions and micro-interactions for a polished experience.  
-  - Subtle feedback (haptic or sound cues) enhances interactions.
+- **Calendar Live Activities**  
+  Heads-up alerts appear in the notch 15m, 5m, and 1m before your next event — including countdown mode.
 
-<div align="center">
+- **Centralized App Environment**  
+  SwiftUI environment injection makes state and data flow more robust and scalable.
 
-<a href="https://github.com/mason-blumling/Notchly/releases/download/v1.0.0/Notchly.zip" target="_self">
-  <img src="https://www.adviksoft.com/blog/wp-content/uploads/2023/09/editor_download_mac.png" alt="Download Notchly" width="160">
-</a>
+- **Modular Architecture**  
+  Media and calendar systems are now fully modularized for easier maintenance and cleaner transitions.
 
-*Note: On first launch, you may see a security warning. Simply click **Open Anyway** in System Preferences → Security & Privacy.*
-</div>
+### 💡 UX & Animation Improvements
+
+- **Perfectly Timed Transitions**  
+  Matched geometry, spring physics, and new animation helpers ensure buttery smooth expansion/contraction.
+
+- **Live Syncing**  
+  Notch state reflects real-time changes from Calendar and Media without needing to hover.
+
+- **Adaptive Layouts**  
+  Views now respect notch constraints and prevent visual bounce, overflow, or ghosting.
+
+### 🧼 Codebase Cleanup
+
+- **Memory & Performance Improvements**  
+  All timers, observers, and polling systems now respect lifecycle. Memory leaks resolved.
+
+- **Calendar + Media Overhaul**  
+  The entire stack was cleaned up to reduce redundant logic and better handle edge cases.
+
+- **Refined Logging + State Observers**  
+  Less spammy logging. Improved real-time debug output for playback, event triggers, and lifecycle changes.
 
 ---
 
-## File Map (Documentation)
-
-Here’s a plain-English breakdown of the entire project — what each file does, and how the parts connect:
-
-### 🧠 Core App Structure
-- `NotchlyApp.swift`: App entry point. Initializes `MenuBarController`, sets up SwiftUI environment.
-- `Notchly.swift`: Main app controller. Manages window, hover tracking, content transitions.
-- `NotchlyView.swift`: Visual layout logic. Hosts calendar/media modules based on state.
-- `NotchlyConfigurations.swift`: Defines notch size presets (Collapsed, Activity, Expanded).
-- `NotchlyWindowPanel.swift`: Custom NSPanel subclass for notch-level behavior.
+## What’s Already Inside
 
 ### 📅 Calendar Module
-- `CalendarManager.swift`: Handles permissions + fetching events using EventKit.
-- `NotchlyCalendarView.swift`: Full calendar view inside the notch.
-- `NotchlyDateSelector.swift`: Horizontally scrolling date picker.
-- `NotchlyEventList.swift`: Shows daily events with status (pending, conflict, etc.).
-- `NotchlyCalendarUtilities.swift`: Shared utilities like date formatters.
-- `UserEmailCache.swift`: Caches user’s calendar email addresses.
-- `NotchlyEventAttendees.swift`: Detects declined/tentative attendees.
-- `NotchlyEventConflicts.swift`: Highlights overlapping calendar events.
-- `RenderSafeView.swift`: Optimizes GPU rendering for blur-heavy views.
 
-### 📆 Calendar Live Activities
-- `CalendarLiveActivityMonitor.swift`: Observes events starting in 15m/5m/1m.
-- `CalendarLiveActivityView.swift`: UI for upcoming event warnings.
-- `NotchlyCalendarLiveActivity.swift`: Extension to get “next starting soon” event.
+- Smart event grouping, attendee logic, conflict detection
+- Auto-scroll to next event
+- Dynamic height adjustment
+- SwiftUI-native animations
 
-### 🎵 Media Player
-- `MediaPlaybackMonitor.swift`: Core state manager for now-playing info.
-- `UnifiedMediaPlayerView.swift`: Morphs between compact/expanded media views.
-- `NotchlyMediaPlayer.swift`: Expanded media controls (title, controls, scrubber).
-- `MediaControlsView.swift`: Play/pause/skip buttons.
-- `TrackInfoView.swift`: Displays title + artist.
-- `TrackScrubberView.swift`: Drag-enabled time scrubber.
-- `MediaPlayerIdleView.swift`: Shown when no media is active.
-- `PodcastsFallbackView.swift`: Friendly fallback when Podcasts lacks control support.
-- `ArtworkContainerView.swift`: Manages artwork display with glow + app icon overlay.
-- `ArtworkView.swift`: Displays image or placeholder.
-- `AudioBarsView.swift`: Animated bars for compact media view.
-- `LavaLampGlowView.swift`: Dynamic blob background for expanded view.
-- `BouncingBlobView.swift`: Self-bouncing glow blobs used by the lava lamp.
-- `ExtractArtworkColor.swift`: Extracts dominant/vibrant color from artwork.
-- `MediaPlayerConstants.swift`: Bundle IDs + config for Apple Music, Spotify, Podcasts.
+### 🎵 Media Module
 
-### 🎶 Media Providers
-- `MediaPlayerAppProvider.swift`: Chooses the active media app.
-- `AppleMusicManager.swift`: Talks to Music using ScriptingBridge.
-- `SpotifyManager.swift`: Controls Spotify playback + fetches artwork from URL.
-- `PodcastsManager.swift`: Placeholder logic; Podcasts lacks scripting support.
+- Apple Music + Spotify playback
+- Album artwork glow effect
+- Track info, controls, and scrubber
+- Idle fallback for no playback
+- Podcast support (fallback only for now)
 
-### 🌦️ Weather
-- `NotchlyWeather.swift`: Mocked weather module (eventually real API).
+### ✨ Notch UI
+
+- Three modes: Collapsed, Activity, Expanded
+- Springy transitions and bounce feedback
+- Custom shape rendering per display
+- Hover detection with debounce logic
+- Lightweight matchedGeometryEffect implementation
 
 ---
 
-## Future Roadmap
+## Coming Soon
 
-- **iPhone Connectivity**  
-  - Adds interaction between Mac + iPhone when tethered or nearby.
+- **Window Resizing & Placement**  
+  Drag a window to the notch and let go to anchor + resize it to a supported area.
 
-- **Live Activities + Alerts**  
-  - Compact alerts in the notch for meetings, music, timers.
+- **Live Weather**  
+  Pull real-time forecast data directly into the notch.
 
-- **Customization Options**  
-  - Choose what content shows in the notch. Add animation themes.
+- **Airdrop + Clipboard Features**  
+  View current transfers or copied content without leaving your flow.
 
-- **Performance**  
-  - Lower CPU/GPU usage when idle. Prioritize energy efficiency.
+- **AI-Based Features**  
+  Smart summaries, event suggestions, media cueing, and more.
+
+- **Performance Optimizations**  
+  Additional energy use and memory profiling for long idle use.
+
+- **Sparkle Update Support**  
+  Built-in “Check for Updates” button with background version tracking.
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-- MacBook (ideally with a notch)
+### Requirements
+
 - macOS 14.0+
-- Xcode 15.0+
+- Xcode 15+
+- A Mac with a notch (MacBook Pro or Air with Apple Silicon preferred)
 
 ### Installation
+
 ```bash
 git clone https://github.com/mason-blumling/Notchly.git
 cd Notchly
-```
-Open `Notchly.xcodeproj` in Xcode, build, and run.
-
----
-
-## Contributing
-
-Issues, pull requests, and stars are all welcome 💫
-Please follow the existing Swift/SwiftUI conventions and use modern Apple frameworks.
-
----
-
-## Thanks
-
-Thanks for supporting Notchly.
-This project started as my first app and is becoming something way cooler. ❤️
-
+open Notchly.xcodeproj
