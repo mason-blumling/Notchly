@@ -13,6 +13,7 @@ import Combine
 final class CalendarLiveActivityMonitor: ObservableObject {
     @Published var upcomingEvent: EKEvent?
     @Published var timeRemainingString: String = ""
+    @Published var isLiveActivityVisible: Bool = false
 
     private var timer: Timer?
     private var expirationTimer: Timer?
@@ -99,6 +100,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             upcomingEvent = event
             expirationTimer?.invalidate()
             lastShownPhase = "countdown"
+            isLiveActivityVisible = true
         } else if remaining < 300 {
             if previousRemaining! > 300 && lastShownPhase != "5m" {
                 print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
@@ -106,6 +108,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 upcomingEvent = event
                 lastShownPhase = "5m"
                 scheduleExpiration(for: event)
+                isLiveActivityVisible = true
             }
         } else if remaining < 900 {
             if previousRemaining! > 900 && lastShownPhase != "15m" {
@@ -114,6 +117,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 upcomingEvent = event
                 lastShownPhase = "15m"
                 scheduleExpiration(for: event)
+                isLiveActivityVisible = true
             }
         }
 
@@ -123,6 +127,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private func scheduleExpiration(for event: EKEvent) {
         let id = event.eventIdentifier
         expirationTimer?.invalidate()
+        isLiveActivityVisible = false
         expirationTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
@@ -139,6 +144,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         timeRemainingString = ""
         previousRemaining = nil
         lastShownPhase = nil
+        isLiveActivityVisible = false
         expirationTimer?.invalidate()
     }
 }

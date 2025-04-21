@@ -65,35 +65,30 @@ struct UnifiedMediaPlayerView: View {
                             .transition(.opacity)
                             .matchedGeometryEffect(id: "albumGlow", in: namespace)
                             .allowsHitTesting(false)
-                        }
+                    }
                     Spacer()
                 }
             }
 
-            // Main media state switch
-            switch playerState {
-            case .none:
-                // No media: collapse the view
-                Color.clear
-                    .frame(width: 1, height: 1)
-                    .opacity(0.0)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
-                
-            case .idle:
-                // Media exists but not playing — show placeholder
-                MediaPlayerIdleView()
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
-                
-            case .activity, .expanded:
-                // Active media state
-                mediaContentView
-                    .opacity(playerState == .none ? 0 : 1)
-                    .scaleEffect(playerState == .none ? 0.95 : 1)
-                    .animation(animation, value: playerState)
-                    .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+            Group {
+                switch playerState {
+                case .none:
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .opacity(0.0)
+                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+
+                case .idle:
+                    MediaPlayerIdleView()
+                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+
+                case .activity, .expanded:
+                    mediaContentView
+                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
+                }
             }
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            .animation(animation, value: playerState)
         }
         .frame(
             width: playerState == .none ? 0 : nil,
@@ -136,7 +131,7 @@ struct UnifiedMediaPlayerView: View {
                     .frame(width: 30, height: 24)
                     .clipped()
                     .onAppear {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        withAnimation(NotchlyAnimations.notchExpansion) {
                             showBars = true
                         }
                     }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 /// The visual SwiftUI container for the Notchly floating UI.
 /// Displays the expanding/collapsing notch, calendar, media, and live activities.
@@ -14,7 +15,11 @@ struct NotchlyContainerView<Content>: View where Content: View {
     @EnvironmentObject var appEnvironment: AppEnvironment
 
     @Namespace private var notchAnimation
+    
     @State private var debounceWorkItem: DispatchWorkItem?
+    @State private var cancellables = Set<AnyCancellable>()
+    @State private var showMediaAfterCalendar: Bool = false
+    @State private var forceCollapseForCalendar = false
 
     @StateObject private var calendarActivityMonitor: CalendarLiveActivityMonitor
 
@@ -34,6 +39,10 @@ struct NotchlyContainerView<Content>: View where Content: View {
     }
 
     private var currentConfig: NotchlyConfiguration {
+        if forceCollapseForCalendar {
+            return .default
+        }
+
         if !notchly.isMouseInside {
             if mediaMonitor.isPlaying || calendarActivityMonitor.upcomingEvent != nil {
                 return .activity
@@ -57,16 +66,18 @@ struct NotchlyContainerView<Content>: View where Content: View {
                         height: notchly.isMouseInside ? notchly.notchHeight : currentConfig.height
                     )
                     .shadow(color: NotchlyTheme.shadow, radius: currentConfig.shadowRadius)
-                    .animation(notchly.animation, value: notchly.isMouseInside)
+                    .animation(notchly.animation, value: notchly.isMouseInside || forceCollapseForCalendar)
 
-                    if shouldShowCalendarLiveActivity {
-                        CalendarLiveActivityView(activityMonitor: calendarActivityMonitor)
-                            .frame(width: currentConfig.width, height: currentConfig.height)
-                            .transition(.scale.combined(with: .opacity))
-                            .zIndex(999)
-                            .animation(.easeInOut(duration: 0.3), value: calendarActivityMonitor.upcomingEvent)
-                            .background(Color.black)
+                    Group {
+                        if shouldShowCalendarLiveActivity {
+                            CalendarLiveActivityView(activityMonitor: calendarActivityMonitor, namespace: notchAnimation)
+                                .matchedGeometryEffect(id: "calendarLiveActivity", in: notchAnimation)
+                                .transition(.opacity.combined(with: .scale))
+                                .zIndex(999)
+                        }
                     }
+                    .frame(width: currentConfig.width, height: currentConfig.height)
+                    .animation(NotchlyAnimations.notchExpansion, value: shouldShowCalendarLiveActivity)
 
                     HStack(alignment: .center, spacing: 6) {
                         Spacer().frame(width: 4)
@@ -82,7 +93,10 @@ struct NotchlyContainerView<Content>: View where Content: View {
                         )
                         .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                         .padding(.leading, 4)
-                        .animation(notchly.animation, value: notchly.isMouseInside)
+                        .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : 1)
+                        .scaleEffect(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0.95 : 1)
+                        .animation(notchly.animation, value: shouldShowCalendarLiveActivity)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
 
                         Spacer().frame(width: 5)
 
@@ -121,6 +135,40 @@ struct NotchlyContainerView<Content>: View where Content: View {
                     calendarActivityMonitor.evaluateLiveActivity()
                 }
             }
+
+            calendarActivityMonitor.$isLiveActivityVisible
+                .removeDuplicates()
+                .sink { isActive in
+                    notchly.calendarHasLiveActivity = isActive
+                    forceCollapseForCalendar = true
+                    notchly.handleHover(expand: false)
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()) {
+                        forceCollapseForCalendar = false
+
+                        if isActive {
+                            withAnimation(NotchlyAnimations.quickTransition) {
+                                showMediaAfterCalendar = false
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                notchly.handleHover(expand: true)
+                            }
+                        } else {
+                            withAnimation(NotchlyAnimations.quickTransition) {
+                                showMediaAfterCalendar = false
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()) {
+                                if mediaMonitor.isPlaying {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        showMediaAfterCalendar = true
+                                    }
+                                    notchly.handleHover(expand: true)
+                                }
+                            }
+                        }
+                    }
+                }
+                .store(in: &cancellables)
         }
         .onReceive(mediaMonitor.$isPlaying) { playing in
             notchly.isMediaPlaying = playing
@@ -134,7 +182,7 @@ struct NotchlyContainerView<Content>: View where Content: View {
         debounceWorkItem?.cancel()
         debounceWorkItem = DispatchWorkItem {
             guard hovering != notchly.isMouseInside else { return }
-            withAnimation(notchly.animation) {
+            withAnimation(NotchlyAnimations.notchExpansion) {
                 notchly.isMouseInside = hovering
                 notchly.handleHover(expand: hovering)
             }
