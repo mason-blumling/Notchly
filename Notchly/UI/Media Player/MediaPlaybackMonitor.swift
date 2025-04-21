@@ -147,8 +147,8 @@ final class MediaPlaybackMonitor: ObservableObject {
                     return
                 }
 
-                if self.nowPlaying?.title != info.title {
-                    print("🎵 Track changed: \(self.nowPlaying?.title ?? "-") → \(info.title)")
+                if self.nowPlaying?.title != info.title || self.nowPlaying?.artist != info.artist {
+                    print("🎵 Now playing: \(info.title) — \(info.artist)")
                 }
 
                 var validDuration = info.duration
@@ -157,9 +157,9 @@ final class MediaPlaybackMonitor: ObservableObject {
                        current.title == info.title,
                        self.lastValidDuration > 1.0 {
                         validDuration = self.lastValidDuration
-                        print("🔄 Using cached duration: \(validDuration)")
+                        print("🔄 Using cached duration: \(validDuration)s")
                     } else {
-                        print("⏱ Invalid duration. Retrying.")
+                        print("⚠️ Missing or invalid duration for '\(info.title)', retrying...")
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                             self?.updateMediaState()
                         }
@@ -183,7 +183,7 @@ final class MediaPlaybackMonitor: ObservableObject {
                     self.expectedPlayState = nil
                     self.expectedStateTimestamp = nil
                     if self.isPlaying != newState {
-                        print("⌚ Updating isPlaying: \(newState)")
+                        print("⏯️ Playback status changed → \(newState ? "▶️ Playing" : "⏸️ Paused")")
                         self.isPlaying = newState
                     }
                 }

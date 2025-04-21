@@ -16,13 +16,19 @@ struct NotchlyContainerView<Content>: View where Content: View {
     @Namespace private var notchAnimation
     @State private var debounceWorkItem: DispatchWorkItem?
 
+    @StateObject private var calendarActivityMonitor: CalendarLiveActivityMonitor
+
     private var mediaMonitor: MediaPlaybackMonitor { appEnvironment.mediaMonitor }
     private var calendarManager: CalendarManager { appEnvironment.calendarManager }
-    private var calendarActivityMonitor: CalendarLiveActivityMonitor { appEnvironment.calendarActivityMonitor }
+
+    init(notchly: Notchly<Content>) {
+        self.notchly = notchly
+        let manager = AppEnvironment.shared.calendarManager
+        _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: manager))
+    }
 
     private var shouldShowCalendarLiveActivity: Bool {
         !notchly.isMouseInside &&
-        !mediaMonitor.isPlaying &&
         calendarActivityMonitor.upcomingEvent != nil &&
         !calendarActivityMonitor.timeRemainingString.isEmpty
     }
@@ -59,6 +65,7 @@ struct NotchlyContainerView<Content>: View where Content: View {
                             .transition(.scale.combined(with: .opacity))
                             .zIndex(999)
                             .animation(.easeInOut(duration: 0.3), value: calendarActivityMonitor.upcomingEvent)
+                            .background(Color.black)
                     }
 
                     HStack(alignment: .center, spacing: 6) {
@@ -110,9 +117,9 @@ struct NotchlyContainerView<Content>: View where Content: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .onAppear {
             calendarManager.requestAccess { granted in
-                print("Calendar Access: \(granted)")
-                print("📆 Loaded \(calendarManager.events.count) events")
-                calendarActivityMonitor.evaluateLiveActivity()
+                if granted {
+                    calendarActivityMonitor.evaluateLiveActivity()
+                }
             }
         }
         .onReceive(mediaMonitor.$isPlaying) { playing in
