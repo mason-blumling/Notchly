@@ -8,12 +8,10 @@
 import Foundation
 import AppKit
 import ScriptingBridge
-import SwiftUI
 import Combine
 
-// MARK: - Apple Music Scripting Protocols
+// MARK: – Apple Music ScriptingBridge Protocols
 
-/// Represents a track in the Apple Music app.
 @objc protocol AppleMusicTrack {
     var name: String { get }
     var artist: String { get }
@@ -22,9 +20,7 @@ import Combine
     @objc optional func artworks() -> [Any]
 }
 
-/// Represents the Apple Music application.
 @objc protocol AppleMusicApp {
-    @objc optional var isRunning: Bool { get }
     @objc optional var playerState: Int { get }
     @objc optional var playerPosition: Double { get set }
     @objc optional var currentTrack: AppleMusicTrack { get }
@@ -34,125 +30,157 @@ import Combine
     @objc optional var soundVolume: Int { get }
 }
 
-/// Extend SBApplication so that it conforms to AppleMusicApp.
 extension SBApplication: AppleMusicApp {}
 
-// MARK: - AppleMusicManager Implementation
-
-/// An implementation of PlayerProtocol for Apple Music using ScriptingBridge.
-final class AppleMusicManager: PlayerProtocol {
+/// A PlayerProtocol adapter for Apple Music that never auto-launches the app.
+final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
     
-    // MARK: - PlayerProtocol
+    // MARK: PlayerProtocol
     var notificationSubject: PassthroughSubject<AlertItem, Never>
     var appName: String { "Apple Music" }
     var appPath: URL { URL(fileURLWithPath: "/System/Applications/Music.app") }
     var appNotification: String { "\(bundleIdentifier).playerInfo" }
     var bundleIdentifier: String { Constants.AppleMusic.bundleID }
     var defaultAlbumArt: NSImage { NSImage(named: "DefaultAlbumArt") ?? NSImage() }
-    
-    // MARK: - Internal
+
+    // MARK: Internal
     private var app: AppleMusicApp?
-    private var appForceQuit = false
     private let workspaceNC = NSWorkspace.shared.notificationCenter
 
     init(notificationSubject: PassthroughSubject<AlertItem, Never>) {
         self.notificationSubject = notificationSubject
         
-        // Only instantiate if Music is already running
-        if NSWorkspace.shared.runningApplications.contains(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            self.app = SBApplication(bundleIdentifier: bundleIdentifier)
-            self.appForceQuit = false
+        // Attach if already running
+        if checkRunning() {
+            attachToRunningApp()
         }
         
-        // Watch for Music launches
+        // Watch for launches
         workspaceNC.addObserver(
             forName: NSWorkspace.didLaunchApplicationNotification,
             object: nil, queue: .main
         ) { [weak self] note in
             guard let info = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   info.bundleIdentifier == self?.bundleIdentifier else { return }
-            self?.app = SBApplication(bundleIdentifier: self!.bundleIdentifier)
-            self?.appForceQuit = false
+            self?.attachToRunningApp()
         }
         
-        // Watch for Music quits
+        // Watch for quits
         workspaceNC.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
             object: nil, queue: .main
         ) { [weak self] note in
             guard let info = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   info.bundleIdentifier == self?.bundleIdentifier else { return }
-            self?.appForceQuit = true
             self?.app = nil
         }
     }
-    
+
     deinit {
         workspaceNC.removeObserver(self)
     }
+
+   /// Only attach to the already-running Music process (never auto-launch).
+    private func attachToRunningApp() {
+        guard let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first
+        else { return }
+        
+        // use the public SBApplication(processIdentifier:) initializer
+        let sb = SBApplication(processIdentifier: running.processIdentifier)
+        as? (SBApplication & AppleMusicApp)
+        sb?.delegate = self
+        self.app = sb
+    }
     
+    /// Return true if Music is running; clear `app` if not.
+    private func checkRunning() -> Bool {
+        let running = !NSRunningApplication
+            .runningApplications(withBundleIdentifier: bundleIdentifier)
+            .isEmpty
+        if !running { app = nil }
+        return running
+    }
+
+    // MARK: – SBApplicationDelegate (prevent auto-launch)
+
+    func applicationShouldLaunch(_ sender: SBApplication!) -> Bool {
+        return false
+    }
+
+    func eventDidFail(
+        _ event: UnsafePointer<AppleEvent>,
+        withError error: Error
+    ) -> Any? {
+        return nil
+    }
+
+    // MARK: – PlayerProtocol
+
+    func isAppRunning() -> Bool {
+        return checkRunning()
+    }
+
     var playerPosition: Double? {
-        app?.playerPosition
+        guard checkRunning(), let a = app else { return nil }
+        return a.playerPosition
     }
     
     var isPlaying: Bool {
-        guard let a = app, !appForceQuit else { return false }
+        guard checkRunning(), let a = app else { return false }
         return a.playerState == 1800426320
     }
     
     var volume: CGFloat {
-        CGFloat(app?.soundVolume ?? 50)
+        guard checkRunning(), let a = app else { return 0 }
+        return CGFloat(a.soundVolume ?? 50)
     }
     
     func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void) {
-        guard !appForceQuit, let app = app else {
-            completion(nil)
-            return
+        guard checkRunning(), let a = app, let track = a.currentTrack else {
+            return completion(nil)
         }
-        guard let track = app.currentTrack else {
-            completion(nil)
-            return
-        }
-        
-        let playingState = app.playerState ?? 0
-        let currentlyPlaying = (playingState == 1800426320)
-        let elapsedTime = app.playerPosition ?? 0.0
+        let playing  = (a.playerState ?? 0) == 1800426320
+        let elapsed  = a.playerPosition ?? 0
         let duration = track.duration
         
         var artwork: NSImage? = nil
-        if let arts = track.artworks?(), let first = arts.first as? MusicArtwork,
+        if let arts = track.artworks?(),
+           let first = arts.first as? MusicArtwork,
            let img = first.data, img.size != .zero {
             artwork = img
         }
-        
+
         let info = NowPlayingInfo(
-            title: track.name,
-            artist: track.artist,
-            album: track.album,
-            duration: duration,
-            elapsedTime: elapsedTime,
-            isPlaying: currentlyPlaying,
-            artwork: artwork,
-            appName: appName
+            title:       track.name,
+            artist:      track.artist,
+            album:       track.album,
+            duration:    duration,
+            elapsedTime: elapsed,
+            isPlaying:   playing,
+            artwork:     artwork,
+            appName:     appName
         )
         completion(info)
     }
     
-    func playPause() { app?.playpause?() }
-    func previousTrack() { app?.backTrack?() }
-    func nextTrack()     { app?.nextTrack?() }
+    func playPause() {
+        guard checkRunning(), let a = app else { return }
+        a.playpause?()
+    }
+    func previousTrack() {
+        guard checkRunning(), let a = app else { return }
+        a.backTrack?()
+    }
+    func nextTrack() {
+        guard checkRunning(), let a = app else { return }
+        a.nextTrack?()
+    }
     func seekTo(time: TimeInterval) {
-        (app as? SBObject)?.setValue(time, forKey: "playerPosition")
+        guard checkRunning(), let sb = app as? SBObject else { return }
+        sb.setValue(time, forKey: "playerPosition")
     }
     func setVolume(volume: Int) {
-        (app as? SBObject)?.setValue(volume, forKey: "soundVolume")
-    }
-    func isAppRunning() -> Bool {
-        let running = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleIdentifier }
-        if !running {
-            appForceQuit = true
-            app = nil
-        }
-        return running
+        guard checkRunning(), let sb = app as? SBObject else { return }
+        sb.setValue(volume, forKey: "soundVolume")
     }
 }

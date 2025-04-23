@@ -47,6 +47,7 @@
 		58A0A8BF2DB4A81100854FE6 /* Notchly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8BE2DB4A80D00854FE6 /* Notchly.swift */; };
 		58A0A8C12DB4A83100854FE6 /* NotchlyContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8C02DB4A83000854FE6 /* NotchlyContainerView.swift */; };
 		58A0A8C62DB599EE00854FE6 /* Notchly+NSScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A0A8C52DB599E600854FE6 /* Notchly+NSScreen.swift */; };
+		58B109B32DB8B96600BEC548 /* Notchly+SBApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B109B22DB8B95C00BEC548 /* Notchly+SBApplication.swift */; };
 		58B6B3732D7557DE00F2F709 /* MediaPlaybackMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
@@ -143,6 +144,7 @@
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40DA72D094FDB002B5165 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		58B109B22DB8B95C00BEC548 /* Notchly+SBApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Notchly+SBApplication.swift"; sourceTree = "<group>"; };
 		58B6B3722D7557CE00F2F709 /* MediaPlaybackMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackMonitor.swift; sourceTree = "<group>"; };
 		58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		58C2A7112D3DAD0200764D80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -236,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				583F0A182D965C6D0034562C /* Music.swift */,
+				58B109B22DB8B95C00BEC548 /* Notchly+SBApplication.swift */,
 				583F0A1A2D965CC80034562C /* Spotify.swift */,
 			);
 			path = ScriptingBridge;
@@ -716,6 +719,7 @@
 				58832F3D2D9A06DA00745CF2 /* MediaPlayerAppProvider.swift in Sources */,
 				583F0A162D96529B0034562C /* AppleMusicManager.swift in Sources */,
 				58C2A7382D3DAD6800764D80 /* CalendarManager.swift in Sources */,
+				58B109B32DB8B96600BEC548 /* Notchly+SBApplication.swift in Sources */,
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				5862FF582DA372120037843C /* TrackScrubberView.swift in Sources */,
 				58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */,
