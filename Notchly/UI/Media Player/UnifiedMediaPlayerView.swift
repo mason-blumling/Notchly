@@ -96,11 +96,8 @@ struct UnifiedMediaPlayerView: View {
         )
         .clipped()
         .animation(animation, value: playerState)
-        .onAppear {
-            updateGlowColor(from: mediaMonitor.nowPlaying?.artwork?.copy() as? NSImage)
-        }
-        .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, newArtwork in
-            updateGlowColor(from: newArtwork)
+        .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
+            updateGlowColor(from: new)
         }
     }
 
@@ -123,21 +120,13 @@ struct UnifiedMediaPlayerView: View {
                     ZStack {
                         AudioBarsView()
                             .frame(width: 30, height: 24)
-                            .scaleEffect(playerState == .activity ? 1 : 0.8, anchor: .center)
+                            .scaleEffect(playerState == .activity ? 1 : 0.8)
                             .opacity(playerState == .activity ? 1 : 0)
                             .animation(animation, value: playerState)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
-                    .frame(width: 30, height: 24)
-                    .clipped()
-                    .onAppear {
-                        withAnimation(NotchlyAnimations.notchExpansion) {
-                            showBars = true
-                        }
-                    }
-                    .onDisappear {
-                        showBars = false
-                    }
+                    .onAppear { withAnimation(.easeIn) { showBars = true } }
+                    .onDisappear { showBars = false }
 
                 case .expanded:
                     // Full track info, controls, scrubber
@@ -151,8 +140,8 @@ struct UnifiedMediaPlayerView: View {
         .padding(.horizontal, 12)
     }
 
-    /// Displays artwork differently depending on player state
-    @ViewBuilder private func artworkView(for track: NowPlayingInfo) -> some View {
+    @ViewBuilder
+    private func artworkView(for track: NowPlayingInfo) -> some View {
         if playerState == .expanded {
             ArtworkContainerView(
                 track: track,
@@ -161,40 +150,36 @@ struct UnifiedMediaPlayerView: View {
                 backgroundGlowColor: $backgroundGlowColor,
                 namespace: namespace
             )
-        } else if playerState == .activity {
+        } else {
             ArtworkView(
                 artwork: track.artwork,
                 isExpanded: false,
                 action: openAppForTrack
             )
             .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(
-                Image((track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal")
-                    .resizable()
-                    .frame(width: 40, height: 40)
-                    .opacity(0)
-                    .matchedGeometryEffect(id: "appLogo", in: namespace)
-            )
         }
     }
 
     /// Extracts vibrant glow color from album artwork
     private func updateGlowColor(from image: NSImage?) {
         if let image = image,
-           let dominant = image.dominantColor(),
-           let vibrant = dominant.vibrantColor() {
+           let dom = image.dominantColor(),
+           let vib = dom.vibrantColor() {
             withAnimation(.easeInOut(duration: 0.3)) {
-                backgroundGlowColor = Color(nsColor: vibrant)
+                backgroundGlowColor = Color(nsColor: vib)
             }
         } else {
-            backgroundGlowColor = Color.gray.opacity(0.25)
+            backgroundGlowColor = .gray.opacity(0.25)
         }
     }
 
     /// Opens the current track's app (Music, Spotify, Podcasts)
     private func openAppForTrack() {
-        let urlScheme = (mediaMonitor.activePlayerName.lowercased() == "spotify") ? "spotify://" :
-                        (mediaMonitor.activePlayerName.lowercased() == "podcasts") ? "podcasts://" : "music://"
+        let urlScheme = mediaMonitor.activePlayerName.lowercased() == "spotify"
+            ? "spotify://"
+            : (mediaMonitor.activePlayerName.lowercased() == "podcasts"
+               ? "podcasts://"
+               : "music://")
         if let url = URL(string: urlScheme) {
             NSWorkspace.shared.open(url)
         }

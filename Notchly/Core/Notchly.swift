@@ -68,7 +68,6 @@ public class Notchly<Content>: ObservableObject where Content: View {
 
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
             Task { @MainActor in
-                AppEnvironment.shared.mediaMonitor.pausePolling()
                 AppEnvironment.shared.calendarManager.suspendUpdates()
             }
         }
@@ -76,7 +75,6 @@ public class Notchly<Content>: ObservableObject where Content: View {
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                AppEnvironment.shared.mediaMonitor.resumePolling()
                 AppEnvironment.shared.calendarManager.reloadEvents()
                 self.handleHover(expand: self.isMouseInside)
                 AppEnvironment.shared.mediaMonitor.updateMediaState()

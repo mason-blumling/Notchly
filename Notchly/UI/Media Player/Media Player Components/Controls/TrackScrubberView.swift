@@ -11,13 +11,13 @@ import SwiftUI
 struct TrackScrubberView: View {
     var currentTime: TimeInterval
     var duration: TimeInterval
-    var isPlaying: Bool
+    var displayTimes: (elapsed: String, remaining: String)
     var onScrubChanged: (TimeInterval) -> Void
     var onScrubEnded: () -> Void
 
-    private var hasValidDuration: Bool {
-        duration > 1.0
-    }
+    // Precompute your strings so they’re guaranteed to come from the same snapshot
+    private var elapsedText: String { formatTime(currentTime) }
+    private var remainingText: String { "-\(formatTime(max(0, duration - currentTime)))" }
 
     var body: some View {
         VStack(spacing: 4) {
@@ -33,41 +33,36 @@ struct TrackScrubberView: View {
                             width: progressRatio() * geometry.size.width,
                             height: 3
                         )
-                        .animation(isPlaying ? .linear(duration: 0.5) : .none, value: currentTime)
+                        // no animation on the width
+                        .animation(nil, value: currentTime)
 
                     Circle()
                         .frame(width: 8, height: 8)
                         .foregroundColor(.white)
                         .offset(x: progressRatio() * geometry.size.width - 4)
+                        // even your drag-handle shouldn’t animate implicitly
+                        .animation(nil, value: currentTime)
                         .gesture(DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let percentage = max(0, min(1, value.location.x / geometry.size.width))
-                                let newTime = duration * percentage
-                                onScrubChanged(newTime)
+                                let pct = max(0, min(1, value.location.x / geometry.size.width))
+                                let t = duration * pct
+                                onScrubChanged(t)
                             }
-                            .onEnded { _ in
-                                onScrubEnded()
-                            }
+                            .onEnded { _ in onScrubEnded() }
                         )
                 }
             }
             .frame(height: 10)
 
+            // This HStack now NEVER animates — both labels update together
             HStack {
-                if hasValidDuration {
-                    Text(formatTime(currentTime))
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Text("-" + formatTime(max(0, duration - currentTime)))
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                } else {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-                        .frame(width: 24, height: 24)
-                }
+                Text(elapsedText)
+                Spacer()
+                Text(remainingText)
             }
+            .font(.system(size: 10))
+            .foregroundColor(.gray)
+            .animation(nil, value: currentTime)   // 🔥 disable animations here
         }
         .padding(.horizontal, 12)
     }
@@ -78,22 +73,8 @@ struct TrackScrubberView: View {
     }
 
     private func formatTime(_ interval: TimeInterval) -> String {
-        let minutes = Int(interval) / 60
-        let seconds = Int(interval) % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-}
-
-struct TrackScrubberView_Previews: PreviewProvider {
-    static var previews: some View {
-        TrackScrubberView(
-            currentTime: 30,
-            duration: 200,
-            isPlaying: true,
-            onScrubChanged: { _ in },
-            onScrubEnded: {}
-        )
-        .frame(width: 300)
-        .background(Color.black)
+        let m = Int(interval) / 60
+        let s = Int(interval) % 60
+        return String(format: "%d:%02d", m, s)
     }
 }

@@ -169,12 +169,17 @@ struct NotchlyContainerView<Content>: View where Content: View {
                     }
                 }
                 .store(in: &cancellables)
+            appEnvironment.mediaMonitor.setExpanded(notchly.isMouseInside)
         }
         .onReceive(mediaMonitor.$isPlaying) { playing in
             notchly.isMediaPlaying = playing
             if !notchly.isMouseInside {
                 notchly.handleHover(expand: false)
             }
+        }
+        .onChange(of: notchly.isMouseInside) { _, inside in
+            appEnvironment.mediaMonitor.setExpanded(inside)
+            print("Inside Hover, increasing polling")
         }
     }
 

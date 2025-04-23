@@ -13,7 +13,7 @@ import AppKit
 struct MediaPlayerIdleView: View {
     var body: some View {
         VStack(spacing: 10) {
-            Text("No app seems to be running")
+            Text("No media app is running...")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white.opacity(0.8))
             Text("Wanna open one?")

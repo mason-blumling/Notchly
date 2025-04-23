@@ -32,8 +32,7 @@ struct NotchlyMediaPlayer: View {
 
                     TrackScrubberView(
                         currentTime: mediaMonitor.currentTime,
-                        duration: track.duration,
-                        isPlaying: mediaMonitor.isPlaying,
+                        duration: track.duration, displayTimes: mediaMonitor.displayTimes,
                         onScrubChanged: { newTime in
                             mediaMonitor.isScrubbing = true
                             mediaMonitor.currentTime = newTime

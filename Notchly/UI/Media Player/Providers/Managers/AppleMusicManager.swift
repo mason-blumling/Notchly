@@ -18,20 +18,19 @@ import Combine
     var name: String { get }
     var artist: String { get }
     var album: String { get }
-    var duration: Double { get }  // Duration in seconds.
-    /// Returns an array of artwork objects.
+    var duration: Double { get }
     @objc optional func artworks() -> [Any]
 }
 
 /// Represents the Apple Music application.
 @objc protocol AppleMusicApp {
     @objc optional var isRunning: Bool { get }
-    @objc optional var playerState: Int { get } // e.g., 1800426320 means playing.
+    @objc optional var playerState: Int { get }
     @objc optional var playerPosition: Double { get set }
     @objc optional var currentTrack: AppleMusicTrack { get }
     @objc optional func playpause()
     @objc optional func nextTrack()
-    @objc optional func backTrack() // previous track command.
+    @objc optional func backTrack()
     @objc optional var soundVolume: Int { get }
 }
 
@@ -43,81 +42,89 @@ extension SBApplication: AppleMusicApp {}
 /// An implementation of PlayerProtocol for Apple Music using ScriptingBridge.
 final class AppleMusicManager: PlayerProtocol {
     
-    // MARK: - PlayerProtocol Conformance
-    
+    // MARK: - PlayerProtocol
     var notificationSubject: PassthroughSubject<AlertItem, Never>
-    
-    /// The display name for the media app.
     var appName: String { "Apple Music" }
-    /// The file path to the Apple Music app.
     var appPath: URL { URL(fileURLWithPath: "/System/Applications/Music.app") }
-    /// The notification string used for Apple Music updates.
     var appNotification: String { "\(bundleIdentifier).playerInfo" }
-    /// The bundle identifier retrieved from constants.
     var bundleIdentifier: String { Constants.AppleMusic.bundleID }
-    /// The default artwork image if none is available.
     var defaultAlbumArt: NSImage { NSImage(named: "DefaultAlbumArt") ?? NSImage() }
     
-    // MARK: - Private Properties
-    
-    /// Lazy property to avoid launching the Apple Music app unless it’s running.
-    private lazy var musicApp: AppleMusicApp? = {
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
-        guard !runningApps.isEmpty else { return nil }
-        return SBApplication(bundleIdentifier: bundleIdentifier)
-    }()
-    
-    // MARK: - Initialization
-    
+    // MARK: - Internal
+    private var app: AppleMusicApp?
+    private var appForceQuit = false
+    private let workspaceNC = NSWorkspace.shared.notificationCenter
+
     init(notificationSubject: PassthroughSubject<AlertItem, Never>) {
         self.notificationSubject = notificationSubject
+        
+        // Only instantiate if Music is already running
+        if NSWorkspace.shared.runningApplications.contains(where: { $0.bundleIdentifier == bundleIdentifier }) {
+            self.app = SBApplication(bundleIdentifier: bundleIdentifier)
+            self.appForceQuit = false
+        }
+        
+        // Watch for Music launches
+        workspaceNC.addObserver(
+            forName: NSWorkspace.didLaunchApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard let info = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  info.bundleIdentifier == self?.bundleIdentifier else { return }
+            self?.app = SBApplication(bundleIdentifier: self!.bundleIdentifier)
+            self?.appForceQuit = false
+        }
+        
+        // Watch for Music quits
+        workspaceNC.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard let info = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  info.bundleIdentifier == self?.bundleIdentifier else { return }
+            self?.appForceQuit = true
+            self?.app = nil
+        }
     }
     
-    // MARK: - PlayerProtocol Computed Properties
+    deinit {
+        workspaceNC.removeObserver(self)
+    }
     
     var playerPosition: Double? {
-        return musicApp?.playerPosition
+        app?.playerPosition
     }
     
     var isPlaying: Bool {
-        // Ensure the app is running before checking state.
-        guard isAppRunning() else { return false }
-        return (musicApp?.playerState ?? 0) == 1800426320
+        guard let a = app, !appForceQuit else { return false }
+        return a.playerState == 1800426320
     }
     
     var volume: CGFloat {
-        return CGFloat(musicApp?.soundVolume ?? 50)
+        CGFloat(app?.soundVolume ?? 50)
     }
     
-    // MARK: - PlayerProtocol Methods
-    
-    /// Retrieves now-playing information from Apple Music and creates a unified NowPlayingInfo model.
     func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void) {
-        // Proceed only if the Apple Music app is running and has a current track.
-        guard let musicApp = musicApp,
-              let isRunning = musicApp.isRunning, isRunning,
-              let track = musicApp.currentTrack else {
+        guard !appForceQuit, let app = app else {
+            completion(nil)
+            return
+        }
+        guard let track = app.currentTrack else {
             completion(nil)
             return
         }
         
-        let playingState = musicApp.playerState ?? 0
+        let playingState = app.playerState ?? 0
         let currentlyPlaying = (playingState == 1800426320)
-        let elapsedTime = musicApp.playerPosition ?? 0.0
+        let elapsedTime = app.playerPosition ?? 0.0
         let duration = track.duration
         
-        // Attempt to extract artwork from the track.
         var artwork: NSImage? = nil
-        if let artworksArray = track.artworks?(),
-           let firstArtwork = artworksArray.first as? MusicArtwork,
-           let image = firstArtwork.data,
-           image.size != NSZeroSize {
-            artwork = image
-        } else {
-            // print("⚠️ Artwork image is empty or invalid.")
+        if let arts = track.artworks?(), let first = arts.first as? MusicArtwork,
+           let img = first.data, img.size != .zero {
+            artwork = img
         }
         
-        // Build the NowPlayingInfo model.
         let info = NowPlayingInfo(
             title: track.name,
             artist: track.artist,
@@ -126,43 +133,26 @@ final class AppleMusicManager: PlayerProtocol {
             elapsedTime: elapsedTime,
             isPlaying: currentlyPlaying,
             artwork: artwork,
-            appName: self.appName
+            appName: appName
         )
         completion(info)
     }
     
-    /// Toggles play/pause state.
-    func playPause() {
-        musicApp?.playpause?()
-    }
-    
-    /// Skips to the next track.
-    func nextTrack() {
-        musicApp?.nextTrack?()
-    }
-    
-    /// Returns to the previous track.
-    func previousTrack() {
-        musicApp?.backTrack?()
-    }
-    
-    /// Seeks to a specified time within the current track.
+    func playPause() { app?.playpause?() }
+    func previousTrack() { app?.backTrack?() }
+    func nextTrack()     { app?.nextTrack?() }
     func seekTo(time: TimeInterval) {
-        if let sbObj = musicApp as? SBObject {
-            sbObj.setValue(time, forKey: "playerPosition")
-        }
+        (app as? SBObject)?.setValue(time, forKey: "playerPosition")
     }
-    
-    /// Sets the sound volume.
     func setVolume(volume: Int) {
-        if let sbObj = musicApp as? SBObject {
-            sbObj.setValue(volume, forKey: "soundVolume")
-        }
+        (app as? SBObject)?.setValue(volume, forKey: "soundVolume")
     }
-    
-    /// Checks if the Apple Music app is currently running.
     func isAppRunning() -> Bool {
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: self.bundleIdentifier)
-        return !runningApps.isEmpty
+        let running = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleIdentifier }
+        if !running {
+            appForceQuit = true
+            app = nil
+        }
+        return running
     }
 }
