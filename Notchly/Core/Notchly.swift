@@ -12,6 +12,9 @@ import SwiftUI
 public class Notchly<Content>: ObservableObject where Content: View {
     public var windowController: NSWindowController?
 
+    /// When true, we skip responding to hover events
+    @Published public var ignoreHoverOnboarding = false
+
     @Published var content: () -> Content
     @Published var contentUUID: UUID
     @Published var isVisible: Bool = false
@@ -62,7 +65,11 @@ public class Notchly<Content>: ObservableObject where Content: View {
 
         $isMouseInside
             .sink { [weak self] inside in
-                self?.handleHover(expand: inside)
+                guard let self = self else { return }
+                // only respond if we’re not onboarding
+                if !self.ignoreHoverOnboarding {
+                    self.handleHover(expand: inside)
+                }
             }
             .store(in: &subscriptions)
 

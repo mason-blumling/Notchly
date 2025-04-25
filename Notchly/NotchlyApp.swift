@@ -1,5 +1,8 @@
 //
 //  NotchlyApp.swift
+//  Notchly
+//
+//  Created by Mason Blumling on 4/23/25.
 //
 
 import SwiftUI
