@@ -81,8 +81,8 @@ struct OnboardingContentView_Previews: PreviewProvider {
             .frame(width: config.width, height: config.height)
             .background(Color.black)
             .onAppear {
-                // Ensure the coordinator uses the large config for preview
-                NotchlyTransitionCoordinator.shared.transition(to: config)
+                // switch into expanded so config = .large
+                NotchlyTransitionCoordinator.shared.state = .expanded
             }
             .previewLayout(.sizeThatFits)
     }

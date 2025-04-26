@@ -500,10 +500,10 @@
 		58C97BED2D49ACC3006FFC06 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				58B109C42DBB441000BEC548 /* NotchlyTransitionCoordinator.swift */,
 				58A0A8BE2DB4A80D00854FE6 /* Notchly.swift */,
 				58C97BF62D4A0D81006FFC06 /* NotchlyConfigurations.swift */,
 				58A0A8C02DB4A83000854FE6 /* NotchlyContainerView.swift */,
+				58B109C42DBB441000BEC548 /* NotchlyTransitionCoordinator.swift */,
 				58C97BD32D488138006FFC06 /* NotchlyWindowPanel.swift */,
 				58C97BEF2D49ACD0006FFC06 /* Utilities */,
 			);

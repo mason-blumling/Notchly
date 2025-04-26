@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 /// Central manager for handling notch shape transitions and content layout.
 /// Moves all resizing and animation logic into one place for scalability.
@@ -14,10 +15,27 @@ final class NotchlyTransitionCoordinator: ObservableObject {
     /// Shared instance for global access.
     static let shared = NotchlyTransitionCoordinator()
 
-    /// Published configuration to drive shape size and content clipping.
+    /// Possible states for the notch
+    enum NotchState {
+        /// Fully collapsed (default)
+        case collapsed
+        /// Expanded by hover or onboarding
+        case expanded
+        /// Showing media activity slot
+        case mediaActivity
+        /// Showing calendar live activity slot
+        case calendarActivity
+    }
+
+    /// Current high-level notch state.
+    @Published var state: NotchState = .collapsed
+    /// Published shape configuration driven by the current state.
     @Published private(set) var configuration: NotchlyConfiguration = .default
-    
-    /// The animation that all transitions should use.
+
+    /// Subscriptions for Combine pipelines.
+    private var subscriptions = Set<AnyCancellable>()
+
+    /// The unified animation used for shape morphs.
     var animation: Animation {
         if #available(macOS 14.0, *) {
             return Animation.spring(.bouncy(duration: 0.4))
@@ -26,29 +44,40 @@ final class NotchlyTransitionCoordinator: ObservableObject {
         }
     }
 
-    private init() {}
-    
-    /// Transition to a new notch configuration with unified animation.
-    func transition(to newConfig: NotchlyConfiguration) {
-        withAnimation(animation) {
-            configuration = newConfig
-        }
-    }
-
-    /// Determine the target configuration based on state flags.
-    func targetConfiguration(expanded: Bool, mediaActive: Bool, calendarActive: Bool) -> NotchlyConfiguration {
-        if expanded {
-            return .large
-        }
-        if calendarActive || mediaActive {
-            return .activity
-        }
-        return .default
+    private init() {
+        // Map state changes to configuration presets
+        $state
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newState in
+                guard let self = self else { return }
+                let newConfig: NotchlyConfiguration
+                switch newState {
+                case .expanded:
+                    newConfig = .large
+                case .mediaActivity, .calendarActivity:
+                    newConfig = .activity
+                case .collapsed:
+                    newConfig = .default
+                }
+                withAnimation(self.animation) {
+                    self.configuration = newConfig
+                }
+            }
+            .store(in: &subscriptions)
     }
 
     /// Convenience method to update based on all state inputs.
     func update(expanded: Bool, mediaActive: Bool, calendarActive: Bool) {
-        let newConfig = targetConfiguration(expanded: expanded, mediaActive: mediaActive, calendarActive: calendarActive)
-        transition(to: newConfig)
+        let newState: NotchState
+        if expanded {
+            newState = .expanded
+        } else if calendarActive {
+            newState = .calendarActivity
+        } else if mediaActive {
+            newState = .mediaActivity
+        } else {
+            newState = .collapsed
+        }
+        state = newState
     }
 }

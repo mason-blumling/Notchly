@@ -29,10 +29,10 @@ class NotchlyWindowPanel: NSPanel {
 
     /// Configures the panel settings to maintain expected behavior.
     private func configurePanel() {
-        self.hasShadow = false               // 🔥 Removes shadow for a clean UI
-        self.backgroundColor = .clear        // 🔥 Ensures a transparent background
-        self.level = .screenSaver            // 🔥 Keeps the panel above most other windows
-        self.collectionBehavior = .canJoinAllSpaces // 🔥 Allows it to remain across multiple Spaces
+        self.hasShadow = false               /// Removes shadow for a clean UI
+        self.backgroundColor = .clear        /// Ensures a transparent background
+        self.level = .screenSaver            /// Keeps the panel above most other windows
+        self.collectionBehavior = .canJoinAllSpaces /// Allows it to remain across multiple Spaces
     }
 
     // MARK: - Window Behavior Overrides
