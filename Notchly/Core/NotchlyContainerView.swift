@@ -140,7 +140,7 @@ struct NotchlyContainerView: View {
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        // ← Drop-in: start/stop media polling whenever the notch shape state changes
+        /// ← Drop-in: start/stop media polling whenever the notch shape state changes
         .onChange(of: coordinator.state) {_, newState in
             mediaMonitor.setExpanded(newState == .expanded)
         }
@@ -156,23 +156,25 @@ struct NotchlyContainerView: View {
                 .sink { isActive in
                     notchly.calendarHasLiveActivity = isActive
                     forceCollapseForCalendar = true
-                    
+
+                    /// 1) Immediately go into calendarActivity (or mediaActivity if no calendar)
                     coordinator.update(
                         expanded:      false,
                         mediaActive:   mediaMonitor.isPlaying,
                         calendarActive: isActive
                     )
-                    
+
                     DispatchQueue.main.asyncAfter(
                         deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
                     ) {
                         forceCollapseForCalendar = false
                         let mediaPlaying = mediaMonitor.isPlaying
-                        
+
+                        /// 2) Stay collapsed into mediaActivity rather than expanding
                         coordinator.update(
-                            expanded:      true,
+                            expanded:      false,           // ← keep false
                             mediaActive:   mediaPlaying,
-                            calendarActive: isActive
+                            calendarActive: false
                         )
                         showMediaAfterCalendar = mediaPlaying && !isActive
                     }
