@@ -24,6 +24,9 @@ struct NotchlyCalendarView: View {
     @State private var weatherInfo: WeatherData? /// Stores fetched weather data for the selected date (future implementation).
     var isExpanded: Bool /// Indicates whether the notch is expanded, controlling visibility.
 
+    // Shared transition coordinator for dynamic sizing
+    @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
+
     // MARK: - Body
     
     var body: some View {
@@ -47,7 +50,9 @@ struct NotchlyCalendarView: View {
         }
         .frame(
             width: calendarWidth,
-            height: isExpanded ? NotchlyConfiguration.large.height - 25 : 0 // ✅ Prevents incorrect expansion
+            height: isExpanded
+                ? coord.configuration.height - 25  /// match container inset
+                : 0 /// ✅ Prevents incorrect expansion
         )
         .background(Color.black.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -59,6 +64,6 @@ struct NotchlyCalendarView: View {
     
     /// Dynamically calculates the width of the calendar section.
     private var calendarWidth: CGFloat {
-        NotchlyConfiguration.large.width * 0.45
+        coord.configuration.width * 0.45
     }
 }

@@ -18,25 +18,13 @@ public class Notchly<Content>: ObservableObject where Content: View {
     @Published var content: () -> Content
     @Published var contentUUID: UUID
     @Published var isVisible: Bool = false
-    @Published var notchWidth: CGFloat = 200
-    @Published var notchHeight: CGFloat = 35
-    @Published var configuration: NotchlyConfiguration = .default
     @Published var isMouseInside: Bool = false
     @Published var isMediaPlaying: Bool = false
     @Published var calendarHasLiveActivity: Bool = false
 
-    private var workItem: DispatchWorkItem?
     private var subscription: AnyCancellable?
     private var subscriptions = Set<AnyCancellable>()
     private var currentScreen: NSScreen?
-
-    var animation: Animation {
-        if #available(macOS 14.0, *) {
-            return Animation.spring(.bouncy(duration: 0.4))
-        } else {
-            return Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
-        }
-    }
 
     @MainActor
     func environmentInjectedContainerView() -> some View {
@@ -49,42 +37,60 @@ public class Notchly<Content>: ObservableObject where Content: View {
         self.contentUUID = contentID
         self.content = content
 
+        // Screen-change observer
         self.subscription = NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
-                guard let self else { return }
+                guard let self = self else { return }
                 let newScreen = NSScreen.screenWithMouse ?? NSScreen.largestScreen ?? NSScreen.main
                 if newScreen != self.currentScreen {
                     Task { @MainActor in
                         self.deinitializeWindow()
-                        self.contentUUID = UUID() // refresh hover logic
+                        self.contentUUID = UUID()
                         await self.initializeWindow(screen: newScreen!)
                     }
                 }
             }
 
+        // Hover state -> coordinator
         $isMouseInside
             .sink { [weak self] inside in
-                guard let self = self else { return }
-                // only respond if we’re not onboarding
-                if !self.ignoreHoverOnboarding {
-                    self.handleHover(expand: inside)
+                guard let self = self, !self.ignoreHoverOnboarding else { return }
+                Task { @MainActor in
+                    NotchlyTransitionCoordinator.shared.update(
+                        expanded: inside,
+                        mediaActive: self.isMediaPlaying,
+                        calendarActive: self.calendarHasLiveActivity
+                    )
                 }
             }
             .store(in: &subscriptions)
 
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
+        // System sleep/wake
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
             Task { @MainActor in
                 AppEnvironment.shared.calendarManager.suspendUpdates()
             }
         }
 
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
                 AppEnvironment.shared.calendarManager.reloadEvents()
-                self.handleHover(expand: self.isMouseInside)
                 AppEnvironment.shared.mediaMonitor.updateMediaState()
+                NotchlyTransitionCoordinator.shared.update(
+                    expanded: self.isMouseInside,
+                    mediaActive: self.isMediaPlaying,
+                    calendarActive: self.calendarHasLiveActivity
+                )
 
                 let newScreen = NSScreen.screenWithMouse ?? NSScreen.largestScreen ?? NSScreen.main
                 if newScreen != self.currentScreen {
@@ -123,7 +129,12 @@ public class Notchly<Content>: ObservableObject where Content: View {
         panel.isMovable = false
         panel.isMovableByWindowBackground = false
         panel.setFrame(frame, display: true)
-        panel.setFrameOrigin(NSPoint(x: frame.origin.x, y: screen.frame.origin.y + screen.frame.height - frame.height))
+        panel.setFrameOrigin(
+            NSPoint(
+                x: frame.origin.x,
+                y: screen.frame.origin.y + screen.frame.height - frame.height
+            )
+        )
         panel.contentView = view
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -140,32 +151,6 @@ public class Notchly<Content>: ObservableObject where Content: View {
         windowController?.window?.orderOut(nil)
         windowController?.window?.close()
         windowController = nil
-    }
-
-    public func handleHover(expand: Bool) {
-        DispatchQueue.main.async {
-            withAnimation(self.animation) {
-                self.resizeNotch(expanded: expand)
-            }
-        }
-    }
-
-    public func resizeNotch(expanded: Bool) {
-        let targetConfig: NotchlyConfiguration = {
-            if expanded {
-                return .large
-            } else if isMediaPlaying || calendarHasLiveActivity {
-                return .activity
-            } else {
-                return .default
-            }
-        }()
-
-        withAnimation(animation) {
-            self.configuration = targetConfig
-            self.notchWidth = targetConfig.width
-            self.notchHeight = targetConfig.height
-        }
     }
 
     public func setContent(contentID: UUID = .init(), content: @escaping () -> Content) {
