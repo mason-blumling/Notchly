@@ -42,6 +42,7 @@ public final class Notchly: ObservableObject {
             .environmentObject(AppEnvironment.shared)
             .foregroundColor(.white)
     }
+
     // MARK: - Initialization
 
     public init() {
