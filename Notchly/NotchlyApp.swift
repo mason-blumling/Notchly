@@ -27,25 +27,20 @@ struct NotchlyApp: App {
 /// Handles the initialization and configuration of the Notchly app.
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate!
-    var notchly: Notchly<AnyView>!
+    var notchly: Notchly!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
 
         Task { @MainActor in
-            var tempNotchly: Notchly<AnyView>!
-            tempNotchly = Notchly {
-                AnyView(
-                    NotchlyContainerView(notchly: tempNotchly)
-                        .environmentObject(AppEnvironment.shared)
-                        .foregroundStyle(.white)
-                )
-            }
+            // Create the non-generic notch controller
+            let tempNotchly = Notchly()
             self.notchly = tempNotchly
 
+            // Initialize and show on the main screen
             if let screen = NSScreen.main {
-                await self.notchly.initializeWindow(screen: screen)
-                self.notchly.isVisible = true
+                await tempNotchly.initializeWindow(screen: screen)
+                tempNotchly.isVisible = true
             }
         }
     }

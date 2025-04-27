@@ -9,121 +9,135 @@ import Combine
 import SwiftUI
 
 /// `Notchly` manages the floating notch logic and state.
-public class Notchly<Content>: ObservableObject where Content: View {
+///
+/// Handles window initialization, hover-driven expansion/collapse,
+/// and system sleep/wake events to refresh calendar and media state.
+public final class Notchly: ObservableObject {
+    /// Controller for the floating panel window
     public var windowController: NSWindowController?
 
-    /// When true, we skip responding to hover events
+    /// When true, hover events are ignored (used during onboarding)
     @Published public var ignoreHoverOnboarding = false
 
-    @Published var content: () -> Content
-    @Published var contentUUID: UUID
-    @Published var isVisible: Bool = false
-    @Published var notchWidth: CGFloat = 200
-    @Published var notchHeight: CGFloat = 35
-    @Published var configuration: NotchlyConfiguration = .default
-    @Published var isMouseInside: Bool = false
-    @Published var isMediaPlaying: Bool = false
-    @Published var calendarHasLiveActivity: Bool = false
+    /// Whether the notch window is currently visible
+    @Published public var isVisible: Bool = false
+    /// Tracks mouse hover state over the notch (expansion trigger)
+    @Published public var isMouseInside: Bool = false
+    /// Indicates active media playback (affects notch sizing)
+    @Published public var isMediaPlaying: Bool = false
+    /// Indicates an active calendar live activity
+    @Published public var calendarHasLiveActivity: Bool = false
 
-    private var workItem: DispatchWorkItem?
-    private var subscription: AnyCancellable?
-    private var subscriptions = Set<AnyCancellable>()
-    private var currentScreen: NSScreen?
+    // MARK: - Private State
 
-    var animation: Animation {
-        if #available(macOS 14.0, *) {
-            return Animation.spring(.bouncy(duration: 0.4))
-        } else {
-            return Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
-        }
-    }
+    private var subscription: AnyCancellable?            // Observes screen changes
+    private var subscriptions = Set<AnyCancellable>()    // Holds Combine subscriptions
+    private var currentScreen: NSScreen?                 // Tracks current screen hosting the notch
+
+    // MARK: - Environment injection
 
     @MainActor
     func environmentInjectedContainerView() -> some View {
         NotchlyContainerView(notchly: self)
             .environmentObject(AppEnvironment.shared)
-            .foregroundStyle(.white)
+            .foregroundColor(.white)
     }
 
-    public init(contentID: UUID = .init(), @ViewBuilder content: @escaping () -> Content) {
-        self.contentUUID = contentID
-        self.content = content
+    // MARK: - Initialization
 
-        self.subscription = NotificationCenter.default
+    public init() {
+        // 1) Observe screen changes…
+        subscription = NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
-                guard let self else { return }
-                let newScreen = NSScreen.screenWithMouse ?? NSScreen.largestScreen ?? NSScreen.main
+                guard let self = self else { return }
+                let newScreen = NSScreen.screenWithMouse
+                              ?? NSScreen.largestScreen
+                              ?? NSScreen.main
                 if newScreen != self.currentScreen {
                     Task { @MainActor in
                         self.deinitializeWindow()
-                        self.contentUUID = UUID() // refresh hover logic
                         await self.initializeWindow(screen: newScreen!)
                     }
                 }
             }
 
+        // 2) Hover drives our single source of truth in the coordinator
         $isMouseInside
             .sink { [weak self] inside in
-                guard let self = self else { return }
-                // only respond if we’re not onboarding
-                if !self.ignoreHoverOnboarding {
-                    self.handleHover(expand: inside)
+                guard let self = self, !self.ignoreHoverOnboarding else { return }
+                Task { @MainActor in
+                    NotchlyTransitionCoordinator.shared.update(
+                        expanded:      inside,
+                        mediaActive:   self.isMediaPlaying,
+                        calendarActive:self.calendarHasLiveActivity
+                    )
                 }
             }
             .store(in: &subscriptions)
 
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
+        // 3) Suspend calendar on sleep…
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil, queue: .main
+        ) { _ in
             Task { @MainActor in
                 AppEnvironment.shared.calendarManager.suspendUpdates()
             }
         }
 
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
+        // 4) Reload on wake…
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
                 AppEnvironment.shared.calendarManager.reloadEvents()
-                self.handleHover(expand: self.isMouseInside)
                 AppEnvironment.shared.mediaMonitor.updateMediaState()
+                NotchlyTransitionCoordinator.shared.update(
+                    expanded:      self.isMouseInside,
+                    mediaActive:   self.isMediaPlaying,
+                    calendarActive:self.calendarHasLiveActivity
+                )
 
-                let newScreen = NSScreen.screenWithMouse ?? NSScreen.largestScreen ?? NSScreen.main
+                let newScreen = NSScreen.screenWithMouse
+                              ?? NSScreen.largestScreen
+                              ?? NSScreen.main
                 if newScreen != self.currentScreen {
                     self.deinitializeWindow()
-                    self.contentUUID = UUID()
                     await self.initializeWindow(screen: newScreen!)
                 }
             }
         }
     }
 
+    // MARK: - Window Lifecycle
+
+    /// Creates and shows the floating panel on the given screen
     @MainActor
     public func initializeWindow(screen: NSScreen) async {
         guard windowController == nil else { return }
-        self.currentScreen = screen
+        currentScreen = screen
 
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
 
         let frame = NSRect(
-            x: screen.frame.origin.x + (screen.frame.width / 2) - (maxWidth / 2),
+            x: screen.frame.origin.x + (screen.frame.width - maxWidth) / 2,
             y: screen.frame.origin.y + screen.frame.height - maxHeight,
-            width: maxWidth,
-            height: maxHeight
+            width: maxWidth, height: maxHeight
         )
 
-        let view = NSHostingView(rootView: self.environmentInjectedContainerView())
+        let view = NSHostingView(rootView: environmentInjectedContainerView())
 
         let panel = NotchlyWindowPanel(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
+            backing: .buffered, defer: true
         )
-
         panel.isMovable = false
         panel.isMovableByWindowBackground = false
-        panel.setFrame(frame, display: true)
-        panel.setFrameOrigin(NSPoint(x: frame.origin.x, y: screen.frame.origin.y + screen.frame.height - frame.height))
         panel.contentView = view
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -131,9 +145,10 @@ public class Notchly<Content>: ObservableObject where Content: View {
         panel.orderFrontRegardless()
 
         print("🪟 Initialized notch window on screen: \(screen.localizedName)")
-        self.windowController = NSWindowController(window: panel)
+        windowController = NSWindowController(window: panel)
     }
 
+    /// Closes and clears the floating panel
     @MainActor
     private func deinitializeWindow() {
         print("🧼 Deinitializing notch window...")
@@ -142,40 +157,15 @@ public class Notchly<Content>: ObservableObject where Content: View {
         windowController = nil
     }
 
-    public func handleHover(expand: Bool) {
-        DispatchQueue.main.async {
-            withAnimation(self.animation) {
-                self.resizeNotch(expanded: expand)
-            }
-        }
-    }
+    // MARK: - Public API
 
-    public func resizeNotch(expanded: Bool) {
-        let targetConfig: NotchlyConfiguration = {
-            if expanded {
-                return .large
-            } else if isMediaPlaying || calendarHasLiveActivity {
-                return .activity
-            } else {
-                return .default
-            }
-        }()
-
-        withAnimation(animation) {
-            self.configuration = targetConfig
-            self.notchWidth = targetConfig.width
-            self.notchHeight = targetConfig.height
-        }
-    }
-
-    public func setContent(contentID: UUID = .init(), content: @escaping () -> Content) {
-        self.content = content
-        self.contentUUID = contentID
-    }
-
+    /// Show the notch on the specified or current screen
     public func show(on screen: NSScreen? = nil) {
-        let targetScreen = screen ?? NSScreen.screenWithMouse ?? NSScreen.largestScreen ?? NSScreen.screens.first
-        guard let screen = targetScreen else { return }
+        let target = screen
+                  ?? NSScreen.screenWithMouse
+                  ?? NSScreen.largestScreen
+                  ?? NSScreen.screens.first
+        guard let screen = target else { return }
 
         Task { @MainActor in
             deinitializeWindow()
@@ -185,6 +175,7 @@ public class Notchly<Content>: ObservableObject where Content: View {
         }
     }
 
+    /// Hide the notch panel
     public func hide() {
         isVisible = false
     }

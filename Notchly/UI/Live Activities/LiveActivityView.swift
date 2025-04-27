@@ -8,30 +8,32 @@
 import SwiftUI
 
 /// A reusable layout for displaying live content inside the notch shape.
-/// Left and right slots are used for compact representations of dynamic activity (e.g., media, calendar).
+/// Reads its sizing from the central NotchlyTransitionCoordinator for consistency.
 struct LiveActivityView<LeftContent: View, RightContent: View>: View {
-    let configuration: NotchlyConfiguration
-    let leftContent: () -> LeftContent
-    let rightContent: () -> RightContent
+    private let leftContent: () -> LeftContent
+    private let rightContent: () -> RightContent
+
+    // Shared transition coordinator driving shape dimensions
+    @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
 
     init(
-        configuration: NotchlyConfiguration = .activity,
         @ViewBuilder leftContent: @escaping () -> LeftContent,
         @ViewBuilder rightContent: @escaping () -> RightContent
     ) {
-        self.configuration = configuration
         self.leftContent = leftContent
         self.rightContent = rightContent
     }
 
     var body: some View {
+        let config = coord.configuration
+
         NotchlyShape(
-            bottomCornerRadius: configuration.bottomCornerRadius,
-            topCornerRadius: configuration.topCornerRadius
+            bottomCornerRadius: config.bottomCornerRadius,
+            topCornerRadius: config.topCornerRadius
         )
-        .fill(.clear)
-        .frame(width: configuration.width, height: configuration.height)
-        .shadow(color: NotchlyTheme.shadow, radius: configuration.shadowRadius)
+        .fill(Color.clear)
+        .frame(width: config.width, height: config.height)
+        .shadow(color: NotchlyTheme.shadow, radius: config.shadowRadius)
         .overlay(
             ZStack {
                 // Left slot
@@ -52,6 +54,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
             }
             .frame(maxHeight: .infinity, alignment: .center)
         )
+        .animation(coord.animation, value: config)
     }
 }
 

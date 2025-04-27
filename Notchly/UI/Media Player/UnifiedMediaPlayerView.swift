@@ -17,6 +17,9 @@ struct UnifiedMediaPlayerView: View {
     @State private var backgroundGlowColor: Color = .clear
     @State private var showBars = false
 
+    // Transition coordinator for unified animations
+    @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
+
     // Defines the visual state of the media player based on playback + hover
     private enum PlayerState { case none, idle, activity, expanded }
 
@@ -30,14 +33,8 @@ struct UnifiedMediaPlayerView: View {
             : (isExpanded ? .expanded : .none)
     }
 
-    // Unified animation used for transitions
-    private var animation: Animation {
-        if #available(macOS 14.0, *) {
-            return .spring(.bouncy(duration: 0.4))
-        } else {
-            return .easeInOut(duration: 0.4)
-        }
-    }
+    // Use the coordinator's animation for every state change
+    private var animation: Animation { coordinator.animation }
 
     var body: some View {
         ZStack {
@@ -88,14 +85,14 @@ struct UnifiedMediaPlayerView: View {
                 }
             }
             .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            .animation(animation, value: playerState)
+            .animation(coordinator.animation, value: playerState)
         }
         .frame(
             width: playerState == .none ? 0 : nil,
             height: playerState == .none ? 0 : nil
         )
         .clipped()
-        .animation(animation, value: playerState)
+        .animation(coordinator.animation, value: playerState)
         .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
             updateGlowColor(from: new)
         }
@@ -110,7 +107,7 @@ struct UnifiedMediaPlayerView: View {
                     .frame(width: playerState == .activity ? 24 : 100,
                            height: playerState == .activity ? 24 : 100)
                     .padding(.leading, 8)
-                    .animation(animation, value: playerState)
+                    .animation(coordinator.animation, value: playerState)
 
                 Spacer(minLength: 8)
 
@@ -122,7 +119,7 @@ struct UnifiedMediaPlayerView: View {
                             .frame(width: 30, height: 24)
                             .scaleEffect(playerState == .activity ? 1 : 0.8)
                             .opacity(playerState == .activity ? 1 : 0)
-                            .animation(animation, value: playerState)
+                            .animation(coordinator.animation, value: playerState)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
                     .onAppear { withAnimation(.easeIn) { showBars = true } }
