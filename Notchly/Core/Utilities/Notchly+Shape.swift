@@ -17,6 +17,7 @@ import SwiftUI
 // Bottom-Left Outer Corner -> \______________________________/ <- Bottom-Right Outer Corner
 
 /// This struct defines the notch shape with adjustable corner radii and dynamic properties.
+/// It properly supports animation through the animatableData property.
 struct NotchlyShape: Shape {
     var bottomCornerRadius: CGFloat
     var topCornerRadius: CGFloat
@@ -69,5 +70,17 @@ struct NotchlyShape: Shape {
         path.closeSubpath()
 
         return path
+    }
+}
+
+/// Extension for Shape to add consistent corner radius animation
+extension Shape {
+    /// Adds explicit animation to shape corner radii changes
+    func animatableCornerRadius(
+        _ cornerRadius: CGFloat,
+        animation: Animation = .easeInOut
+    ) -> some View {
+        self
+            .animation(animation, value: cornerRadius)
     }
 }

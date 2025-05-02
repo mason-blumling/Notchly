@@ -30,16 +30,20 @@ struct ArtworkView: View {
     var isExpanded: Bool = false
     var action: (() -> Void)? = nil
     
+    @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
+    
     var body: some View {
         Group {
             if let image = artwork, image.size != NSZeroSize {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .clipped()
             } else {
                 Image("music.note")
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .clipped()
             }
         }
         .if(isExpanded && action != nil) { view in
@@ -48,15 +52,8 @@ struct ArtworkView: View {
             }
             .buttonStyle(PlainButtonStyle())
         }
-    }
-}
-
-struct ArtworkView_Previews: PreviewProvider {
-    static var previews: some View {
-        ArtworkView(artwork: NSImage(named: "SampleArtwork"), isExpanded: true, action: {
-            print("Artwork tapped")
-        })
-        .frame(width: 100, height: 100)
-        .previewLayout(.sizeThatFits)
+        // Use transition consistent with our animation system
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .animation(coordinator.animation, value: isExpanded)
     }
 }
