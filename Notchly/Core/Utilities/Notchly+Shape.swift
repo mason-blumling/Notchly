@@ -7,22 +7,31 @@
 
 import SwiftUI
 
-// This struct defines the notch shape with adjustable corner radii and dynamic properties.
+//      Top-Left Corner -->  ____________________________________ <-- Start/End Point
+//                           \                                  /
+//                            \                                /
+//    Top-Left Inner Corner -> |                              |  <- Top-Right Inner Corner
+//                             |                              |
+//                             |                              |
+//                             |                              |
+// Bottom-Left Outer Corner -> \______________________________/ <- Bottom-Right Outer Corner
+
+/// This struct defines the notch shape with adjustable corner radii and dynamic properties.
 struct NotchlyShape: Shape {
     var bottomCornerRadius: CGFloat
     var topCornerRadius: CGFloat
+    
+    /// Make the shape animatable for smooth transitions
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(bottomCornerRadius, topCornerRadius) }
+        set {
+            bottomCornerRadius = newValue.first
+            topCornerRadius = newValue.second
+        }
+    }
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-
-        //      Top-Left Corner -->  ____________________________________ <-- Start/End Point
-        //                           \                                  /
-        //                            \                                /
-        //    Top-Left Inner Corner -> |                              |  <- Top-Right Inner Corner
-        //                             |                              |
-        //                             |                              |
-        //                             |                              |
-        // Bottom-Left Outer Corner -> \______________________________/ <- Bottom-Right Outer Corner
 
         /// Define dimensions
         let width = rect.width
@@ -58,6 +67,7 @@ struct NotchlyShape: Shape {
 
         /// Top line to close the shape path
         path.closeSubpath()
+
         return path
     }
 }
