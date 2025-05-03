@@ -8,12 +8,9 @@
 import SwiftUI
 import AppKit
 
-/// Expanded media player content (no album art).
-/// Includes track info, media controls, and scrubber.
-/// Album art is handled by the parent UnifiedMediaPlayerView.
+/// Expanded media player content with proper timer management
 struct NotchlyMediaPlayer: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
-
     @State private var appear = false
 
     var body: some View {
@@ -30,19 +27,7 @@ struct NotchlyMediaPlayer: View {
                     )
                     .padding(.top, 8)
 
-                    TrackScrubberView(
-                        currentTime: mediaMonitor.currentTime,
-                        duration: track.duration,
-                        displayTimes: mediaMonitor.displayTimes,  // Pass the synchronized times
-                        onScrubChanged: { newTime in
-                            mediaMonitor.isScrubbing = true
-                            mediaMonitor.currentTime = newTime
-                        },
-                        onScrubEnded: {
-                            mediaMonitor.isScrubbing = false
-                            mediaMonitor.seekTo(time: mediaMonitor.currentTime)
-                        }
-                    )
+                    TrackScrubberView(mediaMonitor: mediaMonitor)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -53,9 +38,11 @@ struct NotchlyMediaPlayer: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .onAppear {
                     appear = true
+                    mediaMonitor.startTimer()
                 }
                 .onDisappear {
                     appear = false
+                    mediaMonitor.stopTimer()
                 }
             }
         }

@@ -32,7 +32,7 @@ import Combine
 
 extension SBApplication: AppleMusicApp {}
 
-/// A PlayerProtocol adapter for Apple Music that never auto-launches the app.
+/// A PlayerProtocol adapter for Apple Music with state caching to prevent flicker
 final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
     
     // MARK: PlayerProtocol
@@ -42,6 +42,12 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
     var appNotification: String { "\(bundleIdentifier).playerInfo" }
     var bundleIdentifier: String { Constants.AppleMusic.bundleID }
     var defaultAlbumArt: NSImage { NSImage(named: "DefaultAlbumArt") ?? NSImage() }
+
+    // MARK: State Cache
+    private var cachedPlayState: Bool?
+    private var cachedTrackInfo: NowPlayingInfo?
+    private var lastStateCheckTime: Date?
+    private let cacheTimeout: TimeInterval = 0.1
 
     // MARK: Internal
     private var app: AppleMusicApp?
@@ -73,6 +79,7 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
             guard let info = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   info.bundleIdentifier == self?.bundleIdentifier else { return }
             self?.app = nil
+            self?.clearCache()
         }
     }
 
@@ -80,28 +87,41 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
         workspaceNC.removeObserver(self)
     }
 
-   /// Only attach to the already-running Music process (never auto-launch).
     private func attachToRunningApp() {
         guard let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first
         else { return }
         
-        // use the public SBApplication(processIdentifier:) initializer
         let sb = SBApplication(processIdentifier: running.processIdentifier)
         as? (SBApplication & AppleMusicApp)
         sb?.delegate = self
         self.app = sb
     }
     
-    /// Return true if Music is running; clear `app` if not.
     private func checkRunning() -> Bool {
         let running = !NSRunningApplication
             .runningApplications(withBundleIdentifier: bundleIdentifier)
             .isEmpty
-        if !running { app = nil }
+        if !running {
+            app = nil
+            clearCache()
+        }
         return running
     }
 
-    // MARK: – SBApplicationDelegate (prevent auto-launch)
+    // MARK: – Cache Management
+    
+    private func clearCache() {
+        cachedPlayState = nil
+        cachedTrackInfo = nil
+        lastStateCheckTime = nil
+    }
+
+    private func cacheIsValid() -> Bool {
+        guard let lastCheck = lastStateCheckTime else { return false }
+        return Date().timeIntervalSince(lastCheck) < cacheTimeout
+    }
+
+    // MARK: – SBApplicationDelegate
 
     func applicationShouldLaunch(_ sender: SBApplication!) -> Bool {
         return false
@@ -126,8 +146,19 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
     }
     
     var isPlaying: Bool {
+        // Return cached state if valid
+        if cacheIsValid(), let cached = cachedPlayState {
+            return cached
+        }
+        
         guard checkRunning(), let a = app else { return false }
-        return a.playerState == 1800426320
+        let actualState = a.playerState == 1800426320
+        
+        // Update cache
+        cachedPlayState = actualState
+        lastStateCheckTime = Date()
+        
+        return actualState
     }
     
     var volume: CGFloat {
@@ -136,19 +167,38 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
     }
     
     func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void) {
+        // Return cached info if still playing the same track
+        if cacheIsValid(), let cached = cachedTrackInfo {
+            // Update elapsed time but keep rest cached
+            if let a = app {
+                let updatedInfo = NowPlayingInfo(
+                    title: cached.title,
+                    artist: cached.artist,
+                    album: cached.album,
+                    duration: cached.duration,
+                    elapsedTime: a.playerPosition ?? cached.elapsedTime,
+                    isPlaying: self.isPlaying,
+                    artwork: cached.artwork,
+                    appName: cached.appName
+                )
+                completion(updatedInfo)
+                return
+            }
+        }
+        
         guard checkRunning(), let a = app, let track = a.currentTrack else {
+            clearCache()
             return completion(nil)
         }
-        let playing  = (a.playerState ?? 0) == 1800426320
-        let elapsed  = a.playerPosition ?? 0
+        
+        let playing = self.isPlaying
+        let elapsed = a.playerPosition ?? 0
         let duration = track.duration
         
         var artwork: NSImage? = nil
         
-        // Safely handle artwork retrieval with proper type checking
         if let arts = track.artworks?() {
             if let first = arts.first as? MusicArtwork {
-                // Safely check if the data property returns an NSImage
                 if let img = first.data, img.isKind(of: NSImage.self) {
                     artwork = img
                 }
@@ -165,25 +215,48 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
             artwork:     artwork,
             appName:     appName
         )
+        
+        // Cache the track info
+        cachedTrackInfo = info
+        lastStateCheckTime = Date()
+        
         completion(info)
     }
     
     func playPause() {
         guard checkRunning(), let a = app else { return }
+        
+        // Optimistically update cache
+        let wasPlaying = self.isPlaying
+        cachedPlayState = !wasPlaying
+        lastStateCheckTime = Date()
+        
         a.playpause?()
+        
+        // Verify state after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.cachedPlayState = nil  // Force fresh check
+            _ = self?.isPlaying
+        }
     }
+    
     func previousTrack() {
         guard checkRunning(), let a = app else { return }
+        clearCache()  // Clear cache as track will change
         a.backTrack?()
     }
+    
     func nextTrack() {
         guard checkRunning(), let a = app else { return }
+        clearCache()  // Clear cache as track will change
         a.nextTrack?()
     }
+    
     func seekTo(time: TimeInterval) {
         guard checkRunning(), let sb = app as? SBObject else { return }
         sb.setValue(time, forKey: "playerPosition")
     }
+    
     func setVolume(volume: Int) {
         guard checkRunning(), let sb = app as? SBObject else { return }
         sb.setValue(volume, forKey: "soundVolume")
