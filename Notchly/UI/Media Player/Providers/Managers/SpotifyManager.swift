@@ -128,17 +128,20 @@ final class SpotifyManager: PlayerProtocol, SBApplicationDelegate {
             URLSession.shared.dataTask(with: url) { data,_,_ in
                 var art: NSImage? = nil
                 if let d = data, let img = NSImage(data: d) { art = img }
-                let info = NowPlayingInfo(
-                    title:       title,
-                    artist:      artist,
-                    album:       album,
-                    duration:    duration,
-                    elapsedTime: elapsed,
-                    isPlaying:   playing,
-                    artwork:     art,
-                    appName:     self.appName
-                )
-                DispatchQueue.main.async { completion(info) }
+                
+                DispatchQueue.main.async {
+                    let info = NowPlayingInfo(
+                        title:       title,
+                        artist:      artist,
+                        album:       album,
+                        duration:    duration,
+                        elapsedTime: elapsed,
+                        isPlaying:   playing,
+                        artwork:     art,
+                        appName:     self.appName
+                    )
+                    completion(info)
+                }
             }.resume()
         } else {
             let info = NowPlayingInfo(

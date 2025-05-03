@@ -13,7 +13,6 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     private let leftContent: () -> LeftContent
     private let rightContent: () -> RightContent
 
-    // Shared transition coordinator driving shape dimensions
     @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
 
     init(
@@ -27,14 +26,11 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     var body: some View {
         let config = coord.configuration
 
-        NotchlyShape(
-            bottomCornerRadius: config.bottomCornerRadius,
-            topCornerRadius: config.topCornerRadius
-        )
-        .fill(Color.clear)
-        .frame(width: config.width, height: config.height)
-        .shadow(color: NotchlyTheme.shadow, radius: config.shadowRadius)
-        .overlay(
+        NotchlyShapeContainer(
+            configuration: config,
+            state: coord.state,
+            animation: coord.animation
+        ) { layout in
             ZStack {
                 // Left slot
                 HStack {
@@ -53,8 +49,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
                 }
             }
             .frame(maxHeight: .infinity, alignment: .center)
-        )
-        .animation(coord.animation, value: config)
+        }
     }
 }
 

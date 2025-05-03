@@ -16,30 +16,16 @@ struct OnboardingContentView: View {
     @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
 
     var body: some View {
-        let config = coord.configuration
-
-        ZStack {
-            // Background shape
-            NotchlyShape(
-                bottomCornerRadius: config.bottomCornerRadius,
-                topCornerRadius:    config.topCornerRadius
-            )
-            .fill(NotchlyTheme.background)
-            .frame(width: config.width, height: config.height)
-            .shadow(color: NotchlyTheme.shadow, radius: config.shadowRadius)
-
-            // Content clipped to the notch
+        NotchlyShapeContainer(
+            configuration: coord.configuration,
+            state: coord.state,
+            animation: coord.animation
+        ) { layout in
             VStack(spacing: 6) {
                 NotchlyLogoAnimation()
                     .frame(
-                        width: config.width * 0.8,
-                        height: config.height * 0.5
-                    )
-                    .clipShape(
-                        NotchlyShape(
-                            bottomCornerRadius: config.bottomCornerRadius,
-                            topCornerRadius:    config.topCornerRadius
-                        )
+                        width: layout.contentWidth * 0.8,
+                        height: layout.contentHeight * 0.5
                     )
 
                 Text("Welcome to Notchly")
@@ -48,7 +34,7 @@ struct OnboardingContentView: View {
                     .lineLimit(1)
 
                 Button(action: onComplete) {
-                    Text("Let’s Go")
+                    Text("Let's Go")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .padding(.vertical, 4)
                         .padding(.horizontal, 12)
@@ -57,16 +43,10 @@ struct OnboardingContentView: View {
                 .controlSize(.small)
             }
             .frame(
-                width: config.width * 0.9,
-                height: config.height * 0.9
+                width: layout.contentWidth * 0.9,
+                height: layout.contentHeight * 0.9
             )
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .clipShape(
-                NotchlyShape(
-                    bottomCornerRadius: config.bottomCornerRadius,
-                    topCornerRadius:    config.topCornerRadius
-                )
-            )
         }
     }
 }

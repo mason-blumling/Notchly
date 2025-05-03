@@ -144,10 +144,15 @@ final class AppleMusicManager: PlayerProtocol, SBApplicationDelegate {
         let duration = track.duration
         
         var artwork: NSImage? = nil
-        if let arts = track.artworks?(),
-           let first = arts.first as? MusicArtwork,
-           let img = first.data, img.size != .zero {
-            artwork = img
+        
+        // Safely handle artwork retrieval with proper type checking
+        if let arts = track.artworks?() {
+            if let first = arts.first as? MusicArtwork {
+                // Safely check if the data property returns an NSImage
+                if let img = first.data, img.isKind(of: NSImage.self) {
+                    artwork = img
+                }
+            }
         }
 
         let info = NowPlayingInfo(
