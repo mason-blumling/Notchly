@@ -19,7 +19,7 @@ struct UnifiedMediaPlayerView: View {
 
     @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
 
-    private enum PlayerState { case none, idle, activity, expanded }
+    private enum PlayerState: Equatable { case none, idle, activity, expanded }
 
     private var playerState: PlayerState {
         guard mediaMonitor.nowPlaying != nil else {
@@ -30,13 +30,31 @@ struct UnifiedMediaPlayerView: View {
             : (isExpanded ? .expanded : .none)
     }
 
-    private var animation: Animation { coordinator.animation }
+    // NEW: Calculate artwork size based on actual configuration
+    private var artworkSize: CGFloat {
+        let expandedSize: CGFloat = 100
+        let activitySize: CGFloat = 24
+        
+        let expandedWidth = NotchlyConfiguration.large.width
+        let activityWidth = NotchlyConfiguration.activity.width
+        let currentWidth = coordinator.configuration.width
+        
+        if currentWidth >= expandedWidth {
+            return expandedSize
+        } else if currentWidth <= activityWidth {
+            return activitySize
+        } else {
+            let progress = (currentWidth - activityWidth) / (expandedWidth - activityWidth)
+            return activitySize + (expandedSize - activitySize) * progress
+        }
+    }
 
     var body: some View {
         ZStack {
-            // Expanded: Show ambient glow background
+            // Glow background for expanded state
             if playerState == .expanded {
                 expandedBackgroundGlow()
+                    .opacity(backgroundGlowOpacity)
             }
 
             Group {
@@ -45,20 +63,17 @@ struct UnifiedMediaPlayerView: View {
                     Color.clear
                         .frame(width: 1, height: 1)
                         .opacity(0.0)
-                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
 
                 case .idle:
                     MediaPlayerIdleView()
-                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
 
                 case .activity, .expanded:
                     mediaContentView()
-                        .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
                 }
             }
-            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            .animation(coordinator.animation, value: playerState)
+            .matchedGeometryEffect(id: "mediaPlayerContainer", in: namespace)
         }
+        .animation(coordinator.animation, value: coordinator.configuration)
         .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
             updateGlowColor(from: new)
         }
@@ -91,84 +106,84 @@ struct UnifiedMediaPlayerView: View {
             Spacer()
         }
     }
+    
+    private var backgroundGlowOpacity: Double {
+        let expandedWidth = NotchlyConfiguration.large.width
+        let activityWidth = NotchlyConfiguration.activity.width
+        let currentWidth = coordinator.configuration.width
+        
+        if currentWidth >= expandedWidth {
+            return 1.0
+        } else if currentWidth <= activityWidth {
+            return 0.0
+        } else {
+            let progress = (currentWidth - activityWidth) / (expandedWidth - activityWidth)
+            return Double(progress)
+        }
+    }
 
     private func mediaContentView() -> some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
-                // Album art (compact or large)
-                artworkView(for: track)
-                    .padding(.leading, playerState == .expanded ? 16 : 8)
-                    .animation(coordinator.animation, value: playerState)
-
-                Spacer(minLength: 8)
-
-                switch playerState {
-                case .activity:
-                    // Audio bars (compact state only)
-                    ZStack {
+                // In activity state, we need to center the content properly
+                if playerState == .activity {
+                    HStack(spacing: 12) {
+                        // Fixed spacing from left edge
+                        Spacer()
+                            .frame(width: 5)
+                        
+                        // Artwork
+                        artworkView(for: track)
+                            .frame(width: artworkSize, height: artworkSize)
+                        
+                        // Flexible spacer pushes audio bars to the right
+                        Spacer()
+                        
+                        // Audio bars
                         AudioBarsView()
                             .frame(width: 30, height: 24)
-                            .scaleEffect(playerState == .activity ? 1 : 0.8)
-                            .opacity(playerState == .activity ? 1 : 0)
-                            .animation(coordinator.animation, value: playerState)
-                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                        
+                        // Fixed spacing from right edge
+                        Spacer()
+                            .frame(width: 5)
                     }
-                    .onAppear { withAnimation(.easeIn) { showBars = true } }
-                    .onDisappear { showBars = false }
-
-                case .expanded:
-                    // Full track info, controls, scrubber
-                    NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
-                        .padding(.trailing, 16)
-
-                default:
-                    EmptyView()
+                } else {
+                    // Expanded state layout remains the same
+                    artworkView(for: track)
+                        .frame(width: artworkSize, height: artworkSize)
+                        .padding(.leading, playerState == .expanded ? 16 : 8)
+                    
+                    Spacer(minLength: 8)
+                    
+                    if playerState == .expanded {
+                        NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
+                            .padding(.trailing, 16)
+                            .opacity(playerState == .expanded ? 1 : 0)
+                    }
                 }
             }
         }
+        // Single animation for the entire content
+        .animation(coordinator.animation, value: coordinator.configuration)
     }
 
     @ViewBuilder
     private func artworkView(for track: NowPlayingInfo) -> some View {
-        if playerState == .expanded {
-            // Safe artwork handling
-            if let artwork = track.artwork, artwork.size != .zero {
-                ArtworkContainerView(
-                    track: track,
-                    isExpanded: true,
-                    action: openAppForTrack,
-                    backgroundGlowColor: $backgroundGlowColor,
-                    namespace: namespace
-                )
-            } else {
-                // Fallback artwork
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(.white.opacity(0.5))
-                            .font(.system(size: 40))
-                    )
-                    .matchedGeometryEffect(id: "albumArt", in: namespace)
-            }
+        if let artwork = track.artwork, artwork.size != .zero {
+            ArtworkView(
+                artwork: artwork,
+                isExpanded: artworkSize > 50,  // Use size to determine if expanded
+                action: openAppForTrack
+            )
+            .clipShape(RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4))
         } else {
-            // Compact state artwork
-            if let artwork = track.artwork, artwork.size != .zero {
-                ArtworkView(
-                    artwork: artwork,
-                    isExpanded: false,
-                    action: openAppForTrack
+            RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4)
+                .fill(Color.gray.opacity(0.3))
+                .overlay(
+                    Image(systemName: "music.note")
+                        .foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: playerState == .expanded ? 40 : 10))
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-            } else {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(.white.opacity(0.5))
-                            .font(.system(size: 10))
-                    )
-            }
         }
     }
     

@@ -94,7 +94,7 @@ public final class Notchly: ObservableObject {
             guard let self = self else { return }
             Task { @MainActor in
                 AppEnvironment.shared.calendarManager.reloadEvents()
-                AppEnvironment.shared.mediaMonitor.updateMediaState()
+//                AppEnvironment.shared.mediaMonitor.updateMediaState()
                 NotchlyTransitionCoordinator.shared.update(
                     expanded:      self.isMouseInside,
                     mediaActive:   self.isMediaPlaying,

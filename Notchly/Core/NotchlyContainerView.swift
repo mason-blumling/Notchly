@@ -39,6 +39,31 @@ struct NotchlyContainerView: View {
         !calendarActivityMonitor.timeRemainingString.isEmpty
     }
 
+    // NEW: Calculate content visibility based on animated configuration
+    private var expandedContentOpacity: Double {
+        // Use the actual animated width to determine visibility
+        let expandedWidth: CGFloat = NotchlyConfiguration.large.width
+        let currentWidth = coordinator.configuration.width
+        let progress = (currentWidth - NotchlyConfiguration.default.width) / (expandedWidth - NotchlyConfiguration.default.width)
+        return Double(max(0, min(1, progress)))
+    }
+
+    private var activityContentOpacity: Double {
+        // Calculate based on whether we're closer to activity or default
+        let activityWidth = NotchlyConfiguration.activity.width
+        let defaultWidth = NotchlyConfiguration.default.width
+        let currentWidth = coordinator.configuration.width
+        
+        if currentWidth <= defaultWidth {
+            return 0
+        } else if currentWidth >= activityWidth {
+            return coordinator.state == .expanded ? 0 : 1
+        } else {
+            let progress = (currentWidth - defaultWidth) / (activityWidth - defaultWidth)
+            return Double(max(0, min(1, progress)))
+        }
+    }
+
     var body: some View {
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
@@ -59,14 +84,11 @@ struct NotchlyContainerView: View {
                                 .matchedGeometryEffect(id: "calendarLiveActivity", in: notchAnimation)
                                 .transition(.opacity.combined(with: .scale))
                                 .zIndex(999)
-                                .animation(NotchlyAnimations.notchExpansion, value: shouldShowCalendarLiveActivity)
                             }
                             
-                            // Media + Calendar content with explicit sizing
+                            // Media + Calendar content with visibility tied to configuration
                             if coordinator.state == .expanded {
-                                // In expanded state, use HStack with explicit frames
                                 HStack(alignment: .top, spacing: 0) {
-                                    // Media player (left side)
                                     UnifiedMediaPlayerView(
                                         mediaMonitor: mediaMonitor,
                                         isExpanded: true,
@@ -79,7 +101,6 @@ struct NotchlyContainerView: View {
                                     )
                                     .padding(.leading, 8)
                                     
-                                    // Calendar (right side)
                                     NotchlyCalendarView(calendarManager: calendarManager)
                                         .matchedGeometryEffect(id: "calendar", in: notchAnimation)
                                         .frame(
@@ -89,8 +110,8 @@ struct NotchlyContainerView: View {
                                         .padding(.trailing, 8)
                                 }
                                 .frame(width: layout.bounds.width)
+                                .opacity(expandedContentOpacity)  // NEW: Use animated opacity
                             } else {
-                                // Collapsed or activity state
                                 UnifiedMediaPlayerView(
                                     mediaMonitor: mediaMonitor,
                                     isExpanded: false,
@@ -101,19 +122,12 @@ struct NotchlyContainerView: View {
                                     width: layout.bounds.width,
                                     height: layout.bounds.height
                                 )
-                                .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : 1)
-                                .scaleEffect(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0.95 : 1)
-                                .animation(coordinator.animation, value: shouldShowCalendarLiveActivity)
+                                .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
                             }
                         }
                     }
                     .onHover { hovering in
                         guard !notchly.ignoreHoverOnboarding else { return }
-                        coordinator.update(
-                            expanded: hovering,
-                            mediaActive: mediaMonitor.isPlaying,
-                            calendarActive: calendarActivityMonitor.upcomingEvent != nil
-                        )
                         debounceHover(hovering)
                     }
                 
@@ -135,6 +149,11 @@ struct NotchlyContainerView: View {
             guard hovering != notchly.isMouseInside else { return }
             withAnimation(coordinator.animation) {
                 notchly.isMouseInside = hovering
+                coordinator.update(
+                    expanded: hovering,
+                    mediaActive: mediaMonitor.isPlaying,
+                    calendarActive: calendarActivityMonitor.upcomingEvent != nil
+                )
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: debounceWorkItem!)

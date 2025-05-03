@@ -68,16 +68,20 @@ final class NotchlyTransitionCoordinator: ObservableObject {
 
     /// Convenience method to update based on all state inputs.
     func update(expanded: Bool, mediaActive: Bool, calendarActive: Bool) {
-      let newState: NotchState
-      if calendarActive {
-          newState = .calendarActivity
-      } else if expanded {
-          newState = .expanded
-      } else if mediaActive {
-          newState = .mediaActivity
-      } else {
-          newState = .collapsed
-      }
-      state = newState
+        let newState: NotchState
+        if calendarActive {
+            newState = .calendarActivity
+        } else if expanded {
+            newState = .expanded
+        } else if mediaActive {
+            newState = .mediaActivity
+        } else {
+            newState = .collapsed
+        }
+        
+        // Apply animation when state changes
+        withAnimation(animation) {
+            state = newState
+        }
     }
 }

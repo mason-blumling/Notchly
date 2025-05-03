@@ -16,249 +16,210 @@ import AppKit
 /// and **only** polls when expanded (relying on DistributedNotifications when collapsed).
 @MainActor
 final class MediaPlaybackMonitor: ObservableObject {
-
-    // MARK: Published (for your existing views)
+    
+    // MARK: - Published Properties
     @Published private(set) var nowPlaying: NowPlayingInfo?
     @Published private(set) var isPlaying: Bool = false
     @Published private(set) var activePlayerName: String = ""
-
-    /// Time, in seconds, into the track (for TrackScrubberView).
+    
+    // All time properties derived from a single source
     @Published var currentTime: TimeInterval = 0
-    /// Full track duration (for TrackScrubberView).
     @Published var duration: TimeInterval = 1
-
-    /// Normalized 0…1 progress (for any future bar/handle).
     @Published var progress: CGFloat = 0
-    /// Formatted elapsed/remaining strings, updated atomically.
     @Published var displayTimes: (elapsed: String, remaining: String) = ("0:00", "-0:00")
-
-    /// When true, we’re dragging and should pause interpolation.
+    
     @Published var isScrubbing: Bool = false
     
-    @objc private func musicDidPost(_ note: Notification) {
-      updateMediaState()
-    }
-    @objc private func spotifyDidPost(_ note: Notification) {
-      updateMediaState()
-    }
-    @objc private func workspaceDidTerminate(_ note: Notification) {
-      if let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-         app.bundleIdentifier == Constants.AppleMusic.bundleID {
-        clearMediaState()
-      }
-    }
-
-    // MARK: private state
-    private var baseElapsed: TimeInterval = 0
-    private var lastUpdateTimestamp: Date = .now
+    // MARK: - Private Properties
     private var lastValidDuration: TimeInterval = 0
-    private var expectedPlayState: Bool? = nil
-    private var expectedStateTimestamp: Date? = nil
-    private var isToggledManually = false
-
-    private var metadataPoller: AnyCancellable?
-    private var interpolationTimer: Timer?
-
-    private let provider: MediaPlayerAppProvider
-    private let distCenter = DistributedNotificationCenter.default()
-
-    /// Poll every 2 s when expanded
-    private let expandedInterval: TimeInterval = 2
-
+    private var lastFetchTime: TimeInterval = 0
+    private var lastFetchDate: Date = Date()
+    private var isInterpolating: Bool = false
+    
+    private var provider: MediaPlayerAppProvider
+    private var updateTimer: Timer?
+    private var fetchTimer: Timer?
+    
+    // MARK: - Initialization
     init() {
         provider = MediaPlayerAppProvider(notificationSubject: PassthroughSubject())
         setupNotifications()
-        // start collapsed: no polling until setExpanded(true)
     }
-
+    
     deinit {
-        metadataPoller?.cancel()
-        interpolationTimer?.invalidate()
-        NotificationCenter.default.removeObserver(self)
-        distCenter.removeObserver(self)
+        updateTimer?.invalidate()
+        fetchTimer?.invalidate()
     }
-
-    // MARK: — Expand / Collapse
-
-    /// Call this whenever the notch expands (true) or collapses (false).
+    
+    // MARK: - Public Methods
     func setExpanded(_ expanded: Bool) {
-        metadataPoller?.cancel()
-        interpolationTimer?.invalidate()
-
+        // Clear existing timers
+        updateTimer?.invalidate()
+        fetchTimer?.invalidate()
+        updateTimer = nil
+        fetchTimer = nil
+        
         guard expanded else {
-            // stop polling/interp—rely solely on notifications
+            isInterpolating = false
             return
         }
-
-        // 1) immediate metadata fetch
-        updateMediaState()
-
-        // 2) poll every 2 s
-        metadataPoller = Timer.publish(every: expandedInterval, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in self?.updateMediaState() }
-
-        // 3) after a tiny delay, start 30 Hz interpolation
+        
+        // When expanded, start updating
+        isInterpolating = true
+        
+        // Fetch actual state every 2 seconds
+        fetchTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.fetchMediaState()
+        }
+        
+        // Update display every 16ms (60fps)
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
+            self?.updateDisplayTime()
+        }
+        
+        // Fetch immediately
+        fetchMediaState()
+    }
+    
+    // MARK: - Controls
+    func togglePlayPause() {
+        guard let player = provider.getActivePlayer() else { return }
+        
+        // Toggle state immediately for responsiveness
+        isPlaying = !isPlaying
+        player.playPause()
+        
+        // Fetch actual state to sync
+        fetchMediaState()
+    }
+    
+    func previousTrack() {
+        provider.getActivePlayer()?.previousTrack()
+        fetchMediaState()
+    }
+    
+    func nextTrack() {
+        provider.getActivePlayer()?.nextTrack()
+        fetchMediaState()
+    }
+    
+    func seekTo(time: TimeInterval) {
+        guard let player = provider.getActivePlayer() else { return }
+        
+        // Update immediately for responsiveness
+        lastFetchTime = time
+        lastFetchDate = Date()
+        updateDisplayFromTime(time)
+        
+        player.seekTo(time: time)
+        
+        // Verify with server
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.interpolationTimer = Timer.scheduledTimer(withTimeInterval: 1/30, repeats: true) { [weak self] _ in
-                guard let s = self,
-                      s.isPlaying,
-                      !s.isScrubbing,
-                      let dur = s.nowPlaying?.duration,
-                      dur > 0 else { return }
-
-                let now = Date()
-                let elapsed = s.baseElapsed + now.timeIntervalSince(s.lastUpdateTimestamp)
-                let clamped = min(max(0, elapsed), dur)
-                let ratio = CGFloat(clamped / dur)
-
-                // atomic update of both your scrubber inputs
-                s.currentTime = clamped
-                s.duration    = dur
-                s.progress    = ratio
-                s.displayTimes = (
-                    elapsed:   Self.formatTime(clamped),
-                    remaining: "-\(Self.formatTime(dur - clamped))"
-                )
-            }
+            self.fetchMediaState()
         }
     }
-
-    // MARK: — Distributed Notifications
-
+    
+    // MARK: - Private Methods
     private func setupNotifications() {
-        // Listen for SBApplication distributed notifications by selector
-        distCenter.addObserver(
-            self,
-            selector: #selector(musicDidPost(_:)),
-            name: .init("com.apple.Music.playerInfo"),
-            object: nil
-        )
-        distCenter.addObserver(
-            self,
-            selector: #selector(spotifyDidPost(_:)),
-            name: .init("com.spotify.client.PlaybackStateChanged"),
-            object: nil
-        )
-        // Tear down state when Music quits
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(workspaceDidTerminate(_:)),
-            name: NSWorkspace.didTerminateApplicationNotification,
-            object: nil
-        )
+        let distCenter = DistributedNotificationCenter.default()
+        
+        // Listen for media player notifications
+        distCenter.addObserver(forName: NSNotification.Name("com.apple.Music.playerInfo"), object: nil, queue: .main) { [weak self] _ in
+            self?.fetchMediaState()
+        }
+        
+        distCenter.addObserver(forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"), object: nil, queue: .main) { [weak self] _ in
+            self?.fetchMediaState()
+        }
     }
-
-    // MARK: — Fetch & Publish
-
-    /// Core logic: ask the provider for `NowPlayingInfo` and publish all fields in lock-step.
-    func updateMediaState() {
+    
+    private func fetchMediaState() {
         guard let player = provider.getActivePlayer(), player.isAppRunning() else {
-            clearMediaState()
+            clearState()
             return
         }
-
+        
         activePlayerName = player.appName
-        if isToggledManually { return }
-
+        
         player.getNowPlayingInfo { [weak self] info in
-            guard let s = self else { return }
+            guard let self = self else { return }
+            
             DispatchQueue.main.async {
-                guard let info = info, !info.title.isEmpty else {
-                    s.clearMediaState()
+                guard let info = info else {
+                    self.clearState()
                     return
                 }
-
-                // duration fallback
-                var dur = info.duration
-                if dur <= 1.0, s.lastValidDuration > 1.0 {
-                    dur = s.lastValidDuration
-                } else {
-                    s.lastValidDuration = dur
+                
+                // Update state
+                self.nowPlaying = info
+                self.isPlaying = info.isPlaying
+                self.activePlayerName = self.provider.getActivePlayer()?.appName ?? ""
+                
+                // Update or validate duration
+                if info.duration > 1 {
+                    self.lastValidDuration = info.duration
+                    self.duration = info.duration
+                } else if self.lastValidDuration > 1 {
+                    self.duration = self.lastValidDuration
                 }
-
-                // play-state enforcement
-                let playing = info.isPlaying
-                if let exp = s.expectedPlayState,
-                   let ts  = s.expectedStateTimestamp,
-                   Date().timeIntervalSince(ts) < 1.5 {
-                    s.isPlaying = exp
-                } else {
-                    s.expectedPlayState = nil
-                    s.expectedStateTimestamp = nil
-                    s.isPlaying = playing
+                
+                // Store fetch time for interpolation
+                self.lastFetchTime = info.elapsedTime
+                self.lastFetchDate = Date()
+                
+                // Update display immediately unless scrubbing
+                if !self.isScrubbing {
+                    self.updateDisplayFromTime(info.elapsedTime)
                 }
-
-                // re-baseline for interpolation
-                if !s.isScrubbing {
-                    s.baseElapsed        = max(0, min(info.elapsedTime, dur))
-                    s.lastUpdateTimestamp = Date()
-                }
-
-                // publish unified model
-                s.nowPlaying = info
-
-                // atomic metadata update
-                let elapsed = s.baseElapsed
-                let ratio   = CGFloat(elapsed / dur)
-                s.currentTime  = elapsed
-                s.duration     = dur
-                s.progress     = ratio
-                s.displayTimes = (
-                    elapsed:   Self.formatTime(elapsed),
-                    remaining: "-\(Self.formatTime(dur - elapsed))"
-                )
             }
         }
     }
-
-    // MARK: — Controls
-
-    func previousTrack() { provider.getActivePlayer()?.previousTrack(); updateMediaState() }
-    func nextTrack()     { provider.getActivePlayer()?.nextTrack();     updateMediaState() }
-
-    func togglePlayPause() {
-        guard let p = provider.getActivePlayer() else { return }
-        let newState = !isPlaying
-        expectedPlayState      = newState
-        expectedStateTimestamp = Date()
-        isToggledManually      = true
-        isPlaying              = newState
-        p.playPause()
-        DispatchQueue.main.async {
-            self.updateMediaState()
-            self.isToggledManually = false
-        }
+    
+    private func updateDisplayTime() {
+        guard isInterpolating && isPlaying && !isScrubbing else { return }
+        
+        // Calculate interpolated time
+        let timeSinceLastFetch = Date().timeIntervalSince(lastFetchDate)
+        let interpolatedTime = lastFetchTime + timeSinceLastFetch
+        
+        // Update display
+        updateDisplayFromTime(interpolatedTime)
     }
-
-    func seekTo(time: TimeInterval) {
-        provider.getActivePlayer()?.seekTo(time: time)
-        // reseed interpolation if already expanded
-        DispatchQueue.main.async { self.setExpanded(true) }
+    
+    private func updateDisplayFromTime(_ time: TimeInterval) {
+        // Ensure time is within bounds
+        let boundedTime = max(0, min(time, duration))
+        
+        // Calculate all values
+        let elapsed = boundedTime
+        let remaining = duration - boundedTime
+        let progress = duration > 0 ? boundedTime / duration : 0
+        
+        // Format times
+        let elapsedString = formatTime(elapsed)
+        let remainingString = "-\(formatTime(remaining))"
+        
+        // Update all published properties at once
+        currentTime = boundedTime
+        self.progress = CGFloat(progress)
+        displayTimes = (elapsed: elapsedString, remaining: remainingString)
     }
-
-    // MARK: — Clear
-
-    private func clearMediaState() {
-        isPlaying             = false
-        nowPlaying            = nil
-        currentTime           = 0
-        duration              = 1
-        progress              = 0
-        displayTimes          = ("0:00", "-0:00")
-        baseElapsed           = 0
-        lastValidDuration     = 0
-        expectedPlayState     = nil
-        expectedStateTimestamp = nil
-        isToggledManually     = false
+    
+    private func clearState() {
+        nowPlaying = nil
+        isPlaying = false
+        activePlayerName = ""
+        currentTime = 0
+        duration = 1
+        progress = 0
+        displayTimes = ("0:00", "-0:00")
+        lastValidDuration = 0
     }
-
-    // MARK: — Helpers
-
-    private static func formatTime(_ interval: TimeInterval) -> String {
-        let total = max(0, Int(interval))
-        let m = total / 60
-        let s = total % 60
-        return String(format: "%d:%02d", m, s)
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let totalSeconds = Int(max(0, timeInterval))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
