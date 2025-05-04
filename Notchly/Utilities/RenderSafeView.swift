@@ -13,7 +13,7 @@ struct RenderSafeView<Content: View>: View {
     
     var body: some View {
         content()
-            .compositingGroup() // Creates a layer
+            .compositingGroup() /// Creates a layer
             .drawingGroup(opaque: false, colorMode: .linear)
     }
 }

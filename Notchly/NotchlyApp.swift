@@ -33,11 +33,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
 
         Task { @MainActor in
-            // Create the non-generic notch controller
+            /// Create the non-generic notch controller
             let tempNotchly = Notchly()
             self.notchly = tempNotchly
 
-            // Initialize and show on the main screen
+            /// Initialize and show on the main screen
             if let screen = NSScreen.main {
                 await tempNotchly.initializeWindow(screen: screen)
                 tempNotchly.isVisible = true
