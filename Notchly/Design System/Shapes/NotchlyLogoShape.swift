@@ -1,5 +1,5 @@
 //
-//  Notchly+LogoShape.swift
+//  NotchlyLogoShape.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 4/23/25.

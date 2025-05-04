@@ -137,7 +137,7 @@ public final class NotchlyViewModel: ObservableObject {
     
     /// Environment injection helper
     func environmentInjectedContainerView() -> some View {
-        NotchlyContainerView(viewModel: self)
+        NotchlyView(viewModel: self)
             .environmentObject(AppEnvironment.shared)
             .foregroundColor(.white)
     }
@@ -260,8 +260,8 @@ public final class NotchlyViewModel: ObservableObject {
     }
 }
 
-/// Compatibility extension for NotchlyContainerView
+/// Compatibility extension for NotchlyView
 extension NotchlyViewModel {
-    /// Bridge property to maintain compatibility with existing NotchlyContainerView
+    /// Bridge property to maintain compatibility with existing NotchlyView
     var notchly: NotchlyViewModel { self }
 }

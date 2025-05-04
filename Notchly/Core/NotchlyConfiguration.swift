@@ -1,5 +1,5 @@
 //
-//  Notchly+Configurations.swift
+//  NotchlyConfiguration.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 1/28/25.

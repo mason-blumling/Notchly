@@ -1,5 +1,5 @@
 //
-//  Notchly+WindowPanel.swift
+//  NotchlyWindowPanel.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 1/27/25.

@@ -1,5 +1,5 @@
 //
-//  Notchly+ContainerView.swift
+//  NotchlyView.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 4/19/25.
@@ -10,7 +10,7 @@ import Combine
 
 /// The SwiftUI container that renders the entire Notchly UI:
 /// Includes the expanding notch shape, media player, calendar, and live activities.
-struct NotchlyContainerView: View {
+struct NotchlyView: View {
     // MARK: - Dependencies
 
     @ObservedObject var viewModel: NotchlyViewModel
@@ -80,7 +80,7 @@ struct NotchlyContainerView: View {
             HStack(spacing: 0) {
                 Spacer()
 
-                NotchlyShapeContainer(
+                NotchlyShapeView(
                     configuration: coordinator.configuration,
                     state: coordinator.state,
                     animation: coordinator.animation

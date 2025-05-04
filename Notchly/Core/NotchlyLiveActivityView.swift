@@ -1,5 +1,5 @@
 //
-//  Notchly+LiveActivity.swift
+//  NotchlyLiveActivityView.swift
 //  Notchly
 //
 //  Created by Mason Blumling on 4/4/25.
@@ -31,7 +31,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     var body: some View {
         let config = coord.configuration
 
-        NotchlyShapeContainer(
+        NotchlyShapeView(
             configuration: config,
             state: coord.state,
             animation: coord.animation

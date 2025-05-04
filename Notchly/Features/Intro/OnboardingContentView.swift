@@ -16,7 +16,7 @@ struct OnboardingContentView: View {
     @ObservedObject private var coord = NotchlyViewModel.shared
 
     var body: some View {
-        NotchlyShapeContainer(
+        NotchlyShapeView(
             configuration: coord.configuration,
             state: coord.state,
             animation: coord.animation
