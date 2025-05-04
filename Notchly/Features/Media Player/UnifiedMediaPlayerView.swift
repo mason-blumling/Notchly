@@ -165,7 +165,7 @@ struct UnifiedMediaPlayerView: View {
                         .opacity(playerState == .expanded ? 1 : 0)
                 }
                 .frame(width: artworkSize, height: artworkSize)
-                .animation(coordinator.animation, value: artworkSize) // Animate the container
+                .animation(coordinator.animation, value: artworkSize)
                 
                 if playerState == .activity {
                     /// Activity: Audio bars with fixed positioning
