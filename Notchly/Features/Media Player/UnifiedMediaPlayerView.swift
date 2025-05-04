@@ -37,18 +37,28 @@ struct UnifiedMediaPlayerView: View {
     private var artworkSize: CGFloat {
         let expandedSize: CGFloat = 100
         let activitySize: CGFloat = 24
-
-        let expandedWidth = NotchlyConfiguration.large.width
-        let activityWidth = NotchlyConfiguration.activity.width
-        let currentWidth = coordinator.configuration.width
-
-        if currentWidth >= expandedWidth {
+        
+        // Use state directly for more stable sizing
+        switch coordinator.state {
+        case .expanded:
             return expandedSize
-        } else if currentWidth <= activityWidth {
+        case .mediaActivity, .calendarActivity:
             return activitySize
-        } else {
-            let progress = (currentWidth - activityWidth) / (expandedWidth - activityWidth)
-            return activitySize + (expandedSize - activitySize) * progress
+        case .collapsed:
+            // For collapsed state, interpolate based on width
+            let expandedWidth = NotchlyConfiguration.large.width
+            let activityWidth = NotchlyConfiguration.activity.width
+            let currentWidth = coordinator.configuration.width
+            
+            if currentWidth <= activityWidth {
+                return activitySize
+            } else if currentWidth >= expandedWidth {
+                return expandedSize
+            } else {
+                let progress = (currentWidth - activityWidth) / (expandedWidth - activityWidth)
+                let clampedProgress = max(0, min(1, progress))
+                return activitySize + (expandedSize - activitySize) * clampedProgress
+            }
         }
     }
 
@@ -132,16 +142,16 @@ struct UnifiedMediaPlayerView: View {
     private func mediaContentView() -> some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
-                /// Left padding that adjusts based on state
+                /// Fixed left padding - no longer changes with state
                 Spacer()
-                    .frame(width: playerState == .expanded ? 16 : 15)
+                    .frame(width: 16)
                 
-                /// Artwork container with logo overlay
-                ZStack(alignment: playerState == .activity ? .center : .bottomTrailing) {
+                /// Artwork container with consistent alignment
+                ZStack(alignment: .bottomTrailing) {
                     /// Single artwork view that scales and animates between states
                     artworkView(for: track)
                         .frame(width: artworkSize, height: artworkSize)
-                        .matchedGeometryEffect(id: "artworkElement", in: namespace)
+                        .matchedGeometryEffect(id: "actualArtwork", in: namespace)
                     
                     /// App logo - always present but opacity changes
                     let logoName = track.appName.lowercased() == "spotify"
@@ -150,37 +160,42 @@ struct UnifiedMediaPlayerView: View {
 
                     Image(logoName)
                         .resizable()
-                        .frame(width: 40, height: 40)
-                        .offset(x: 5, y: 5)
+                        .frame(width: playerState == .expanded ? 40 : 10, height: playerState == .expanded ? 40 : 10)
+                        .offset(x: 10, y: 10)
                         .opacity(playerState == .expanded ? 1 : 0)
                 }
-                .frame(width: artworkSize, height: artworkSize) // Ensure consistent frame
+                .frame(width: artworkSize, height: artworkSize)
+                .animation(coordinator.animation, value: artworkSize) // Animate the container
                 
                 if playerState == .activity {
-                    /// Activity: Audio bars
-                    Spacer()
+                    /// Activity: Audio bars with fixed positioning
+                    Spacer(minLength: 8)
                         .frame(maxWidth: .infinity)
                     
                     AudioBarsView()
                         .frame(width: 30, height: 24)
                         .opacity(activityContentOpacity)
-                    
+                        .offset(x: 2)
+
                     Spacer()
-                        .frame(width: 15)
+                        .frame(width: 16)
                 } else {
-                    /// Expanded: Media player
+                    /// Expanded: Media player with fixed positioning
                     Spacer(minLength: 8)
                     
-                    NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .opacity(expandedContentOpacity)
+                    VStack(alignment: .leading) {
+                        NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .opacity(expandedContentOpacity)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Spacer()
                         .frame(width: 16)
                 }
             }
         }
-        .frame(maxHeight: .infinity, alignment: .center) // Center content vertically
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 
     private var expandedContentOpacity: Double {
@@ -209,25 +224,23 @@ struct UnifiedMediaPlayerView: View {
 
     @ViewBuilder
     private func artworkView(for track: NowPlayingInfo) -> some View {
-        Group {
-            if let artwork = track.artwork, artwork.size != .zero {
-                ArtworkView(
-                    artwork: artwork,
-                    isExpanded: artworkSize > 50,
-                    action: openAppForTrack
+        if let artwork = track.artwork, artwork.size != .zero {
+            ArtworkView(
+                artwork: artwork,
+                isExpanded: playerState == .expanded,
+                action: openAppForTrack
+            )
+            .cornerRadius(playerState == .expanded ? 10 : 4)
+            // Remove individual animation, let the container handle it
+        } else {
+            RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4)
+                .fill(Color.gray.opacity(0.3))
+                .overlay(
+                    Image(systemName: "music.note")
+                        .foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: playerState == .expanded ? 40 : 10))
                 )
-                .clipShape(RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4))
-            } else {
-                RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4)
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(.white.opacity(0.5))
-                            .font(.system(size: playerState == .expanded ? 40 : 10))
-                    )
-            }
         }
-        .id(track.appName + track.title)
     }
 
     // MARK: - Glow Color Utility

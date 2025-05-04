@@ -105,20 +105,16 @@ struct NotchlyContainerView: View {
                                     isExpanded: true,
                                     namespace: notchAnimation
                                 )
-                                .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                                 .frame(
                                     width: layout.leftContentFrame.width,
                                     height: layout.leftContentFrame.height
                                 )
-                                .padding(.leading, 8)
 
                                 NotchlyCalendarView(calendarManager: calendarManager)
-                                    .matchedGeometryEffect(id: "calendar", in: notchAnimation)
                                     .frame(
                                         width: layout.rightContentFrame.width,
                                         height: layout.rightContentFrame.height
                                     )
-                                    .padding(.trailing, 8)
                             }
                             .frame(width: layout.bounds.width)
                             .opacity(expandedContentOpacity)
@@ -130,7 +126,6 @@ struct NotchlyContainerView: View {
                                 isExpanded: false,
                                 namespace: notchAnimation
                             )
-                            .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                             .frame(
                                 width: layout.bounds.width,
                                 height: layout.bounds.height,

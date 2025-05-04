@@ -32,7 +32,7 @@ struct ArtworkContainerView: View {
                 action: action
             )
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .matchedGeometryEffect(id: "albumArt", in: namespace)
+            .matchedGeometryEffect(id: "actualArtwork", in: namespace)
             .onAppear {
                 updateGlowColor(with: track.artwork)
                 withAnimation(.easeOut(duration: 0.3)) {
@@ -53,8 +53,7 @@ struct ArtworkContainerView: View {
                 .frame(width: 40, height: 40)
                 .offset(x: 40, y: 40)
                 .matchedGeometryEffect(id: "appLogo", in: namespace)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                .animation(.easeOut(duration: 0.3), value: isExpanded)
+                .opacity(showGlow ? 1 : 0) // Tie to showGlow instead of separate animation
         }
         .frame(width: 100, height: 100)
     }
