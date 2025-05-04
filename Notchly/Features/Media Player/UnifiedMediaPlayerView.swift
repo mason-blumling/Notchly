@@ -19,7 +19,11 @@ struct UnifiedMediaPlayerView: View {
 
     @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
 
+    // MARK: - Player State Enum
+
     private enum PlayerState: Equatable { case none, idle, activity, expanded }
+
+    // MARK: - Derived State
 
     private var playerState: PlayerState {
         guard mediaMonitor.nowPlaying != nil else {
@@ -30,15 +34,14 @@ struct UnifiedMediaPlayerView: View {
             : (isExpanded ? .expanded : .none)
     }
 
-    /// Calculate artwork size based on Notch config
     private var artworkSize: CGFloat {
         let expandedSize: CGFloat = 100
         let activitySize: CGFloat = 24
-        
+
         let expandedWidth = NotchlyConfiguration.large.width
         let activityWidth = NotchlyConfiguration.activity.width
         let currentWidth = coordinator.configuration.width
-        
+
         if currentWidth >= expandedWidth {
             return expandedSize
         } else if currentWidth <= activityWidth {
@@ -49,9 +52,11 @@ struct UnifiedMediaPlayerView: View {
         }
     }
 
+    // MARK: - Body
+
     var body: some View {
         ZStack {
-            /// Glow background for expanded state
+            /// Glow background (only in expanded state)
             if playerState == .expanded {
                 expandedBackgroundGlow()
                     .opacity(backgroundGlowOpacity)
@@ -79,10 +84,12 @@ struct UnifiedMediaPlayerView: View {
         }
     }
 
+    // MARK: - Expanded Glow Background
+
     private func expandedBackgroundGlow() -> some View {
         HStack(spacing: 0) {
             RenderSafeView {
-                LavaLampGlowView(blobColor: backgroundGlowColor)
+                GlowingBlobView(blobColor: backgroundGlowColor)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.trailing, 120)
                     .scaleEffect(y: 1.2)
@@ -106,12 +113,12 @@ struct UnifiedMediaPlayerView: View {
             Spacer()
         }
     }
-    
+
     private var backgroundGlowOpacity: Double {
         let expandedWidth = NotchlyConfiguration.large.width
         let activityWidth = NotchlyConfiguration.activity.width
         let currentWidth = coordinator.configuration.width
-        
+
         if currentWidth >= expandedWidth {
             return 1.0
         } else if currentWidth <= activityWidth {
@@ -122,39 +129,34 @@ struct UnifiedMediaPlayerView: View {
         }
     }
 
+    // MARK: - Main Media Content
+
     private func mediaContentView() -> some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
-                /// In activity state, we need to center the content properly
                 if playerState == .activity {
+                    /// Activity layout: artwork + bars, centered
                     HStack(spacing: 12) {
-                        /// Fixed spacing from left edge
-                        Spacer()
-                            .frame(width: 5)
-                        
-                        /// Artwork
+                        Spacer().frame(width: 5)
+
                         artworkView(for: track)
                             .frame(width: artworkSize, height: artworkSize)
-                        
-                        /// Flexible spacer pushes audio bars to the right
+
                         Spacer()
-                        
-                        /// Audio bars
+
                         AudioBarsView()
                             .frame(width: 30, height: 24)
-                        
-                        /// Fixed spacing from right edge
-                        Spacer()
-                            .frame(width: 5)
+
+                        Spacer().frame(width: 5)
                     }
                 } else {
-                    /// Expanded state layout
+                    /// Expanded layout: artwork + full media player
                     artworkView(for: track)
                         .frame(width: artworkSize, height: artworkSize)
                         .padding(.leading, playerState == .expanded ? 16 : 8)
-                    
+
                     Spacer(minLength: 8)
-                    
+
                     if playerState == .expanded {
                         NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
                             .padding(.trailing, 16)
@@ -163,16 +165,17 @@ struct UnifiedMediaPlayerView: View {
                 }
             }
         }
-        /// Single animation for the entire view content
         .animation(coordinator.animation, value: coordinator.configuration)
     }
+
+    // MARK: - Artwork View
 
     @ViewBuilder
     private func artworkView(for track: NowPlayingInfo) -> some View {
         if let artwork = track.artwork, artwork.size != .zero {
             ArtworkView(
                 artwork: artwork,
-                isExpanded: artworkSize > 50,  /// Use size to determine if expanded
+                isExpanded: artworkSize > 50,
                 action: openAppForTrack
             )
             .clipShape(RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4))
@@ -186,10 +189,11 @@ struct UnifiedMediaPlayerView: View {
                 )
         }
     }
-    
-    /// Extracts vibrant glow color from album artwork
+
+    // MARK: - Glow Color Utility
+
     private func updateGlowColor(from image: NSImage?) {
-        if let image = image,
+        if let image,
            let dom = image.dominantColor(),
            let vib = dom.vibrantColor() {
             withAnimation(.easeInOut(duration: 0.3)) {
@@ -200,13 +204,15 @@ struct UnifiedMediaPlayerView: View {
         }
     }
 
-    /// Opens the current track's app (Music, Spotify, Podcasts)
+    // MARK: - External App Launch
+
     private func openAppForTrack() {
         let urlScheme = mediaMonitor.activePlayerName.lowercased() == "spotify"
             ? "spotify://"
             : (mediaMonitor.activePlayerName.lowercased() == "podcasts"
                ? "podcasts://"
                : "music://")
+
         if let url = URL(string: urlScheme) {
             NSWorkspace.shared.open(url)
         }
@@ -254,7 +260,7 @@ struct UnifiedMediaPlayerView: View {
 //            if currentState == .expanded {
 //                HStack(spacing: 0) {
 //                    RenderSafeView {
-//                        LavaLampGlowView(blobColor: backgroundGlowColor)
+//                        GlowingBlobView(blobColor: backgroundGlowColor)
 //                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 //                            .padding(.trailing, 120)
 //                            .scaleEffect(y: 1.2)

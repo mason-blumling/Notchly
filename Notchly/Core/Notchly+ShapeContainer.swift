@@ -8,20 +8,21 @@
 import Foundation
 import SwiftUI
 
+/// A layout container that wraps dynamic Notchly shapes and applies content using a shared layout guide.
+/// Automatically clips content to the notch shape and animates size/shape changes.
 struct NotchlyShapeContainer<Content: View>: View {
     let configuration: NotchlyConfiguration
     let state: NotchlyTransitionCoordinator.NotchState
     let animation: Animation
     let content: (NotchlyLayoutGuide) -> Content
     var namespace: Namespace.ID?
-    
+
     var body: some View {
-        /// Calculate layout guide
+        /// Create shared layout metrics for sizing child content
         let layoutGuide = createLayoutGuide()
-        
-        /// Container with shape and content
+
         ZStack(alignment: .top) {
-            /// Background shape
+            /// 🟦 Background shape behind the content
             NotchlyShape(
                 bottomCornerRadius: configuration.bottomCornerRadius,
                 topCornerRadius: configuration.topCornerRadius
@@ -31,10 +32,13 @@ struct NotchlyShapeContainer<Content: View>: View {
                 width: configuration.width,
                 height: configuration.height
             )
-            .shadow(color: NotchlyTheme.shadow, radius: configuration.shadowRadius)
+            .shadow(
+                color: NotchlyTheme.shadow,
+                radius: configuration.shadowRadius
+            )
             .animation(animation, value: configuration)
-            
-            /// Content positioned with layout guide
+
+            /// 🟨 Foreground content sized and aligned using layout guide
             content(layoutGuide)
                 .frame(
                     width: configuration.width,
@@ -52,12 +56,15 @@ struct NotchlyShapeContainer<Content: View>: View {
             )
         )
     }
-    
-    /// Create layout guide from current configuration with more precise values
+
+    // MARK: - Layout Calculation
+
+    /// Produces a layout guide that defines safe and usable regions inside the notch shape.
     private func createLayoutGuide() -> NotchlyLayoutGuide {
-        let insetTop = configuration.topCornerRadius * 0.65 /// Reduce top inset
-        let insetSide = configuration.bottomCornerRadius * 0.4 /// Reduce side inset
-        
+        /// Slightly shrink content area to avoid overlapping rounded corners
+        let insetTop = configuration.topCornerRadius * 0.65
+        let insetSide = configuration.bottomCornerRadius * 0.4
+
         return NotchlyLayoutGuide(
             bounds: CGRect(origin: .zero, size: CGSize(
                 width: configuration.width,

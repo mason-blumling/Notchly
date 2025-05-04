@@ -8,48 +8,50 @@
 import SwiftUI
 import Combine
 
-/// Central manager for handling notch shape transitions and content layout.
-/// Moves all resizing and animation logic into one place for scalability.
+/// Central manager for handling notch UI transitions.
+/// Manages the current notch state and drives the associated layout configuration.
+/// All morphing, expansion, and live activity transitions pass through this coordinator.
 @MainActor
 final class NotchlyTransitionCoordinator: ObservableObject {
-    /// Shared instance for global access.
+    
+    /// Shared singleton for global access.
     static let shared = NotchlyTransitionCoordinator()
 
-    /// Possible states for the notch
+    /// Enum representing all visual states of the notch.
     enum NotchState {
-        /// Fully collapsed (default)
-        case collapsed
-        /// Expanded by hover or onboarding
-        case expanded
-        /// Showing media activity slot
-        case mediaActivity
-        /// Showing calendar live activity slot
-        case calendarActivity
+        case collapsed         // Default idle state
+        case expanded          // Fully expanded, showing main content
+        case mediaActivity     // Compact media activity (artwork + bars)
+        case calendarActivity  // Compact calendar alert
     }
 
-    /// Current high-level notch state.
+    /// Current visual state of the notch.
     @Published var state: NotchState = .collapsed
-    /// Published shape configuration driven by the current state.
+
+    /// Published shape configuration (width, corner radius, etc.) based on current state.
     @Published private(set) var configuration: NotchlyConfiguration = .default
 
-    /// Subscriptions for Combine pipelines.
+    /// Internal set of Combine subscriptions.
     private var subscriptions = Set<AnyCancellable>()
 
-    /// The unified animation used for shape morphs.
+    /// Unified animation used for notch transitions.
     var animation: Animation {
         if #available(macOS 14.0, *) {
-            return Animation.spring(.bouncy(duration: 0.4))
+            return .spring(.bouncy(duration: 0.4))
         } else {
-            return Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
+            return .timingCurve(0.16, 1, 0.3, 1, duration: 0.7)
         }
     }
 
+    // MARK: - Init
+
     private init() {
-        /// Map state changes to configuration presets
+        /// Sync configuration any timethe state changes
         $state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newState in
                 guard let self = self else { return }
+                
                 let newConfig: NotchlyConfiguration
                 switch newState {
                 case .expanded:
@@ -59,6 +61,7 @@ final class NotchlyTransitionCoordinator: ObservableObject {
                 case .collapsed:
                     newConfig = .default
                 }
+
                 withAnimation(self.animation) {
                     self.configuration = newConfig
                 }
@@ -66,9 +69,13 @@ final class NotchlyTransitionCoordinator: ObservableObject {
             .store(in: &subscriptions)
     }
 
-    /// Convenience method to update based on all state inputs.
+    // MARK: - State Updater
+
+    /// Updates the notch state based on hover, media, and calendar input.
+    /// Priority: calendar > expanded > media > collapsed
     func update(expanded: Bool, mediaActive: Bool, calendarActive: Bool) {
         let newState: NotchState
+
         if calendarActive {
             newState = .calendarActivity
         } else if expanded {
@@ -78,8 +85,7 @@ final class NotchlyTransitionCoordinator: ObservableObject {
         } else {
             newState = .collapsed
         }
-        
-        /// Apply animation when state changes
+
         withAnimation(animation) {
             state = newState
         }

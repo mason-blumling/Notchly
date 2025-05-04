@@ -14,11 +14,14 @@ struct ArtworkContainerView: View {
     var track: NowPlayingInfo
     var isExpanded: Bool = false
     var action: (() -> Void)? = nil
+
     @Binding var backgroundGlowColor: Color
     var glowIntensity: CGFloat = 1.0
     var namespace: Namespace.ID
-    
+
     @State private var showGlow: Bool = false
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -41,7 +44,10 @@ struct ArtworkContainerView: View {
             }
 
             /// App icon overlay (Spotify or Apple Music)
-            let logoName = (track.appName.lowercased() == "spotify") ? "spotify-Universal" : "appleMusic-Universal"
+            let logoName = (track.appName.lowercased() == "spotify")
+                ? "spotify-Universal"
+                : "appleMusic-Universal"
+
             Image(logoName)
                 .resizable()
                 .frame(width: 40, height: 40)
@@ -53,7 +59,9 @@ struct ArtworkContainerView: View {
         .frame(width: 100, height: 100)
     }
 
-    /// Extracts the glow color from the provided artwork and applies it to the background binding
+    // MARK: - Glow Color Extraction
+
+    /// Extracts the glow color from the provided artwork and applies it to the background binding.
     private func updateGlowColor(with image: NSImage?) {
         if let safeImage = image?.copy() as? NSImage,
            let dominant = safeImage.dominantColor(),

@@ -7,29 +7,34 @@
 
 import SwiftUI
 
-/// PaintCode two‐stroke Notchly logo, converted into a SwiftUI Shape.
+/// The vector shape for the Notchly logo.
+/// Converted from PaintCode, this shape includes mirrored strokes and scaling logic
+/// so that the design can fit cleanly into any SwiftUI frame.
 struct NotchlyLogoShape: Shape {
     func path(in rect: CGRect) -> Path {
 
-        /// Original PaintCode bounds
+        // MARK: - PaintCode Bounds
         let originalMinX: CGFloat = 276.27
         let originalMaxX: CGFloat = 722.28
         let originalMinY: CGFloat = 244.01
         let originalMaxY: CGFloat = 780.95
+
         let width  = originalMaxX - originalMinX
         let height = originalMaxY - originalMinY
 
-        /// Scale & center
-        let scale = min(rect.width/width, rect.height/height)
-        let dx = rect.midX - (originalMinX + width/2)*scale
-        let dy = rect.midY - (originalMinY + height/2)*scale
+        // MARK: - Scale + Center Transform
+        let scale = min(rect.width / width, rect.height / height)
+
+        let dx = rect.midX - (originalMinX + width / 2) * scale
+        let dy = rect.midY - (originalMinY + height / 2) * scale
+
+        /// PaintCode helper: mirrored X from center of original bounds
         func S(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            /// mirror X around the logo’s original center
             let mx = originalMinX + originalMaxX - x
-            return CGPoint(x: mx*scale + dx,
-                           y:  y*scale + dy)
+            return CGPoint(x: mx * scale + dx, y: y * scale + dy)
         }
 
+        // MARK: - Path Drawing
         var p = Path()
 
         /// —— Stroke 1

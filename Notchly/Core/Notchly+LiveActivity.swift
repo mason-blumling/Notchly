@@ -7,13 +7,16 @@
 
 import SwiftUI
 
-/// A reusable layout for displaying live content inside the notch shape.
-/// Reads its sizing from the central NotchlyTransitionCoordinator for consistency.
+/// A reusable container for rendering live activity content inside the notch shape.
+/// Places content in left/right slots using a flexible layout driven by Notchly's transition state.
 struct LiveActivityView<LeftContent: View, RightContent: View>: View {
+    
     private let leftContent: () -> LeftContent
     private let rightContent: () -> RightContent
 
     @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
+
+    // MARK: - Init
 
     init(
         @ViewBuilder leftContent: @escaping () -> LeftContent,
@@ -22,6 +25,8 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
         self.leftContent = leftContent
         self.rightContent = rightContent
     }
+
+    // MARK: - View
 
     var body: some View {
         let config = coord.configuration
@@ -32,7 +37,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
             animation: coord.animation
         ) { layout in
             ZStack {
-                // Left Content Slot
+                /// Left-aligned slot (typically an icon or logo)
                 HStack {
                     leftContent()
                         .frame(width: 24, height: 24)
@@ -40,7 +45,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
                     Spacer()
                 }
 
-                // Right Content Slot
+                /// Right-aligned slot (typically text or animation)
                 HStack {
                     Spacer()
                     rightContent()
@@ -52,6 +57,8 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
         }
     }
 }
+
+// MARK: - Preview
 
 struct LiveActivityView_Previews: PreviewProvider {
     static var previews: some View {

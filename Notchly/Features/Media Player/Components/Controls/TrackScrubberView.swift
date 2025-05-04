@@ -7,10 +7,13 @@
 
 import SwiftUI
 
-/// A view that displays a scrubber for media playback.
+/// A view that displays a scrubber for media playback,
+/// including a draggable handle and live time labels.
 struct TrackScrubberView: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
-    
+
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 4) {
             GeometryReader { geometry in
@@ -20,7 +23,7 @@ struct TrackScrubberView: View {
                         .fill(Color.white.opacity(0.2))
                         .frame(height: 3)
 
-                    /// Progress track
+                    /// Progress fill
                     Capsule()
                         .fill(Color.white)
                         .frame(
@@ -28,7 +31,7 @@ struct TrackScrubberView: View {
                             height: 3
                         )
 
-                    /// Scrubber handle
+                    /// Draggable scrubber handle
                     Circle()
                         .frame(width: 8, height: 8)
                         .foregroundColor(.white)
@@ -50,14 +53,14 @@ struct TrackScrubberView: View {
             }
             .frame(height: 10)
 
-            /// Time labels
+            /// Time labels below scrubber
             HStack {
                 Text(mediaMonitor.elapsedTime)
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
-                
+
                 Spacer()
-                
+
                 Text(mediaMonitor.remainingTime)
                     .font(.system(size: 10))
                     .foregroundColor(.gray)

@@ -8,12 +8,15 @@
 import SwiftUI
 
 /// Displays media playback controls (previous, play/pause, next).
-/// Accepts action closures for all buttons and reflects current play state.
+/// - Accepts action closures for each button.
+/// - Dynamically reflects `isPlaying` state for the play/pause icon.
 struct MediaControlsView: View {
     var isPlaying: Bool
     var onPrevious: () -> Void
     var onPlayPause: () -> Void
     var onNext: () -> Void
+
+    // MARK: - Body
 
     var body: some View {
         HStack(spacing: 32) {
@@ -25,6 +28,9 @@ struct MediaControlsView: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
+    // MARK: - Button Builder
+
+    /// Builds a media control button with system icon and tap action.
     private func controlButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)

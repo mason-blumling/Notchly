@@ -17,7 +17,8 @@ import AppKit
 @MainActor
 final class MediaPlaybackMonitor: ObservableObject {
     
-    // MARK: - Published Properties (matching Tuneful structure)
+    // MARK: - Published Properties
+
     @Published private(set) var nowPlaying: NowPlayingInfo?
     @Published private(set) var isPlaying: Bool = false
     @Published private(set) var activePlayerName: String = ""
@@ -48,6 +49,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - Private Properties
+
     private var provider: MediaPlayerAppProvider
     private var updateTimer: Timer?
     private var fetchTimer: Timer?
@@ -56,6 +58,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     private var lastValidDuration: TimeInterval = 0
     
     // MARK: - Initialization
+
     init() {
         provider = MediaPlayerAppProvider(notificationSubject: PassthroughSubject())
         setupNotifications()
@@ -67,6 +70,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - Timer Controls
+
     func startTimer() {
         /// Cancel existing timers
         updateTimer?.invalidate()
@@ -102,6 +106,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - Playback State Updates
+
     private func updatePlaybackState() {
         guard !isScrubbing else { return }
         
@@ -119,6 +124,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - Expansion Control
+
     func setExpanded(_ expanded: Bool) {
         if expanded {
             startTimer()
@@ -128,6 +134,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - Media Controls
+
     func togglePlayPause() {
         guard let player = provider.getActivePlayer() else { return }
         
@@ -177,6 +184,7 @@ final class MediaPlaybackMonitor: ObservableObject {
     }
     
     // MARK: - State Fetching
+
     private func fetchMediaState() {
         guard let player = provider.getActivePlayer(), player.isAppRunning() else {
             clearState()
@@ -253,13 +261,27 @@ final class MediaPlaybackMonitor: ObservableObject {
     // MARK: - Notification Setup
     private func setupNotifications() {
         let distCenter = DistributedNotificationCenter.default()
-        
-        distCenter.addObserver(forName: NSNotification.Name("com.apple.Music.playerInfo"), object: nil, queue: .main) { [weak self] _ in
-            self?.fetchMediaState()
+
+        distCenter.addObserver(
+            forName: NSNotification.Name("com.apple.Music.playerInfo"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.fetchMediaState()
+            }
         }
-        
-        distCenter.addObserver(forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"), object: nil, queue: .main) { [weak self] _ in
-            self?.fetchMediaState()
+
+        distCenter.addObserver(
+            forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.fetchMediaState()
+            }
         }
     }
 }

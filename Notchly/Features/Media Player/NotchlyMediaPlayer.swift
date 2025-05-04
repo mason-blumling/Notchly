@@ -8,7 +8,8 @@
 import SwiftUI
 import AppKit
 
-/// Expanded media player content with proper timer management
+/// Displays the expanded media player content with proper timer lifecycle handling.
+/// This view includes track info, media controls, and scrubber synced to playback state.
 struct NotchlyMediaPlayer: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
     @State private var appear = false
@@ -17,8 +18,11 @@ struct NotchlyMediaPlayer: View {
         ZStack {
             if let track = mediaMonitor.nowPlaying {
                 VStack(alignment: .leading, spacing: 10) {
+                    
+                    /// Track metadata (title, artist, album, etc.)
                     TrackInfoView(track: track)
 
+                    /// Playback control buttons
                     MediaControlsView(
                         isPlaying: mediaMonitor.isPlaying,
                         onPrevious: mediaMonitor.previousTrack,
@@ -27,6 +31,7 @@ struct NotchlyMediaPlayer: View {
                     )
                     .padding(.top, 8)
 
+                    /// Progress bar and time labels
                     TrackScrubberView(mediaMonitor: mediaMonitor)
                 }
                 .padding(.horizontal, 10)
@@ -38,11 +43,11 @@ struct NotchlyMediaPlayer: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .onAppear {
                     appear = true
-                    mediaMonitor.startTimer()
+                    mediaMonitor.startTimer() /// Start live progress updates
                 }
                 .onDisappear {
                     appear = false
-                    mediaMonitor.stopTimer()
+                    mediaMonitor.stopTimer() /// Stop timers to reduce CPU usage
                 }
             }
         }

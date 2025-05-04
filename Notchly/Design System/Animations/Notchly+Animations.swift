@@ -7,8 +7,11 @@
 
 import SwiftUI
 
-/// A collection of reusable animations and helpers for Notchly.
+/// A central collection of reusable animation curves, durations, and delay helpers used throughout Notchly.
 struct NotchlyAnimations {
+    
+    // MARK: - Animation Presets
+
     static let bounce = Animation.spring(response: 0.3, dampingFraction: 0.7)
     static let fastBounce = Animation.spring(response: 0.2, dampingFraction: 0.6)
     static let smoothTransition = Animation.easeInOut(duration: 0.3)
@@ -19,7 +22,8 @@ struct NotchlyAnimations {
     static let liveActivityTransition = Animation.spring(response: 0.25, dampingFraction: 0.8, blendDuration: 0.1)
     static let morphAnimation = Animation.spring(response: 0.3, dampingFraction: 0.8, blendDuration: 0.5)
 
-    // Duration Constants
+    // MARK: - Timing Constants
+
     struct Durations {
         static let bounce = 0.3
         static let fastBounce = 0.2
@@ -32,20 +36,24 @@ struct NotchlyAnimations {
         static let morph = 0.3
     }
 
-    // MARK: - Helpers
+    // MARK: - Delay Helpers
 
+    /// Returns a delay following the end of a live activity animation.
     static func delayAfterLiveActivityTransition(_ extra: Double = 0) -> Double {
         Durations.liveActivity + extra
     }
 
+    /// Returns a delay following a notch expansion morph.
     static func delayAfterNotchExpand(_ extra: Double = 0) -> Double {
         Durations.notchExpand + extra
     }
 
+    /// Returns the delay needed before fading in content after an expansion.
     static func delayForContentFadeIn(afterNotchExpand: Bool = true) -> Double {
         (afterNotchExpand ? Durations.notchExpand : 0) + Durations.fadeIn
     }
 
+    /// Looks up an animation based on a semantic key.
     static func animation(for identifier: String) -> Animation {
         switch identifier {
         case "fade": return fadeIn
@@ -57,7 +65,10 @@ struct NotchlyAnimations {
     }
 }
 
+// MARK: - Custom Transitions
+
 extension AnyTransition {
+    /// A morphing transition that scales slightly in/out with a soft opacity fade.
     static var morphingTransition: AnyTransition {
         .asymmetric(
             insertion: .scale(scale: 0.85, anchor: .center)

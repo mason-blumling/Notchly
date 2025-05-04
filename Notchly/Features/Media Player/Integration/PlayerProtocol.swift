@@ -12,72 +12,82 @@ import Combine
 
 // MARK: - PlayerProtocol Definition
 
-/// A protocol that defines the required media operations.
-/// All media player implementations (e.g., Apple Music, Spotify, Podcasts) must conform to this protocol.
+/// A protocol that defines required media operations.
+/// All media app implementations (Apple Music, Spotify, Podcasts) must conform to this.
 protocol PlayerProtocol {
+    
     // MARK: - Notification
-    /// A subject used to send alert notifications.
+
+    /// Subject used to emit alert notifications.
     var notificationSubject: PassthroughSubject<AlertItem, Never> { get set }
     
     // MARK: - Application Identity
-    /// The display name of the media application.
+
+    /// Display name of the media application.
     var appName: String { get }
-    /// The file URL to the media application.
+
+    /// File path to the application.
     var appPath: URL { get }
-    /// The notification string used for app-specific updates.
+
+    /// DistributedNotification name used for listening to updates.
     var appNotification: String { get }
-    /// The bundle identifier of the media application.
+
+    /// App's bundle identifier.
     var bundleIdentifier: String { get }
-    /// The default album art image to use if none is available.
+
+    /// Default artwork to show if none is provided.
     var defaultAlbumArt: NSImage { get }
-    
+
     // MARK: - Playback State Properties
-    /// The current playback position in seconds.
+
+    /// Current playback time (seconds).
     var playerPosition: Double? { get }
-    /// A Boolean indicating whether the media is currently playing.
+
+    /// Indicates if the app is currently playing audio.
     var isPlaying: Bool { get }
-    /// The current volume level of the media.
+
+    /// Current volume level (0.0–1.0).
     var volume: CGFloat { get }
-    
+
     // MARK: - Playback Operations
-    /// Fetches now-playing information as a unified model.
-    /// - Parameter completion: A closure called with an optional NowPlayingInfo model.
+
+    /// Fetches now-playing metadata (title, artist, artwork, etc.).
     func getNowPlayingInfo(completion: @escaping (NowPlayingInfo?) -> Void)
-    
-    /// Toggles play/pause for the media application.
+
+    /// Toggles play/pause playback.
     func playPause()
-    /// Skips to the previous track.
+
+    /// Skips to previous track.
     func previousTrack()
-    /// Skips to the next track.
+
+    /// Skips to next track.
     func nextTrack()
-    /// Seeks to a specific time within the current track.
-    /// - Parameter time: The target time in seconds.
+
+    /// Seeks to a specific timestamp in the current track.
     func seekTo(time: TimeInterval)
-    
-    /// Sets the sound volume.
-    /// - Parameter volume: The volume level as an integer.
+
+    /// Sets the app’s volume.
     func setVolume(volume: Int)
-    
-    /// Checks if the media application is currently running.
-    /// - Returns: True if the app is running, false otherwise.
+
+    /// Returns true if the app is currently running.
     func isAppRunning() -> Bool
 }
 
 // MARK: - Supporting Types
 
-/// A simple alert type for sending notifications.
+/// A simple error wrapper for alert messaging.
 struct AlertItem: Error {
     let title: String
     let message: String
 }
 
-/// Wraps album art data, providing both a SwiftUI Image and an NSImage.
+/// Wraps artwork as both SwiftUI and AppKit representations.
 struct FetchedAlbumArt {
     let image: Image
     let nsImage: NSImage
 }
 
-/// A unified model representing the current media state.
+/// Unified structure for now-playing media metadata.
 struct NowPlayingInfo: Equatable {
     var title: String
     var artist: String

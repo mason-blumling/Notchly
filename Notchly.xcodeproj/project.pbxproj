@@ -33,7 +33,7 @@
 		58832F3F2D9A1D1D00745CF2 /* PodcastsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F3E2D9A1D1800745CF2 /* PodcastsManager.swift */; };
 		58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */; };
 		58832F462D9A2BC800745CF2 /* MediaPlayerConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F452D9A2BBC00745CF2 /* MediaPlayerConstants.swift */; };
-		58832F482D9A3FCC00745CF2 /* LavaLampGlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */; };
+		58832F482D9A3FCC00745CF2 /* GlowingBlobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F472D9A3FBF00745CF2 /* GlowingBlobView.swift */; };
 		58832F4A2D9A463500745CF2 /* BouncingBlobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F492D9A462800745CF2 /* BouncingBlobView.swift */; };
 		58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */; };
 		588330442D79704C006251C1 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = 588330432D79704C006251C1 /* FeedKit */; };
@@ -131,7 +131,7 @@
 		58832F3E2D9A1D1800745CF2 /* PodcastsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastsManager.swift; sourceTree = "<group>"; };
 		58832F402D9A238E00745CF2 /* PodcastsFallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastsFallbackView.swift; sourceTree = "<group>"; };
 		58832F452D9A2BBC00745CF2 /* MediaPlayerConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerConstants.swift; sourceTree = "<group>"; };
-		58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LavaLampGlowView.swift; sourceTree = "<group>"; };
+		58832F472D9A3FBF00745CF2 /* GlowingBlobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowingBlobView.swift; sourceTree = "<group>"; };
 		58832F492D9A462800745CF2 /* BouncingBlobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BouncingBlobView.swift; sourceTree = "<group>"; };
 		58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractArtworkColor.swift; sourceTree = "<group>"; };
 		588330452D798484006251C1 /* MarqueeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeText.swift; sourceTree = "<group>"; };
@@ -338,7 +338,7 @@
 			children = (
 				58832F492D9A462800745CF2 /* BouncingBlobView.swift */,
 				58832F4C2D9A4AF400745CF2 /* ExtractArtworkColor.swift */,
-				58832F472D9A3FBF00745CF2 /* LavaLampGlowView.swift */,
+				58832F472D9A3FBF00745CF2 /* GlowingBlobView.swift */,
 			);
 			path = Effects;
 			sourceTree = "<group>";
@@ -694,7 +694,7 @@
 			files = (
 				58BCC0E02DC4B15D00F91323 /* Notchly+LayoutGuide.swift in Sources */,
 				58C97C1E2D502D79006FFC06 /* NotchlyWeather.swift in Sources */,
-				58832F482D9A3FCC00745CF2 /* LavaLampGlowView.swift in Sources */,
+				58832F482D9A3FCC00745CF2 /* GlowingBlobView.swift in Sources */,
 				5862FF4C2DA3556B0037843C /* UnifiedMediaPlayerView.swift in Sources */,
 				58832F3F2D9A1D1D00745CF2 /* PodcastsManager.swift in Sources */,
 				580F20552D59B36B00D66D57 /* Notchly+Theme.swift in Sources */,

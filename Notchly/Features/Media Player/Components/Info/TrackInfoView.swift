@@ -7,12 +7,16 @@
 
 import SwiftUI
 
-/// Displays the track title and artist name using marquee scrolling for the title.
+// MARK: - TrackInfoView
+
+/// Displays the track title and artist name.
+/// Title uses a marquee animation for long text.
 struct TrackInfoView: View {
     let track: NowPlayingInfo
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            /// Marquee title
             MarqueeText(
                 text: track.title,
                 font: .system(size: 16, weight: .bold),
@@ -24,6 +28,7 @@ struct TrackInfoView: View {
             .id(track.title)
             .frame(maxWidth: .infinity, alignment: .leading)
             
+            /// Artist label
             Text(track.artist)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.gray)
@@ -33,6 +38,8 @@ struct TrackInfoView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+// MARK: - Preview
 
 struct TrackInfoView_Previews: PreviewProvider {
     static var previews: some View {

@@ -9,6 +9,7 @@ import Foundation
 import EventKit
 import Combine
 
+/// Monitors upcoming calendar events and triggers live activity alerts (15m, 5m, countdown).
 @MainActor
 final class CalendarLiveActivityMonitor: ObservableObject {
     @Published var upcomingEvent: EKEvent?
@@ -22,6 +23,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var lastShownPhase: String?
 
     private let calendarManager: CalendarManager
+
+    // MARK: - Init & Lifecycle
 
     init(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
@@ -55,6 +58,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         NotificationCenter.default.removeObserver(self)
     }
 
+    // MARK: - Timer Controls
+
     func pauseTimers() {
         timer?.invalidate()
         timer = nil
@@ -79,6 +84,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         }
     }
 
+    // MARK: - Evaluation Logic
+
     func evaluateLiveActivity() {
         guard let event = calendarManager.nextEventStartingSoon(),
               event.eventIdentifier != dismissedEventID else {
@@ -94,8 +101,11 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         }
 
         if remaining < 0 {
+            /// Event already started
             reset()
+
         } else if remaining < 60 {
+            /// 1-minute countdown phase
             timeRemainingString = "\(Int(remaining))s"
             upcomingEvent = event
 
@@ -113,7 +123,9 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                     }
                 }
             }
+
         } else if remaining < 300 {
+            /// 5-minute alert
             if previousRemaining! > 300 && lastShownPhase != "5m" {
                 print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
                 timeRemainingString = "5m"
@@ -122,7 +134,9 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 scheduleExpiration(for: event)
                 isLiveActivityVisible = true
             }
+
         } else if remaining < 900 {
+            /// 15-minute alert
             if previousRemaining! > 900 && lastShownPhase != "15m" {
                 print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
                 timeRemainingString = "15m"
@@ -136,10 +150,14 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         previousRemaining = remaining
     }
 
+    // MARK: - Expiration & Reset
+
+    /// Schedules the expiration of an alert phase (15m or 5m).
     private func scheduleExpiration(for event: EKEvent) {
         let id = event.eventIdentifier
         expirationTimer?.invalidate()
         isLiveActivityVisible = false
+
         expirationTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
@@ -151,6 +169,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         }
     }
 
+    /// Fully resets all activity state.
     private func reset() {
         upcomingEvent = nil
         timeRemainingString = ""

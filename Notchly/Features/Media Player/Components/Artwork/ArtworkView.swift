@@ -9,7 +9,9 @@ import SwiftUI
 import AppKit
 
 // MARK: - Conditional Modifier Extension
+
 extension View {
+    /// Applies the given transformation if the condition is true.
     @ViewBuilder func `if`<Content: View>(_ condition: Bool,
                                           transform: (Self) -> Content) -> some View {
         if condition {
@@ -21,17 +23,20 @@ extension View {
 }
 
 // MARK: - ArtworkView
+
 /// Displays the album artwork for the media player.
-/// - If a valid artwork is provided, it displays that image with a resizable fill mode.
-/// - Otherwise, it falls back to a placeholder image ("music.note").
-/// - When `isExpanded` is true and an `action` is provided, the view is wrapped in a Button to allow tap interaction.
+/// - If a valid `NSImage` is provided, displays that image.
+/// - If no image is provided, falls back to a system music note icon.
+/// - If `isExpanded` is true and an `action` is provided, the artwork becomes tappable.
 struct ArtworkView: View {
     var artwork: NSImage?
     var isExpanded: Bool = false
     var action: (() -> Void)? = nil
-    
+
     @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
-    
+
+    // MARK: - Body
+
     var body: some View {
         Group {
             if let image = artwork, image.size != NSZeroSize {
@@ -52,8 +57,7 @@ struct ArtworkView: View {
             }
             .buttonStyle(PlainButtonStyle())
         }
-        /// Use transition consistent with our animation system
-        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-        .animation(coordinator.animation, value: isExpanded)
+        .transition(.opacity.combined(with: .scale(scale: 0.95))) /// Smooth entry/exit
+        .animation(coordinator.animation, value: isExpanded)      /// Match system animation curve
     }
 }

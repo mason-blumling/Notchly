@@ -11,17 +11,21 @@ import EventKit
 // MARK: - CalendarManager
 
 /// Manages access to and retrieval of calendar events.
-/// This class handles permissions, data fetching, and exposing events to the UI.
+/// Handles permissions, data fetching, and reactive updates to system changes.
 class CalendarManager: ObservableObject {
     private let eventStore: EKEventStore
     private var lastSystemChange: Date? = nil
 
     @Published var events: [EKEvent] = []
-    
+
+    // MARK: - Init
+
     init(eventStore: EKEventStore = EKEventStore()) {
         self.eventStore = eventStore
         subscribeToCalendarChanges()
     }
+
+    // MARK: - Permissions
 
     func requestAccess(completion: @escaping (Bool) -> Void) {
         eventStore.requestFullAccessToEvents { granted, error in
@@ -53,15 +57,19 @@ class CalendarManager: ObservableObject {
         }
     }
 
-    func fetchEvents(startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
-                     endDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date())!) -> [EKEvent] {
+    // MARK: - Fetching
+
+    func fetchEvents(
+        startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
+        endDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+    ) -> [EKEvent] {
         let calendars = eventStore.calendars(for: .event)
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: calendars)
         self.events = eventStore.events(matching: predicate)
         return self.events
     }
-    
-    /// Returns the next upcoming event today that starts within the next 90 minutes
+
+    /// Returns the next upcoming event today that starts within the next `thresholdMinutes`.
     func nextEventStartingSoon(thresholdMinutes: Int = 90) -> EKEvent? {
         let now = Date()
         let cutoff = Calendar.current.date(byAdding: .minute, value: thresholdMinutes, to: now)!
@@ -73,19 +81,17 @@ class CalendarManager: ObservableObject {
                 $0.startDate > now &&
                 $0.startDate <= cutoff
             }
-            .sorted { $0.startDate < $1.startDate }
+            .sorted(by: { $0.startDate < $1.startDate })
             .first
     }
-    
-    // MARK: - Sleep/Wake Integration
 
-    /// Suspends all monitoring (e.g., before sleep)
+    // MARK: - Lifecycle Hooks
+
     func suspendUpdates() {
         print("🛑 Suspending calendar updates...")
         NotificationCenter.default.post(name: .NotchlySuspendCalendarUpdates, object: nil)
     }
 
-    /// Reloads all calendar data and resumes monitoring (e.g., after wake)
     func reloadEvents() {
         print("🔁 [Wake] Reloading calendar events...")
         self.events = self.fetchEvents()
@@ -93,7 +99,8 @@ class CalendarManager: ObservableObject {
         NotificationCenter.default.post(name: .NotchlyResumeCalendarUpdates, object: nil)
     }
 
-    /// Listens for event changes in the system calendar
+    // MARK: - Change Monitoring
+
     private func subscribeToCalendarChanges() {
         NotificationCenter.default.addObserver(
             forName: .EKEventStoreChanged,
@@ -102,8 +109,9 @@ class CalendarManager: ObservableObject {
         ) { [weak self] _ in
             guard let self else { return }
 
-            if let last = self.lastSystemChange, Date().timeIntervalSince(last) < 2 {
-                return
+            if let last = self.lastSystemChange,
+               Date().timeIntervalSince(last) < 2 {
+                return // debounce duplicate change events
             }
 
             self.lastSystemChange = Date()
@@ -111,9 +119,7 @@ class CalendarManager: ObservableObject {
             let previous = self.events
             let updated = self.fetchEvents()
 
-            guard updated != previous else {
-                return // 👻 Silent skip if nothing changed
-            }
+            guard updated != previous else { return }
 
             let delta = updated.count - previous.count
             if delta > 0 {
@@ -128,6 +134,8 @@ class CalendarManager: ObservableObject {
         }
     }
 }
+
+// MARK: - Notification Definitions
 
 extension Notification.Name {
     static let NotchlySuspendCalendarUpdates = Notification.Name("NotchlySuspendCalendarUpdates")

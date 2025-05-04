@@ -46,7 +46,7 @@ public final class Notchly: ObservableObject {
     // MARK: - Initialization
 
     public init() {
-        // 1) Observe screen changes…
+        /// 1) Observe screen changes…
         subscription = NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
@@ -62,7 +62,7 @@ public final class Notchly: ObservableObject {
                 }
             }
 
-        // 2) Hover drives our single source of truth in the coordinator
+        /// 2) Hover drives our single source of truth in the coordinator
         $isMouseInside
             .sink { [weak self] inside in
                 guard let self = self, !self.ignoreHoverOnboarding else { return }
@@ -76,7 +76,7 @@ public final class Notchly: ObservableObject {
             }
             .store(in: &subscriptions)
 
-        // 3) Suspend calendar on sleep…
+        /// 3) Suspend calendar on sleep…
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.willSleepNotification,
             object: nil, queue: .main
@@ -86,7 +86,7 @@ public final class Notchly: ObservableObject {
             }
         }
 
-        // 4) Reload on wake…
+        /// 4) Reload on wake…
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil, queue: .main
