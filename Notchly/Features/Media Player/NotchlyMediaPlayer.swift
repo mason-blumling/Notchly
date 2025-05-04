@@ -21,6 +21,8 @@ struct NotchlyMediaPlayer: View {
                     
                     /// Track metadata (title, artist, album, etc.)
                     TrackInfoView(track: track)
+                        .id(track.title + track.artist) // Force view update on track change
+                        .animation(.easeInOut(duration: 0.3), value: track.title)
 
                     /// Playback control buttons
                     MediaControlsView(
@@ -30,6 +32,7 @@ struct NotchlyMediaPlayer: View {
                         onNext: mediaMonitor.nextTrack
                     )
                     .padding(.top, 8)
+                    .animation(.easeInOut(duration: 0.3), value: mediaMonitor.isPlaying)
 
                     /// Progress bar and time labels
                     TrackScrubberView(mediaMonitor: mediaMonitor)
@@ -40,6 +43,7 @@ struct NotchlyMediaPlayer: View {
                 .opacity(appear ? 1 : 0)
                 .scaleEffect(appear ? 1 : 0.95)
                 .animation(.easeOut(duration: 0.35), value: appear)
+                .animation(.easeInOut(duration: 0.3), value: track.title) /// Animate changes to track info
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .onAppear {
                     appear = true

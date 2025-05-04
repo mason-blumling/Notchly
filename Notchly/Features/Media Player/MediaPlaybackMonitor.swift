@@ -202,8 +202,19 @@ final class MediaPlaybackMonitor: ObservableObject {
                     return
                 }
                 
-                /// Update track info
-                self.nowPlaying = info
+                // Force update by creating a new instance
+                // This ensures SwiftUI detects the change
+                self.nowPlaying = NowPlayingInfo(
+                    title: info.title,
+                    artist: info.artist,
+                    album: info.album,
+                    duration: info.duration,
+                    elapsedTime: info.elapsedTime,
+                    isPlaying: info.isPlaying,
+                    artwork: info.artwork,
+                    appName: info.appName
+                )
+                
                 self.isPlaying = info.isPlaying
                 
                 /// Update duration
@@ -245,7 +256,7 @@ final class MediaPlaybackMonitor: ObservableObject {
             }
         }
     }
-    
+
     private func clearState() {
         nowPlaying = nil
         isPlaying = false
