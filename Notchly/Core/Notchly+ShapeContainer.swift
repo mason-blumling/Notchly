@@ -12,7 +12,7 @@ import SwiftUI
 /// Automatically clips content to the notch shape and animates size/shape changes.
 struct NotchlyShapeContainer<Content: View>: View {
     let configuration: NotchlyConfiguration
-    let state: NotchlyTransitionCoordinator.NotchState
+    let state: NotchlyViewModel.NotchState
     let animation: Animation
     let content: (NotchlyLayoutGuide) -> Content
     var namespace: Namespace.ID?

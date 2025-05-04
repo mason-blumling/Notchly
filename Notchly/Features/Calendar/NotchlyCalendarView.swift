@@ -13,7 +13,7 @@ import AppKit
 /// Integrates date selection and event listing, ensuring smooth UX with animations.
 struct NotchlyCalendarView: View {
     @ObservedObject var calendarManager: CalendarManager
-    @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coord = NotchlyViewModel.shared
     @State private var selectedDate: Date = Date()
     @State private var weatherInfo: WeatherData?
 

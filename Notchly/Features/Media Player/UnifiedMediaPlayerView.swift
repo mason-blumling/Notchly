@@ -17,7 +17,7 @@ struct UnifiedMediaPlayerView: View {
     @State private var backgroundGlowColor: Color = .clear
     @State private var showBars = false
 
-    @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     // MARK: - Player State Enum
 

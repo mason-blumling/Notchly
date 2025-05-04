@@ -33,7 +33,7 @@ struct ArtworkView: View {
     var isExpanded: Bool = false
     var action: (() -> Void)? = nil
 
-    @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     // MARK: - Body
 

@@ -13,7 +13,7 @@ import Combine
 struct NotchlyContainerView: View {
     // MARK: - Dependencies
 
-    @ObservedObject var notchly: Notchly
+    @ObservedObject var viewModel: NotchlyViewModel
     @EnvironmentObject var appEnvironment: AppEnvironment
 
     @Namespace private var notchAnimation
@@ -30,12 +30,12 @@ struct NotchlyContainerView: View {
     private var mediaMonitor: MediaPlaybackMonitor { appEnvironment.mediaMonitor }
     private var calendarManager: CalendarManager { appEnvironment.calendarManager }
 
-    @ObservedObject private var coordinator = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     // MARK: - Init
 
-    init(notchly: Notchly) {
-        self.notchly = notchly
+    init(viewModel: NotchlyViewModel) {
+        self.viewModel = viewModel
         let manager = AppEnvironment.shared.calendarManager
         _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: manager))
     }
@@ -136,7 +136,7 @@ struct NotchlyContainerView: View {
                     }
                 }
                 .onHover { hovering in
-                    guard !notchly.ignoreHoverOnboarding else { return }
+                    guard !viewModel.ignoreHoverOnboarding else { return }
                     debounceHover(hovering)
                 }
 
@@ -157,9 +157,9 @@ struct NotchlyContainerView: View {
     private func debounceHover(_ hovering: Bool) {
         debounceWorkItem?.cancel()
         debounceWorkItem = DispatchWorkItem {
-            guard hovering != notchly.isMouseInside else { return }
+            guard hovering != viewModel.isMouseInside else { return }
             withAnimation(coordinator.animation) {
-                notchly.isMouseInside = hovering
+                viewModel.isMouseInside = hovering
                 coordinator.update(
                     expanded: hovering,
                     mediaActive: mediaMonitor.isPlaying,
@@ -184,7 +184,7 @@ struct NotchlyContainerView: View {
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
             .sink { isActive in
-                notchly.calendarHasLiveActivity = isActive
+                viewModel.calendarHasLiveActivity = isActive
                 forceCollapseForCalendar = true
 
                 /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
@@ -214,7 +214,7 @@ struct NotchlyContainerView: View {
         /// Respond to media playback changes
         mediaMonitor.$isPlaying
             .sink { playing in
-                notchly.isMediaPlaying = playing
+                viewModel.isMediaPlaying = playing
 
                 if coordinator.state != .expanded {
                     coordinator.update(

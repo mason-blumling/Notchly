@@ -14,7 +14,7 @@ struct LiveActivityView<LeftContent: View, RightContent: View>: View {
     private let leftContent: () -> LeftContent
     private let rightContent: () -> RightContent
 
-    @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coord = NotchlyViewModel.shared
 
     // MARK: - Init
 

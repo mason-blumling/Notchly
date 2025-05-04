@@ -21,7 +21,7 @@ struct NotchlyLayoutGuide {
     let safeBounds: CGRect
 
     /// Current notch UI state (collapsed, activity, expanded).
-    let state: NotchlyTransitionCoordinator.NotchState
+    let state: NotchlyViewModel.NotchState
 
     // MARK: - Content Sizing Helpers
 

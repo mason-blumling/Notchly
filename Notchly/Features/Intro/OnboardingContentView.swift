@@ -13,7 +13,7 @@ struct OnboardingContentView: View {
     var onComplete: () -> Void
 
     // Central transition coordinator for notch sizing
-    @ObservedObject private var coord = NotchlyTransitionCoordinator.shared
+    @ObservedObject private var coord = NotchlyViewModel.shared
 
     var body: some View {
         NotchlyShapeContainer(
@@ -62,7 +62,7 @@ struct OnboardingContentView_Previews: PreviewProvider {
             .background(Color.black)
             .onAppear {
                 /// switch into expanded so config = .large
-                NotchlyTransitionCoordinator.shared.state = .expanded
+                NotchlyViewModel.shared.state = .expanded
             }
             .previewLayout(.sizeThatFits)
     }
