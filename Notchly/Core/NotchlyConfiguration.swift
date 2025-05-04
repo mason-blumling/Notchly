@@ -56,6 +56,15 @@ public struct NotchlyConfiguration: Equatable {
         bottomCornerRadius: 20,
         shadowRadius: 0
     )
+    
+    /// Special configuration for the intro/onboarding experience
+    public static let intro = NotchlyConfiguration(
+        width: 800,
+        height: 225,
+        topCornerRadius: 15,
+        bottomCornerRadius: 15,
+        shadowRadius: 0
+    )
 }
 
 /// Preview different Notchly configurations.
@@ -65,7 +74,8 @@ struct NotchConfigurationsPreview: View {
         ("Activity", .activity),
         ("Small", .small),
         ("Medium", .medium),
-        ("Large", .large)
+        ("Large", .large),
+        ("Intro", .intro)
     ]
 
     var body: some View {
