@@ -32,6 +32,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
 
+        // Uncomment this line when you want to test the intro flows
+        UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+
         Task { @MainActor in
             /// Create the view model
             self.viewModel = NotchlyViewModel.shared
@@ -39,8 +42,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             /// Initialize and show on the main screen
             if let screen = NSScreen.main {
                 await self.viewModel.initializeWindow(screen: screen)
-                self.viewModel.isVisible = true
+
+                // Handle first launch logic
+                self.handleFirstLaunch()
             }
+        }
+    }
+    
+    /// Handles first launch logic and shows intro if needed
+    @MainActor
+    func handleFirstLaunch() {
+        guard viewModel.isFirstLaunch else {
+            // Normal launch - ensure we're in collapsed state
+            viewModel.state = .collapsed
+            viewModel.isVisible = true
+            return
+        }
+        
+        // First launch - show the intro
+        showIntroSequence()
+    }
+    
+    /// Initiates the intro sequence
+    @MainActor
+    private func showIntroSequence() {
+        Task { @MainActor in
+            // Start in collapsed state
+            viewModel.state = .collapsed
+            viewModel.isVisible = true
+            
+            // Wait a moment for the window to appear
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+            
+            // Expand to intro configuration
+            viewModel.showIntro()
         }
     }
 }

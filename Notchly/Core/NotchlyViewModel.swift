@@ -170,18 +170,26 @@ public final class NotchlyViewModel: ObservableObject {
     private func setupStateObservation() {
         /// Sync configuration any time the state changes
         $state
+            .combineLatest($ignoreHoverOnboarding)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] newState in
+            .sink { [weak self] state, isOnboarding in
                 guard let self = self else { return }
                 
                 let newConfig: NotchlyConfiguration
-                switch newState {
-                case .expanded:
-                    newConfig = .large
-                case .mediaActivity, .calendarActivity:
-                    newConfig = .activity
-                case .collapsed:
-                    newConfig = .default
+                
+                // Special case: if we're in expanded state during onboarding, use intro config
+                if state == .expanded && isOnboarding {
+                    newConfig = .intro
+                } else {
+                    // Normal state mapping
+                    switch state {
+                    case .expanded:
+                        newConfig = .large
+                    case .mediaActivity, .calendarActivity:
+                        newConfig = .activity
+                    case .collapsed:
+                        newConfig = .default
+                    }
                 }
                 
                 withAnimation(self.animation) {

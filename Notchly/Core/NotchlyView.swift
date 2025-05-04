@@ -40,6 +40,22 @@ struct NotchlyView: View {
         _calendarActivityMonitor = StateObject(wrappedValue: CalendarLiveActivityMonitor(calendarManager: manager))
     }
 
+    // MARK: - First Time Launch
+
+    /// Determines if the intro should be shown instead of normal content
+    var shouldShowIntro: Bool {
+        coordinator.state == .expanded && coordinator.ignoreHoverOnboarding
+    }
+    
+    /// Creates the intro view that replaces normal content during onboarding
+    @ViewBuilder
+    func introContent() -> some View {
+        IntroView {
+            // Called when intro completes
+            coordinator.completeIntro()
+        }
+    }
+
     // MARK: - Live Activity Logic
 
     /// Determines whether the calendar live activity alert should show.
@@ -86,52 +102,28 @@ struct NotchlyView: View {
                     animation: coordinator.animation
                 ) { layout in
                     ZStack(alignment: .top) {
-                        /// 🟣 Calendar Live Activity alert
-                        if shouldShowCalendarLiveActivity {
-                            CalendarLiveActivityView(
-                                activityMonitor: calendarActivityMonitor,
-                                namespace: notchAnimation
-                            )
-                            .matchedGeometryEffect(id: "calendarLiveActivity", in: notchAnimation)
-                            .transition(.opacity.combined(with: .scale))
-                            .zIndex(999)
-                        }
-
-                        /// 🟢 Expanded State (media + calendar content)
-                        if coordinator.state == .expanded {
-                            HStack(alignment: .top, spacing: 0) {
-                                UnifiedMediaPlayerView(
-                                    mediaMonitor: mediaMonitor,
-                                    isExpanded: true,
+                        /// Check if we should show intro
+                        if shouldShowIntro {
+                            introContent()
+                        } else {
+                            /// 🟣 Calendar Live Activity alert
+                            if shouldShowCalendarLiveActivity {
+                                CalendarLiveActivityView(
+                                    activityMonitor: calendarActivityMonitor,
                                     namespace: notchAnimation
                                 )
-                                .frame(
-                                    width: layout.leftContentFrame.width,
-                                    height: layout.leftContentFrame.height
-                                )
-
-                                NotchlyCalendarView(calendarManager: calendarManager)
-                                    .frame(
-                                        width: layout.rightContentFrame.width,
-                                        height: layout.rightContentFrame.height
-                                    )
+                                .matchedGeometryEffect(id: "calendarLiveActivity", in: notchAnimation)
+                                .transition(.opacity.combined(with: .scale))
+                                .zIndex(999)
                             }
-                            .frame(width: layout.bounds.width)
-                            .opacity(expandedContentOpacity)
 
-                        /// 🟡 Collapsed or Activity State (media preview)
-                        } else {
-                            UnifiedMediaPlayerView(
-                                mediaMonitor: mediaMonitor,
-                                isExpanded: false,
-                                namespace: notchAnimation
-                            )
-                            .frame(
-                                width: layout.bounds.width,
-                                height: layout.bounds.height,
-                                alignment: .leading
-                            )
-                            .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
+                            /// 🟢 Expanded State (media + calendar content)
+                            if coordinator.state == .expanded {
+                                expandedContent(in: layout)
+                            /// 🟡 Collapsed or Activity State (media preview)
+                            } else {
+                                collapsedContent(in: layout)
+                            }
                         }
                     }
                 }
@@ -150,6 +142,44 @@ struct NotchlyView: View {
         .onAppear {
             setupSubscriptions()
         }
+    }
+    
+    // MARK: - Content Views
+    
+    private func expandedContent(in layout: NotchlyLayoutGuide) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            UnifiedMediaPlayerView(
+                mediaMonitor: mediaMonitor,
+                isExpanded: true,
+                namespace: notchAnimation
+            )
+            .frame(
+                width: layout.leftContentFrame.width,
+                height: layout.leftContentFrame.height
+            )
+
+            NotchlyCalendarView(calendarManager: calendarManager)
+                .frame(
+                    width: layout.rightContentFrame.width,
+                    height: layout.rightContentFrame.height
+                )
+        }
+        .frame(width: layout.bounds.width)
+        .opacity(expandedContentOpacity)
+    }
+    
+    private func collapsedContent(in layout: NotchlyLayoutGuide) -> some View {
+        UnifiedMediaPlayerView(
+            mediaMonitor: mediaMonitor,
+            isExpanded: false,
+            namespace: notchAnimation
+        )
+        .frame(
+            width: layout.bounds.width,
+            height: layout.bounds.height,
+            alignment: .leading
+        )
+        .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
     }
 
     // MARK: - Hover Handling
@@ -173,11 +203,9 @@ struct NotchlyView: View {
     // MARK: - Subscriptions
 
     private func setupSubscriptions() {
-        /// Request calendar permission and evaluate upcoming events
-        calendarManager.requestAccess { granted in
-            if granted {
-                calendarActivityMonitor.evaluateLiveActivity()
-            }
+        /// Only start monitoring calendar if we're not in the intro and have permission
+        if !shouldShowIntro {
+            calendarActivityMonitor.evaluateLiveActivity()
         }
 
         /// Respond to live activity changes
