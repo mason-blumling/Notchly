@@ -132,40 +132,77 @@ struct UnifiedMediaPlayerView: View {
     private func mediaContentView() -> some View {
         HStack(spacing: 0) {
             if let track = mediaMonitor.nowPlaying {
-                // Left padding that adjusts based on state
+                /// Left padding that adjusts based on state
                 Spacer()
                     .frame(width: playerState == .expanded ? 16 : 15)
                 
-                // Single artwork view that scales and animates between states
-                artworkView(for: track)
-                    .frame(width: artworkSize, height: artworkSize)
-                    .matchedGeometryEffect(id: "artworkElement", in: namespace)
+                /// Artwork container with logo overlay
+                ZStack(alignment: playerState == .activity ? .center : .bottomTrailing) {
+                    /// Single artwork view that scales and animates between states
+                    artworkView(for: track)
+                        .frame(width: artworkSize, height: artworkSize)
+                        .matchedGeometryEffect(id: "artworkElement", in: namespace)
+                    
+                    /// App logo - always present but opacity changes
+                    let logoName = track.appName.lowercased() == "spotify"
+                        ? "spotify-Universal"
+                        : "appleMusic-Universal"
+
+                    Image(logoName)
+                        .resizable()
+                        .frame(width: 40, height: 40)
+                        .offset(x: 5, y: 5)
+                        .opacity(playerState == .expanded ? 1 : 0)
+                }
+                .frame(width: artworkSize, height: artworkSize) // Ensure consistent frame
                 
-                /// Content that changes based on state
                 if playerState == .activity {
-                    /// Activity: Audio bars with controlled spacing
+                    /// Activity: Audio bars
                     Spacer()
-                        .frame(maxWidth: .infinity) // This will push audio bars to the right, but not too far
+                        .frame(maxWidth: .infinity)
                     
                     AudioBarsView()
                         .frame(width: 30, height: 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                        .opacity(activityContentOpacity)
                     
                     Spacer()
-                        .frame(width: 15) // Right padding to prevent cutoff
-                } else if playerState == .expanded {
-                    // Expanded: Show media controls
+                        .frame(width: 15)
+                } else {
+                    /// Expanded: Media player
                     Spacer(minLength: 8)
                     
                     NotchlyMediaPlayer(mediaMonitor: mediaMonitor)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .opacity(expandedContentOpacity)
                     
                     Spacer()
                         .frame(width: 16)
                 }
             }
         }
-        .animation(coordinator.animation, value: playerState)
+        .frame(maxHeight: .infinity, alignment: .center) // Center content vertically
+    }
+
+    private var expandedContentOpacity: Double {
+        let expandedWidth: CGFloat = NotchlyConfiguration.large.width
+        let currentWidth = coordinator.configuration.width
+        let progress = (currentWidth - NotchlyConfiguration.default.width) / (expandedWidth - NotchlyConfiguration.default.width)
+        return Double(max(0, min(1, progress)))
+    }
+
+    private var activityContentOpacity: Double {
+        let activityWidth = NotchlyConfiguration.activity.width
+        let defaultWidth = NotchlyConfiguration.default.width
+        let currentWidth = coordinator.configuration.width
+
+        if currentWidth <= defaultWidth {
+            return 0
+        } else if currentWidth >= activityWidth {
+            return coordinator.state == .expanded ? 0 : 1
+        } else {
+            let progress = (currentWidth - defaultWidth) / (activityWidth - defaultWidth)
+            return Double(max(0, min(1, progress)))
+        }
     }
 
     // MARK: - Artwork View
@@ -190,7 +227,7 @@ struct UnifiedMediaPlayerView: View {
                     )
             }
         }
-        .id(track.appName + track.title) // Ensure view identity changes with track changes
+        .id(track.appName + track.title)
     }
 
     // MARK: - Glow Color Utility

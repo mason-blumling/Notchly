@@ -133,7 +133,8 @@ struct NotchlyContainerView: View {
                             .matchedGeometryEffect(id: "mediaPlayer", in: notchAnimation)
                             .frame(
                                 width: layout.bounds.width,
-                                height: layout.bounds.height
+                                height: layout.bounds.height,
+                                alignment: .leading
                             )
                             .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
                         }
