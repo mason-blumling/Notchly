@@ -98,7 +98,10 @@ struct NotchlyShapeView<Content: View>: View {
                 color: NotchlyTheme.shadow,
                 radius: configuration.shadowRadius
             )
-            .animation(animation, value: configuration)
+            .animation(animation, value: configuration.width)
+            .animation(animation, value: configuration.height)
+            .animation(animation, value: configuration.topCornerRadius)
+            .animation(animation, value: configuration.bottomCornerRadius)
 
             /// 🟨 Foreground content sized and aligned using layout guide
             content(layoutGuide)
@@ -117,6 +120,8 @@ struct NotchlyShapeView<Content: View>: View {
                 topCornerRadius: configuration.topCornerRadius
             )
         )
+        .animation(animation, value: configuration.width)
+        .animation(animation, value: configuration.height)
     }
 
     // MARK: - Layout Calculation

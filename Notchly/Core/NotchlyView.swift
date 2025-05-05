@@ -50,6 +50,7 @@ struct NotchlyView: View {
     /// Creates the intro view that replaces normal content during onboarding
     @ViewBuilder
     func introContent() -> some View {
+        // The intro view now handles its own configuration updates
         IntroView {
             // Called when intro completes
             coordinator.completeIntro()

@@ -15,11 +15,22 @@ extension NotchlyViewModel {
     
     // MARK: - Intro Configuration
     
-    /// Logo-specific intro configuration (more square)
+    /// Logo-specific intro configuration (more square for logo animation)
     var introLogoConfig: NotchlyConfiguration {
         NotchlyConfiguration(
-            width: 450,
-            height: 400,
+            width: 320,
+            height: 320,
+            topCornerRadius: 15,
+            bottomCornerRadius: 15,
+            shadowRadius: 0
+        )
+    }
+    
+    /// Medium intro configuration (for logo + text)
+    var introMediumConfig: NotchlyConfiguration {
+        NotchlyConfiguration(
+            width: 550,
+            height: 200,
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -30,7 +41,7 @@ extension NotchlyViewModel {
     var introWideConfig: NotchlyConfiguration {
         NotchlyConfiguration(
             width: 800,
-            height: 225,
+            height: 250,
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -60,19 +71,28 @@ extension NotchlyViewModel {
         // Temporarily ignore hover during intro
         ignoreHoverOnboarding = true
         
-        // Update to intro configuration
+        // Update to intro logo configuration (small square)
         withAnimation(animation) {
             state = .expanded
+            // Starting with a small square for the logo animation
+            configuration = introLogoConfig
         }
     }
-}
-
-// MARK: - State Extensions
-
-extension NotchlyViewModel.NotchState {
-    /// Check if this is an intro state
-    var isIntro: Bool {
-        // We'll treat .expanded as intro when ignoreHoverOnboarding is true
-        return self == .expanded
+    
+    /// Updates the intro configuration based on the current stage
+    func updateIntroConfig(for stage: IntroView.IntroStage) {
+        withAnimation(animation) {
+            switch stage {
+            case .logoDrawing, .logoRainbow:
+                configuration = introLogoConfig
+            case .fullName:
+                configuration = introMediumConfig
+            case .welcome, .permissions, .tips:
+                configuration = introWideConfig
+            case .complete:
+                // Will be handled by completeIntro()
+                break
+            }
+        }
     }
 }

@@ -17,10 +17,10 @@ struct EnhancedNotchlyLogoAnimation: View {
     @State private var showFullText = false            // Controls "otchly" text visibility
     @State private var textProgress = 0.0              // Text reveal animation (0-1)
     @State private var logoShift: CGFloat = 0          // Controls horizontal shift of the N
-    @State private var logoScale: CGFloat = 1.0        // Controls scaling of the N
+    @State private var logoScale: CGFloat = 0.75       // Controls scaling of the N - REDUCED SIZE
     
-    // Visual style
-    private let style = StrokeStyle(lineWidth: 6, lineCap: .round)
+    // Visual style - THINNER LINE for better proportion
+    private let style = StrokeStyle(lineWidth: 4, lineCap: .round)
     
     // Animation timing
     private let nDrawDuration: Double = 3.0
@@ -29,6 +29,9 @@ struct EnhancedNotchlyLogoAnimation: View {
     private let textRevealDuration: Double = 1.5
     private let logoShiftDelay: Double = 6.0
     private let logoShiftDuration: Double = 0.8
+    
+    // Control flag to determine if animations should start
+    var startAnimation: Bool = true
     
     var body: some View {
         ZStack {
@@ -48,25 +51,25 @@ struct EnhancedNotchlyLogoAnimation: View {
                         .stroke(AngularGradient.notchly(offset: gradientOffset), style: style)
                     
                     // Add blur for glow effect
-                    base.blur(radius: 6)
-                    base.blur(radius: 3)
+                    base.blur(radius: 5)
+                    base.blur(radius: 2)
                     base // Crisp outline on top
                 }
             }
+            .scaleEffect(logoScale)  // Start with a smaller scale
             .offset(x: logoShift)
-            .scaleEffect(logoScale)
             
             // MARK: - "otchly" Text
             
             if showFullText {
                 HStack(spacing: 0) {
-                    // Empty space where the N would be
+                    // Empty space where the N would be - INCREASED SPACING
                     Spacer()
-                        .frame(width: 50)
+                        .frame(width: 85) // Wider gap between N and "otchly"
                     
-                    // The "otchly" text
+                    // The "otchly" text - ADJUSTED FONT SIZE
                     Text("otchly")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .opacity(textProgress)
                         .mask(
@@ -79,11 +82,14 @@ struct EnhancedNotchlyLogoAnimation: View {
                                 .scaleEffect(x: textProgress * 2)
                         )
                 }
-                .padding(.leading, 20)
+                .padding(.leading, 40) // INCREASED PADDING
             }
         }
         .onAppear {
-            startAnimationSequence()
+            // Only start animations when instructed (and only in the logoStageView)
+            if startAnimation {
+                startAnimationSequence()
+            }
         }
     }
     
@@ -118,8 +124,8 @@ struct EnhancedNotchlyLogoAnimation: View {
         // Step 4: Shift the N logo to the left and scale it down slightly
         DispatchQueue.main.asyncAfter(deadline: .now() + logoShiftDelay) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                logoShift = -80
-                logoScale = 0.85
+                logoShift = -110 // INCREASED SHIFT
+                logoScale = 0.65 // FURTHER REDUCE SCALE DURING SHIFT
             }
         }
     }

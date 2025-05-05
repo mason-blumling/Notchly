@@ -33,7 +33,7 @@ public final class NotchlyViewModel: ObservableObject {
     @Published var state: NotchState = .collapsed
     
     /// Published shape configuration (width, corner radius, etc.) based on current state.
-    @Published private(set) var configuration: NotchlyConfiguration = .default
+    @Published var configuration: NotchlyConfiguration = .default
     
     /// Window management
     public var windowController: NSWindowController?

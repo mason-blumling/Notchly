@@ -14,7 +14,6 @@ import EventKit
 struct IntroView: View {
     @ObservedObject private var coordinator = NotchlyViewModel.shared
     @State private var currentStage: IntroStage = .logoDrawing
-    @State private var notchSize: NotchSize = .small
     @State private var showContent = false
     @State private var calendarPermissionStatus: PermissionStatus = .unknown
     @State private var automationPermissionStatus: PermissionStatus = .unknown
@@ -26,7 +25,8 @@ struct IntroView: View {
     
     // MARK: - Types
     
-    private enum IntroStage: Int, CaseIterable {
+    // Make this enum public so it can be accessed by NotchlyViewModel
+    public enum IntroStage: Int, CaseIterable {
         case logoDrawing = 0    // Initial N logo animation
         case logoRainbow        // N transitions to rainbow
         case fullName           // "otchly" appears next to the N
@@ -34,41 +34,6 @@ struct IntroView: View {
         case permissions        // Permission requests
         case tips               // Usage tips
         case complete           // Ready to exit
-    }
-    
-    private enum NotchSize {
-        case small      // Initial small square for N drawing
-        case medium     // Medium size for logo+name
-        case large      // Full width for content stages
-        
-        var config: NotchlyConfiguration {
-            switch self {
-            case .small:
-                return NotchlyConfiguration(
-                    width: 300,
-                    height: 300,
-                    topCornerRadius: 15,
-                    bottomCornerRadius: 15,
-                    shadowRadius: 0
-                )
-            case .medium:
-                return NotchlyConfiguration(
-                    width: 500,
-                    height: 250,
-                    topCornerRadius: 15,
-                    bottomCornerRadius: 15,
-                    shadowRadius: 0
-                )
-            case .large:
-                return NotchlyConfiguration(
-                    width: 800,
-                    height: 225,
-                    topCornerRadius: 15,
-                    bottomCornerRadius: 15,
-                    shadowRadius: 0
-                )
-            }
-        }
     }
     
     private enum PermissionStatus {
@@ -90,29 +55,29 @@ struct IntroView: View {
     
     @ViewBuilder
     private func createNotchView() -> some View {
-        NotchlyShapeView(
-            configuration: notchSize.config,
-            state: coordinator.state,
-            animation: coordinator.animation
-        ) { layout in
-            ZStack {
-                switch currentStage {
-                case .logoDrawing, .logoRainbow:
-                    logoStageView(layout: layout)
-                case .fullName:
-                    fullNameStageView(layout: layout)
-                case .welcome:
-                    welcomeStageView(layout: layout)
-                case .permissions:
-                    permissionsStageView(layout: layout)
-                case .tips:
-                    tipsStageView(layout: layout)
-                case .complete:
-                    EmptyView()
-                }
+        ZStack {
+            switch currentStage {
+            case .logoDrawing, .logoRainbow:
+                logoStageView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            case .fullName:
+                fullNameStageView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            case .welcome:
+                welcomeStageView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            case .permissions:
+                permissionsStageView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            case .tips:
+                tipsStageView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            case .complete:
+                EmptyView()
             }
-            .frame(width: layout.contentWidth, height: layout.contentHeight)
         }
+        .animation(NotchlyAnimations.morphAnimation, value: currentStage)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Permission Checking
@@ -128,15 +93,14 @@ struct IntroView: View {
     
     // MARK: - Logo Stage
     
-    private func logoStageView(layout: NotchlyLayoutGuide) -> some View {
-        EnhancedNotchlyLogoAnimation()
-            .frame(
-                width: layout.contentWidth * 0.7,
-                height: layout.contentHeight * 0.7
-            )
+    private func logoStageView() -> some View {
+        EnhancedNotchlyLogoAnimation(startAnimation: true) // Start animations in this stage
             .scaleEffect(showContent ? 1 : 0.5)
             .opacity(showContent ? 1 : 0)
             .onAppear {
+                // Update the notch configuration for this stage
+                coordinator.updateIntroConfig(for: .logoDrawing)
+                
                 withAnimation(.easeOut(duration: 0.6)) {
                     showContent = true
                 }
@@ -145,13 +109,14 @@ struct IntroView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     withAnimation(.easeInOut(duration: 0.8)) {
                         currentStage = .logoRainbow
+                        coordinator.updateIntroConfig(for: .logoRainbow)
                     }
                     
                     // After rainbow effect, transition to full name with medium notch
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation(NotchlyAnimations.morphAnimation) {
-                            notchSize = .medium
                             currentStage = .fullName
+                            coordinator.updateIntroConfig(for: .fullName)
                         }
                     }
                 }
@@ -160,19 +125,24 @@ struct IntroView: View {
     
     // MARK: - Full Name Stage
     
-    private func fullNameStageView(layout: NotchlyLayoutGuide) -> some View {
-        EnhancedNotchlyLogoAnimation()
-            .frame(
-                width: layout.contentWidth * 0.7,
-                height: layout.contentHeight * 0.7
-            )
+    private func fullNameStageView() -> some View {
+        EnhancedNotchlyLogoAnimation(startAnimation: false) // Don't start animations again
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear {
-                // After showing full name, transition to welcome with large notch
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    withAnimation(NotchlyAnimations.morphAnimation) {
-                        notchSize = .large
+                // Update the notch configuration for this stage
+                coordinator.updateIntroConfig(for: .fullName)
+                
+                // After showing full name, begin the transition to welcome
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    // Start transitioning to welcome BEFORE changing the shape
+                    // This ensures content is visible during the entire transition
+                    withAnimation(NotchlyAnimations.morphAnimation.delay(0.3)) {
                         currentStage = .welcome
+                    }
+                    
+                    // Update configuration slightly earlier
+                    withAnimation(NotchlyAnimations.smoothTransition) {
+                        coordinator.updateIntroConfig(for: .welcome)
                     }
                 }
             }
@@ -180,7 +150,7 @@ struct IntroView: View {
     
     // MARK: - Welcome Stage
     
-    private func welcomeStageView(layout: NotchlyLayoutGuide) -> some View {
+    private func welcomeStageView() -> some View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: "macbook")
@@ -226,12 +196,16 @@ struct IntroView: View {
             }
             .buttonStyle(PlainButtonStyle())
         }
+        .opacity(1) // Ensure it's visible immediately
+        .onAppear {
+            coordinator.updateIntroConfig(for: .welcome)
+        }
         .transition(.opacity.combined(with: .scale(scale: 0.95)))
     }
     
     // MARK: - Permissions Stage
     
-    private func permissionsStageView(layout: NotchlyLayoutGuide) -> some View {
+    private func permissionsStageView() -> some View {
         VStack(spacing: 16) {
             VStack(spacing: 8) {
                 Text("Before we get started")
@@ -289,6 +263,9 @@ struct IntroView: View {
                 .buttonStyle(PlainButtonStyle())
                 .disabled(isCheckingPermissions)
             }
+        }
+        .onAppear {
+            coordinator.updateIntroConfig(for: .permissions)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
@@ -348,7 +325,7 @@ struct IntroView: View {
     
     // MARK: - Tips Stage
     
-    private func tipsStageView(layout: NotchlyLayoutGuide) -> some View {
+    private func tipsStageView() -> some View {
         VStack(spacing: 10) {
             Text("Quick Tips")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -396,6 +373,9 @@ struct IntroView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .padding(.top, 5)
+        }
+        .onAppear {
+            coordinator.updateIntroConfig(for: .tips)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
@@ -562,7 +542,7 @@ struct IntroView: View {
     
     private func startIntroSequence() {
         currentStage = .logoDrawing
-        notchSize = .small
+        coordinator.updateIntroConfig(for: .logoDrawing)
     }
     
     private func advanceStage() {
@@ -573,6 +553,7 @@ struct IntroView: View {
             
             withAnimation(.easeInOut(duration: 0.6)) {
                 currentStage = nextStage
+                coordinator.updateIntroConfig(for: nextStage)
             }
         } else {
             completeIntro()
