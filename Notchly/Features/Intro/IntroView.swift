@@ -567,8 +567,8 @@ struct IntroView: View {
         }
     }
     
-    private func completeIntro() {
-        withAnimation(.easeIn(duration: 0.3)) {
+    func completeIntro() {
+        withAnimation(.easeOut(duration: 0.3)) {
             showContent = false
         }
         

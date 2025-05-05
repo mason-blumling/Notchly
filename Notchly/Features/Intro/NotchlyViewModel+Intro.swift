@@ -19,7 +19,7 @@ extension NotchlyViewModel {
     var introLogoConfig: NotchlyConfiguration {
         return NotchlyConfiguration(
             width: 320,
-            height: hasNotch ? 350 : 320,  // Add more height for notch
+            height: hasNotch ? 350 : 320,
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -30,7 +30,7 @@ extension NotchlyViewModel {
     var introMediumConfig: NotchlyConfiguration {
         return NotchlyConfiguration(
             width: 550,
-            height: hasNotch ? 230 : 200,  // Add more height for notch
+            height: hasNotch ? 230 : 200,
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -41,7 +41,7 @@ extension NotchlyViewModel {
     var introWideConfig: NotchlyConfiguration {
         return NotchlyConfiguration(
             width: 800,
-            height: hasNotch ? 280 : 250,  // Add more height for notch
+            height: hasNotch ? 280 : 250,
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -59,22 +59,39 @@ extension NotchlyViewModel {
     func completeIntro() {
         UserDefaults.standard.set(true, forKey: NotchlyViewModel.hasShownIntroKey)
         
-        // Transition to normal collapsed state
+        /// Transition to normal collapsed state
         withAnimation(animation) {
             state = .collapsed
-            ignoreHoverOnboarding = false  // Re-enable hover interaction
+            ignoreHoverOnboarding = false  /// Re-enable hover interaction
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            guard let window = self?.windowController?.window,
+                  let screen = self?.currentScreen else { return }
+            
+            /// Get current window frame
+            var frame = window.frame
+            
+            /// Calculate the center position of the screen
+            let centerX = screen.frame.midX
+            
+            /// Position the window to be perfectly centered
+            frame.origin.x = centerX - (frame.width / 2)
+            
+            /// Apply the centering
+            window.setFrame(frame, display: true, animate: true)
         }
     }
     
     /// Shows the intro experience
     func showIntro() {
-        // Temporarily ignore hover during intro
+        /// Temporarily ignore hover during intro
         ignoreHoverOnboarding = true
         
-        // Update to intro logo configuration (small square)
+        /// Update to intro logo configuration (small square)
         withAnimation(animation) {
             state = .expanded
-            // Starting with a small square for the logo animation
+            /// Starting with a small square for the logo animation
             configuration = introLogoConfig
         }
     }
@@ -90,7 +107,6 @@ extension NotchlyViewModel {
             case .welcome, .permissions, .tips:
                 configuration = introWideConfig
             case .complete:
-                // Will be handled by completeIntro()
                 break
             }
         }

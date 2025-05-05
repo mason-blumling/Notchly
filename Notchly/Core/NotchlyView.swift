@@ -50,9 +50,7 @@ struct NotchlyView: View {
     /// Creates the intro view that replaces normal content during onboarding
     @ViewBuilder
     func introContent() -> some View {
-        // The intro view now handles its own configuration updates
         IntroView {
-            // Called when intro completes
             coordinator.completeIntro()
         }
     }
@@ -93,10 +91,8 @@ struct NotchlyView: View {
     // MARK: - View Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Spacer()
-
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
                 NotchlyShapeView(
                     configuration: coordinator.configuration,
                     state: coordinator.state,
@@ -132,11 +128,10 @@ struct NotchlyView: View {
                     guard !viewModel.ignoreHoverOnboarding else { return }
                     debounceHover(hovering)
                 }
-
-                Spacer()
+                .position(x: geometry.size.width / 2, y: coordinator.configuration.height / 2)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
         .onChange(of: coordinator.state) { _, newState in
             mediaMonitor.setExpanded(newState == .expanded)
         }

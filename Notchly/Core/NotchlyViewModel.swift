@@ -46,12 +46,13 @@ public final class NotchlyViewModel: ObservableObject {
     @Published public var isMouseInside: Bool = false
     @Published public var isMediaPlaying: Bool = false
     @Published public var calendarHasLiveActivity: Bool = false
-    
+    @Published private var isCompletingIntro: Bool = false
+
     // MARK: - Private Properties
     
     private var subscription: AnyCancellable?
     private var subscriptions = Set<AnyCancellable>()
-    private var currentScreen: NSScreen?
+    var currentScreen: NSScreen?
     
     // MARK: - Animation
     
@@ -101,14 +102,18 @@ public final class NotchlyViewModel: ObservableObject {
         guard windowController == nil else { return }
         currentScreen = screen
 
-        /// Detect notch on the specified screen
+        /// Detect notch BEFORE calculating position
         detectNotchPresence(on: screen)
 
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
         
+        /// Calculate the center position accounting for screen width
+        let centerX = screen.frame.origin.x + (screen.frame.width / 2)
+        
+        /// Position the window with the notch shape centered, not the overall frame
         let frame = NSRect(
-            x: screen.frame.origin.x + (screen.frame.width - maxWidth) / 2,
+            x: centerX - (maxWidth / 2),
             y: screen.frame.origin.y + screen.frame.height - maxHeight,
             width: maxWidth, height: maxHeight
         )
@@ -147,6 +152,20 @@ public final class NotchlyViewModel: ObservableObject {
             .foregroundColor(.white)
     }
     
+    func recenterShape() {
+        guard let window = windowController?.window,
+              let screen = currentScreen else { return }
+        
+        /// Reposition window to be exactly centered on screen
+        let centerX = screen.frame.midX
+        let adjustedX = centerX - (configuration.width / 2)
+        let lockedY = screen.frame.maxY - window.frame.height
+        
+        window.setFrameOrigin(NSPoint(x: adjustedX, y: lockedY))
+        
+        print("🔄 Recentering shape: config width=\(configuration.width), window width=\(window.frame.width)")
+    }
+
     private func detectNotchPresence(on screen: NSScreen?) {
         if #available(macOS 12.0, *), let screen = screen {
             hasNotch = screen.safeAreaInsets.top > 0
