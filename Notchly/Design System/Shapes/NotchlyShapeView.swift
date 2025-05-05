@@ -24,6 +24,9 @@ struct NotchlyLayoutGuide {
     let state: NotchlyViewModel.NotchState
 
     // MARK: - Content Sizing Helpers
+    
+    /// Does the active display have a notch
+    let hasNotch: Bool
 
     /// Safe content width (excludes rounded corner padding).
     var contentWidth: CGFloat { safeBounds.width }
@@ -128,8 +131,11 @@ struct NotchlyShapeView<Content: View>: View {
 
     /// Produces a layout guide that defines safe and usable regions inside the notch shape.
     private func createLayoutGuide() -> NotchlyLayoutGuide {
-        /// Slightly shrink content area to avoid overlapping rounded corners
-        let insetTop = configuration.topCornerRadius * 0.65
+        // Detect if we have a notch
+        let hasNotch = NotchlyViewModel.shared.hasNotch
+        
+        // Adjust top inset based on notch presence
+        let insetTop = configuration.topCornerRadius * 0.65 + (hasNotch ? 30 : 0) // Add extra padding for notch
         let insetSide = configuration.bottomCornerRadius * 0.4
 
         return NotchlyLayoutGuide(
@@ -143,7 +149,8 @@ struct NotchlyShapeView<Content: View>: View {
                 width: configuration.width - (insetSide * 2),
                 height: configuration.height - insetTop - insetSide
             ),
-            state: state
+            state: state,
+            hasNotch: hasNotch
         )
     }
 }

@@ -17,9 +17,9 @@ extension NotchlyViewModel {
     
     /// Logo-specific intro configuration (more square for logo animation)
     var introLogoConfig: NotchlyConfiguration {
-        NotchlyConfiguration(
+        return NotchlyConfiguration(
             width: 320,
-            height: 320,
+            height: hasNotch ? 350 : 320,  // Add more height for notch
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -28,9 +28,9 @@ extension NotchlyViewModel {
     
     /// Medium intro configuration (for logo + text)
     var introMediumConfig: NotchlyConfiguration {
-        NotchlyConfiguration(
+        return NotchlyConfiguration(
             width: 550,
-            height: 200,
+            height: hasNotch ? 230 : 200,  // Add more height for notch
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0
@@ -39,9 +39,9 @@ extension NotchlyViewModel {
     
     /// Wide intro configuration (for content stages)
     var introWideConfig: NotchlyConfiguration {
-        NotchlyConfiguration(
+        return NotchlyConfiguration(
             width: 800,
-            height: 250,
+            height: hasNotch ? 280 : 250,  // Add more height for notch
             topCornerRadius: 15,
             bottomCornerRadius: 15,
             shadowRadius: 0

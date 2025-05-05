@@ -76,6 +76,7 @@ struct IntroView: View {
                 EmptyView()
             }
         }
+        .padding(.top, NotchlyViewModel.shared.hasNotch ? 30 : 0)
         .animation(NotchlyAnimations.morphAnimation, value: currentStage)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -326,21 +327,26 @@ struct IntroView: View {
     // MARK: - Tips Stage
     
     private func tipsStageView() -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
+            if NotchlyViewModel.shared.hasNotch {
+                Spacer()
+                    .frame(height: 15) // Reduced from 20 to 15
+            }
+            
             Text("Quick Tips")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .rounded)) // Reduced from 24 to 22
                 .foregroundColor(.white)
                 .overlay(
                     AngularGradient.notchly(offset: Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 360))
                         .mask(
                             Text("Quick Tips")
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                         )
                 )
-                .padding(.bottom, 5)
+                .padding(.bottom, 2) // Reduced from 5 to 2
             
-            HStack(spacing: 20) {
-                // Tip cards in a row
+            HStack(spacing: 15) { // Reduced from 20 to 15
+                // Tip cards in a row - using more compact cards
                 tipCard(
                     icon: "hand.point.up.fill",
                     title: "Hover to Expand",
@@ -360,53 +366,54 @@ struct IntroView: View {
                 )
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 15)
+            .padding(.vertical, 5) // Reduced from 10/15 to 5
             
             Button(action: { completeIntro() }) {
                 Text("Get Started")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded)) // Reduced from 16 to 15
                     .foregroundColor(.black)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8) // Reduced from 10 to 8
                     .padding(.horizontal, 40)
                     .background(Color.white)
                     .clipShape(Capsule())
             }
             .buttonStyle(PlainButtonStyle())
             .padding(.top, 5)
+            .padding(.bottom, NotchlyViewModel.shared.hasNotch ? 5 : 3) // Further reduced padding
         }
         .onAppear {
             coordinator.updateIntroConfig(for: .tips)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
-    
+
+    // More compact tip card
     private func tipCard(icon: String, title: String, description: String) -> some View {
-        VStack(alignment: .center, spacing: 10) {
-            // Icon
+        VStack(alignment: .center, spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 30))
+                .font(.system(size: 22)) // Reduced from 26/30 to 22
                 .foregroundColor(.white)
-                .frame(width: 60, height: 60)
+                .frame(width: 42, height: 42) // Reduced from 50/60 to 42
                 .background(Color.white.opacity(0.15))
                 .clipShape(Circle())
             
             // Title
             Text(title)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 13, weight: .bold, design: .rounded)) // Reduced from 14 to 13
                 .foregroundColor(.white)
             
-            // Description
+            // Description - shorter height
             Text(description)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
+                .font(.system(size: 11, weight: .medium))                .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
-                .frame(height: 50)
+                .frame(height: 35) // Reduced from 40/50 to 35
+                .lineLimit(3)
         }
-        .frame(width: 220)
-        .padding(.vertical, 15)
-        .padding(.horizontal, 10)
+        .frame(width: 200) // Reduced from 220 to 200
+        .padding(.vertical, 10) // Reduced from 12/15 to 10
+        .padding(.horizontal, 8) // Reduced from 10 to 8
         .background(Color.white.opacity(0.1))
-        .cornerRadius(12)
+        .cornerRadius(10) // Reduced from 12 to 10
     }
     
     // MARK: - Permission Helpers

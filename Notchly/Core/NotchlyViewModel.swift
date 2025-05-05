@@ -35,6 +35,8 @@ public final class NotchlyViewModel: ObservableObject {
     /// Published shape configuration (width, corner radius, etc.) based on current state.
     @Published var configuration: NotchlyConfiguration = .default
     
+    @Published var hasNotch: Bool = false
+    
     /// Window management
     public var windowController: NSWindowController?
     
@@ -98,7 +100,10 @@ public final class NotchlyViewModel: ObservableObject {
     public func initializeWindow(screen: NSScreen) async {
         guard windowController == nil else { return }
         currentScreen = screen
-        
+
+        /// Detect notch on the specified screen
+        detectNotchPresence(on: screen)
+
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
         
@@ -140,6 +145,14 @@ public final class NotchlyViewModel: ObservableObject {
         NotchlyView(viewModel: self)
             .environmentObject(AppEnvironment.shared)
             .foregroundColor(.white)
+    }
+    
+    private func detectNotchPresence(on screen: NSScreen?) {
+        if #available(macOS 12.0, *), let screen = screen {
+            hasNotch = screen.safeAreaInsets.top > 0
+        } else {
+            hasNotch = false
+        }
     }
     
     // MARK: - Public API
