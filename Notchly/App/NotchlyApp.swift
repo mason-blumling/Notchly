@@ -59,22 +59,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         
-        // First launch - show the intro
+        // First launch - show the intro sequence
         showIntroSequence()
     }
-    
-    /// Initiates the intro sequence
+
+    /// Initiates the enhanced intro sequence with multi-stage animations
     @MainActor
     private func showIntroSequence() {
         Task { @MainActor in
-            // Start in collapsed state
             viewModel.state = .collapsed
             viewModel.isVisible = true
-            
-            // Wait a moment for the window to appear
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-            
-            // Expand to intro configuration
             viewModel.showIntro()
         }
     }

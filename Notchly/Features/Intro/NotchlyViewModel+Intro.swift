@@ -11,7 +11,31 @@ import SwiftUI
 extension NotchlyViewModel {
     
     /// UserDefaults key for tracking if intro has been shown
-    private static let hasShownIntroKey = "com.notchly.hasShownIntro"
+    static let hasShownIntroKey = "com.notchly.hasShownIntro"
+    
+    // MARK: - Intro Configuration
+    
+    /// Logo-specific intro configuration (more square)
+    var introLogoConfig: NotchlyConfiguration {
+        NotchlyConfiguration(
+            width: 450,
+            height: 400,
+            topCornerRadius: 15,
+            bottomCornerRadius: 15,
+            shadowRadius: 0
+        )
+    }
+    
+    /// Wide intro configuration (for content stages)
+    var introWideConfig: NotchlyConfiguration {
+        NotchlyConfiguration(
+            width: 800,
+            height: 225,
+            topCornerRadius: 15,
+            bottomCornerRadius: 15,
+            shadowRadius: 0
+        )
+    }
     
     // MARK: - Intro State
     
@@ -38,7 +62,7 @@ extension NotchlyViewModel {
         
         // Update to intro configuration
         withAnimation(animation) {
-            state = .expanded  // Use expanded state but with intro config
+            state = .expanded
         }
     }
 }
