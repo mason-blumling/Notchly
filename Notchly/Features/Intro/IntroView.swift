@@ -9,8 +9,7 @@ import SwiftUI
 import AppKit
 import EventKit
 
-/// A complete intro experience for first-time users.
-/// Displays the animated logo, welcome text, permissions, and usage instructions.
+/// A complete intro experience for first-time users with smoothly coordinated animations.
 struct IntroView: View {
     @ObservedObject private var coordinator = NotchlyViewModel.shared
     @State private var currentStage: IntroStage = .logoDrawing
@@ -20,10 +19,21 @@ struct IntroView: View {
     @State private var isCheckingCalendar = false
     @State private var isCheckingAutomation = false
     
+    // Animation state - now centralized
+    @State private var logoAnimationState: LogoAnimationState = .initial
+    
     // Called when the intro sequence completes
     var onComplete: () -> Void
     
     // MARK: - Types
+    
+    // Animation state tracking
+    enum LogoAnimationState: Equatable {
+        case initial      // Before animation starts
+        case drawingN     // Drawing the N
+        case showRainbow  // Rainbow N animation
+        case showFullName // Reveal text alongside logo
+    }
     
     // Make this enum public so it can be accessed by NotchlyViewModel
     public enum IntroStage: Int, CaseIterable {
@@ -56,22 +66,30 @@ struct IntroView: View {
     @ViewBuilder
     private func createNotchView() -> some View {
         ZStack {
+            // IMPORTANT: The logo animation is ALWAYS present
+            // but visibility is controlled by opacity based on stage
+            EnhancedLogoAnimation(state: $logoAnimationState)
+                .id("persistentLogoAnimation")
+                .opacity(showLogoAnimation ? 1.0 : 0.0)
+                .zIndex(10) // Keep logo on top during transitions
+            
+            // Content layers appear based on stage
             switch currentStage {
-            case .logoDrawing, .logoRainbow:
-                logoStageView()
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            case .fullName:
-                fullNameStageView()
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            case .logoDrawing, .logoRainbow, .fullName:
+                Color.clear // Logo is shown from the persistent animation above
+                
             case .welcome:
                 welcomeStageView()
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                
             case .permissions:
                 permissionsStageView()
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                
             case .tips:
                 tipsStageView()
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                
             case .complete:
                 EmptyView()
             }
@@ -79,6 +97,16 @@ struct IntroView: View {
         .padding(.top, NotchlyViewModel.shared.hasNotch ? 30 : 0)
         .animation(NotchlyAnimations.morphAnimation, value: currentStage)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // Computed property to show/hide logo animation
+    private var showLogoAnimation: Bool {
+        switch currentStage {
+        case .logoDrawing, .logoRainbow, .fullName:
+            return true
+        default:
+            return false
+        }
     }
     
     // MARK: - Permission Checking
@@ -91,76 +119,186 @@ struct IntroView: View {
         // For automation, we'll leave it as unknown since we can't check without triggering
         automationPermissionStatus = .unknown
     }
-    
-    // MARK: - Logo Stage
-    
-    private func logoStageView() -> some View {
-        EnhancedNotchlyLogoAnimation(
-            startAnimation: true,
-            coordinateWithNotch: true
-        )
-        .id("logoAnimation")
-        .scaleEffect(showContent ? 1 : 0.5)
-        .opacity(showContent ? 1 : 0)
-        .onAppear {
-            coordinator.updateIntroConfig(for: .logoDrawing)
-            
-            withAnimation(.easeOut(duration: 0.6)) {
-                showContent = true
+
+    struct EnhancedLogoAnimation: View {
+        @Binding var state: LogoAnimationState
+        
+        // Internal animation states
+        @State private var nProgress = 0.0
+        @State private var showRainbow = false
+        @State private var gradientOffset = 0.0
+        @State private var showFullText = false
+        @State private var textProgress = 0.0
+        @State private var logoShift: CGFloat = 0
+        @State private var logoScale: CGFloat = 1.0
+        
+        // Style parameters - adjusted for bigger, more visible logo
+        private let style = StrokeStyle(lineWidth: 5, lineCap: .round)
+        
+        var body: some View {
+            ZStack {
+                // Logo N - made larger (120x120 instead of 80x80)
+                Group {
+                    // White stroke path animation for N
+                    NotchlyLogoShape()
+                        .trim(from: 0, to: nProgress)
+                        .stroke(Color.white, style: style)
+                        .opacity(showRainbow ? 0 : 1)
+                    
+                    // Rainbow gradient path with blur glow
+                    if showRainbow {
+                        let base = NotchlyLogoShape()
+                            .trim(from: 0, to: nProgress)
+                            .stroke(AngularGradient.notchly(offset: gradientOffset), style: style)
+                        
+                        base.blur(radius: 5)
+                        base.blur(radius: 2)
+                        base
+                    }
+                }
+                .scaleEffect(logoScale)
+                .frame(width: 120, height: 120) // Increased from 80x80
+                .offset(x: logoShift)
+                
+                // Text component - positioned closer to the N
+                if showFullText {
+                    // Replace the "otchly" text with this enhanced version
+                    Text("otchly")
+                        .font(.system(size: 46, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .opacity(textProgress)
+                        .shadow(color: .white.opacity(0.5), radius: 2, x: 0, y: 0)
+                        .overlay(
+                            Text("otchly")
+                                .font(.system(size: 46, weight: .bold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.7))
+                                .blur(radius: 3)
+                                .offset(x: 0, y: 1)
+                                .mask(
+                                    Rectangle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [.white, .clear]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .scaleEffect(x: textProgress * 2)
+                                )
+                        )
+                        .offset(x: 70)
+                }
             }
-            
-            // Set up timers for advancing through logo stages
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                withAnimation(.easeInOut(duration: 0.8)) {
-                    currentStage = .logoRainbow
-                    coordinator.updateIntroConfig(for: .logoRainbow)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onChange(of: state) { _, newState in
+                updateAnimationForState(newState)
+            }
+            .onAppear {
+                // Start initial animation if we're in the right state
+                if state == .initial {
+                    state = .drawingN
+                }
+            }
+        }
+        
+        // Responds to state changes with appropriate animations - faster timing
+        private func updateAnimationForState(_ newState: LogoAnimationState) {
+            switch newState {
+            case .initial:
+                // Reset state
+                nProgress = 0
+                showRainbow = false
+                showFullText = false
+                textProgress = 0
+                logoShift = 0
+                logoScale = 1.0
+                
+            case .drawingN:
+                // Draw the N with white stroke - faster animation (2.2s instead of 3.0s)
+                withAnimation(.easeInOut(duration: 2.2)) {
+                    nProgress = 1.0
                 }
                 
-                // After rainbow effect, animate to full name with medium notch
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    // Create a smoother, coordinated transition for expansion + text reveal
-                    withAnimation(NotchlyAnimations.notchExpansion) {
-                        // First expand the notch shape
-                        coordinator.updateIntroConfig(for: .fullName)
-                        currentStage = .fullName
+            case .showRainbow:
+                // Crossfade to rainbow - slightly faster (0.8s instead of 1.0s)
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    showRainbow = true
+                }
+                
+                // Start the rainbow rotation animation
+                withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+                    gradientOffset = 360
+                }
+                
+            case .showFullName:
+                // First shift the logo left - smaller shift since text is closer
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { // Faster spring
+                    logoShift = -65 // Reduced shift from -90 to -65
+                    logoScale = 0.9 // Less scale reduction to keep N more prominent
+                }
+                
+                // Show text container
+                showFullText = true
+                textProgress = 0
+                
+                // Then fade in the text with slight delay - faster reveal
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { // Reduced delay
+                    withAnimation(.easeInOut(duration: 1.2)) { // Slightly faster text reveal
+                        textProgress = 1.0
                     }
                 }
             }
         }
     }
 
+    // MARK: - Animation Sequence
     
-    // MARK: - Full Name Stage
-    
-    private func fullNameStageView() -> some View {
-        // Keep using the same EnhancedNotchlyLogoAnimation instance
-        // but with specific parameters for this stage
-        EnhancedNotchlyLogoAnimation(
-            startAnimation: false,  // Important: Don't restart animation
-            coordinateWithNotch: true
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            // Important: Use a fixed delay to ensure proper timing
-            // with the notch expansion animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // Trigger text reveal notification
-                NotificationCenter.default.post(
-                    name: Notification.Name("NotchlyRevealText"),
-                    object: nil
-                )
+    private func startIntroSequence() {
+        // Set initial stage and config
+        currentStage = .logoDrawing
+        coordinator.updateIntroConfig(for: .logoDrawing)
+        logoAnimationState = .initial
+        
+        // Trigger drawing animation with a tiny delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation {
+                showContent = true
+                logoAnimationState = .drawingN
+            }
+        }
+        
+        // After drawing completes, show rainbow effect - faster timing (2.5s instead of 3.5s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeInOut) {
+                currentStage = .logoRainbow
+                coordinator.updateIntroConfig(for: .logoRainbow)
+                logoAnimationState = .showRainbow
             }
             
-            // After showing full name, prepare transition to welcome
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                withAnimation(NotchlyAnimations.morphAnimation) {
-                    currentStage = .welcome
-                    coordinator.updateIntroConfig(for: .welcome)
+            // After rainbow animates, prepare for full name + notch expansion - faster (1.5s instead of 2.0s)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                // CRITICAL: First expand the notch, then wait for animation to settle
+                withAnimation(NotchlyAnimations.notchExpansion) {
+                    coordinator.updateIntroConfig(for: .fullName)
+                    currentStage = .fullName
+                }
+                
+                // After notch expansion completes, reveal text
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { // Slightly quicker
+                    logoAnimationState = .showFullName
+                }
+                
+                // After allowing time for animations, move to welcome - slightly faster (2.7s instead of 3.0s)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.7) {
+                    withAnimation(NotchlyAnimations.morphAnimation) {
+                        currentStage = .welcome
+                        coordinator.updateIntroConfig(for: .welcome)
+                    }
                 }
             }
         }
     }
-
+    
     // MARK: - Welcome Stage
     
     private func welcomeStageView() -> some View {
@@ -573,29 +711,6 @@ struct IntroView: View {
     
     // MARK: - Sequence Control
     
-    private func startIntroSequence() {
-        currentStage = .logoDrawing
-        coordinator.updateIntroConfig(for: .logoDrawing)
-        
-        // Set up timers for advancing through logo stages
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            withAnimation(.easeInOut(duration: 0.8)) {
-                currentStage = .logoRainbow
-                coordinator.updateIntroConfig(for: .logoRainbow)
-            }
-            
-            // After rainbow effect, prepare for full name transition
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                // Create a smoother, coordinated transition for expansion + text reveal
-                withAnimation(NotchlyAnimations.notchExpansion) {
-                    // First expand the notch shape and change stage
-                    coordinator.updateIntroConfig(for: .fullName)
-                    currentStage = .fullName
-                }
-            }
-        }
-    }
-
     private func advanceStage() {
         // Find the next stage in the sequence
         if let currentIndex = IntroStage.allCases.firstIndex(of: currentStage),
@@ -619,16 +734,5 @@ struct IntroView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             onComplete()
         }
-    }
-}
-
-// MARK: - Preview
-
-struct IntroView_Previews: PreviewProvider {
-    static var previews: some View {
-        IntroView(onComplete: {})
-            .frame(width: 800, height: 300)
-            .background(Color.black)
-            .previewLayout(.sizeThatFits)
     }
 }
