@@ -95,60 +95,70 @@ struct IntroView: View {
     // MARK: - Logo Stage
     
     private func logoStageView() -> some View {
-        EnhancedNotchlyLogoAnimation(startAnimation: true) // Start animations in this stage
-            .scaleEffect(showContent ? 1 : 0.5)
-            .opacity(showContent ? 1 : 0)
-            .onAppear {
-                // Update the notch configuration for this stage
-                coordinator.updateIntroConfig(for: .logoDrawing)
-                
-                withAnimation(.easeOut(duration: 0.6)) {
-                    showContent = true
+        EnhancedNotchlyLogoAnimation(
+            startAnimation: true,
+            coordinateWithNotch: true
+        )
+        .id("logoAnimation")
+        .scaleEffect(showContent ? 1 : 0.5)
+        .opacity(showContent ? 1 : 0)
+        .onAppear {
+            coordinator.updateIntroConfig(for: .logoDrawing)
+            
+            withAnimation(.easeOut(duration: 0.6)) {
+                showContent = true
+            }
+            
+            // Set up timers for advancing through logo stages
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    currentStage = .logoRainbow
+                    coordinator.updateIntroConfig(for: .logoRainbow)
                 }
                 
-                // Set up timers for advancing through logo stages
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    withAnimation(.easeInOut(duration: 0.8)) {
-                        currentStage = .logoRainbow
-                        coordinator.updateIntroConfig(for: .logoRainbow)
-                    }
-                    
-                    // After rainbow effect, transition to full name with medium notch
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        withAnimation(NotchlyAnimations.morphAnimation) {
-                            currentStage = .fullName
-                            coordinator.updateIntroConfig(for: .fullName)
-                        }
+                // After rainbow effect, animate to full name with medium notch
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    // Create a smoother, coordinated transition for expansion + text reveal
+                    withAnimation(NotchlyAnimations.notchExpansion) {
+                        // First expand the notch shape
+                        coordinator.updateIntroConfig(for: .fullName)
+                        currentStage = .fullName
                     }
                 }
             }
+        }
     }
+
     
     // MARK: - Full Name Stage
     
     private func fullNameStageView() -> some View {
-        EnhancedNotchlyLogoAnimation(startAnimation: false) // Don't start animations again
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .onAppear {
-                // Update the notch configuration for this stage
-                coordinator.updateIntroConfig(for: .fullName)
-                
-                // After showing full name, begin the transition to welcome
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    // Start transitioning to welcome BEFORE changing the shape
-                    // This ensures content is visible during the entire transition
-                    withAnimation(NotchlyAnimations.morphAnimation.delay(0.3)) {
-                        currentStage = .welcome
-                    }
-                    
-                    // Update configuration slightly earlier
-                    withAnimation(NotchlyAnimations.smoothTransition) {
-                        coordinator.updateIntroConfig(for: .welcome)
-                    }
+        EnhancedNotchlyLogoAnimation(
+            startAnimation: false,
+            coordinateWithNotch: true
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            // Time the text reveal with the notch expansion
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                // Send the notification to trigger text reveal
+                NotificationCenter.default.post(
+                    name: Notification.Name("NotchlyRevealText"),
+                    object: nil
+                )
+            }
+            
+            // After showing full name, begin transition to welcome
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                // Start transitioning to welcome with a smooth animation
+                withAnimation(NotchlyAnimations.morphAnimation) {
+                    currentStage = .welcome
+                    coordinator.updateIntroConfig(for: .welcome)
                 }
             }
+        }
     }
-    
+
     // MARK: - Welcome Stage
     
     private func welcomeStageView() -> some View {
@@ -480,65 +490,79 @@ struct IntroView: View {
     private func requestAutomationPermission() {
         isCheckingAutomation = true
         
-        // For automation permissions, we'll use a different approach
-        // We'll try to access a simple AppleScript that should work if we have permission
-        let testScript = NSAppleScript(source: """
-            tell application "System Events"
-                -- Just check if we can access System Events
-                return exists
-            end tell
+        // First check if permission is already granted with a non-blocking script
+        let checkScript = NSAppleScript(source: """
+            try
+                tell application "System Events"
+                    return true -- Permission already granted
+                end tell
+            on error
+                return false -- Permission needed
+            end try
         """)
         
-        DispatchQueue.global().async {
-            var errorInfo: NSDictionary?
-            testScript?.executeAndReturnError(&errorInfo)
-            
+        var checkError: NSDictionary?
+        let result = checkScript?.executeAndReturnError(&checkError)
+        
+        if result != nil, let boolValue = result?.booleanValue, boolValue == true {
+            // Permission already granted
             DispatchQueue.main.async {
                 isCheckingAutomation = false
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    automationPermissionStatus = .granted
+                }
                 
-                if errorInfo == nil {
-                    // Permission already granted
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        automationPermissionStatus = .granted
+                if allPermissionsGranted {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        advanceStage()
                     }
-                } else {
-                    // Need to request permission - this will trigger the system dialog
-                    let requestScript = NSAppleScript(source: """
+                }
+            }
+            return
+        }
+        
+        // If we reach here, we need to request permission
+        // Use a light-weight approach that won't freeze the UI
+        DispatchQueue.global(qos: .userInitiated).async {
+            let requestScript = NSAppleScript(source: """
+                tell application "System Events"
+                    -- Simple command that triggers permission dialog
+                    set frontApp to name of first process
+                end tell
+            """)
+            
+            requestScript?.executeAndReturnError(nil)
+            
+            // Check again after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                let verifyScript = NSAppleScript(source: """
+                    try
                         tell application "System Events"
-                            -- This will trigger the permission dialog
-                            set runningApps to name of processes
+                            return true
                         end tell
-                    """)
-                    
-                    var requestError: NSDictionary?
-                    requestScript?.executeAndReturnError(&requestError)
-                    
-                    // After the dialog, check the status
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        let checkScript = NSAppleScript(source: """
-                            tell application "System Events"
-                                return exists
-                            end tell
-                        """)
-                        
-                        var checkError: NSDictionary?
-                        checkScript?.executeAndReturnError(&checkError)
-                        
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            automationPermissionStatus = checkError == nil ? .granted : .denied
-                        }
-                        
-                        if allPermissionsGranted {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                advanceStage()
-                            }
-                        }
+                    on error
+                        return false
+                    end try
+                """)
+                
+                var verifyError: NSDictionary?
+                let verifyResult = verifyScript?.executeAndReturnError(&verifyError)
+                let granted = verifyResult != nil && verifyResult?.booleanValue == true
+                
+                isCheckingAutomation = false
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    automationPermissionStatus = granted ? .granted : .denied
+                }
+                
+                if allPermissionsGranted {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        advanceStage()
                     }
                 }
             }
         }
     }
-    
+
     private func openSystemPreferences() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
             NSWorkspace.shared.open(url)
@@ -550,8 +574,26 @@ struct IntroView: View {
     private func startIntroSequence() {
         currentStage = .logoDrawing
         coordinator.updateIntroConfig(for: .logoDrawing)
+        
+        // Set up timers for advancing through logo stages
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            withAnimation(.easeInOut(duration: 0.8)) {
+                currentStage = .logoRainbow
+                coordinator.updateIntroConfig(for: .logoRainbow)
+            }
+            
+            // After rainbow effect, prepare for full name transition
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                // Create a smoother, coordinated transition for expansion + text reveal
+                withAnimation(NotchlyAnimations.notchExpansion) {
+                    // First expand the notch shape and change stage
+                    coordinator.updateIntroConfig(for: .fullName)
+                    currentStage = .fullName
+                }
+            }
+        }
     }
-    
+
     private func advanceStage() {
         // Find the next stage in the sequence
         if let currentIndex = IntroStage.allCases.firstIndex(of: currentStage),

@@ -59,8 +59,14 @@ extension NotchlyViewModel {
     func completeIntro() {
         UserDefaults.standard.set(true, forKey: NotchlyViewModel.hasShownIntroKey)
         
-        /// Transition to normal collapsed state
+        /// When ending the intro sequence, set the isInIntroSequence flag to false
+        isInIntroSequence = false
+        
+        /// First ensure we set the configuration to the default/collapsed size
+        /// IMPORTANT: This should happen BEFORE changing the state
         withAnimation(animation) {
+            /// Set configuration first, then state
+            configuration = .default
             state = .collapsed
             ignoreHoverOnboarding = false  /// Re-enable hover interaction
         }
@@ -85,24 +91,36 @@ extension NotchlyViewModel {
     
     /// Shows the intro experience
     func showIntro() {
-        /// Temporarily ignore hover during intro
+        /// 1. Set flag that we're in intro sequence - this prevents automatic config changes
+        /// 2. Set ignore hover flag
+        isInIntroSequence = true
         ignoreHoverOnboarding = true
         
-        /// Update to intro logo configuration (small square)
-        withAnimation(animation) {
-            state = .expanded
-            /// Starting with a small square for the logo animation
-            configuration = introLogoConfig
+        /// 3. Start with collapsed
+        state = .collapsed
+        configuration = .default
+        
+        /// 4. Small delay then animate to logo config
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self = self else { return }
+            
+            withAnimation(self.animation) {
+                self.configuration = self.introLogoConfig
+                self.state = .expanded
+            }
         }
     }
-    
+
     /// Updates the intro configuration based on the current stage
     func updateIntroConfig(for stage: IntroView.IntroStage) {
+        if stage == .complete {
+            /// End of intro sequence, so restore normal behavior
+            isInIntroSequence = false
+        }
+        
         withAnimation(animation) {
             switch stage {
-            case .logoDrawing, .logoRainbow:
-                configuration = introLogoConfig
-            case .fullName:
+            case .logoDrawing, .logoRainbow, .fullName:
                 configuration = introMediumConfig
             case .welcome, .permissions, .tips:
                 configuration = introWideConfig

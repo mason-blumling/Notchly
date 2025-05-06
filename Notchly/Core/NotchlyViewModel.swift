@@ -47,6 +47,7 @@ public final class NotchlyViewModel: ObservableObject {
     @Published public var isMediaPlaying: Bool = false
     @Published public var calendarHasLiveActivity: Bool = false
     @Published private var isCompletingIntro: Bool = false
+    @Published var isInIntroSequence = false
 
     // MARK: - Private Properties
     
@@ -202,18 +203,23 @@ public final class NotchlyViewModel: ObservableObject {
     private func setupStateObservation() {
         /// Sync configuration any time the state changes
         $state
-            .combineLatest($ignoreHoverOnboarding)
+            .combineLatest($ignoreHoverOnboarding, $isInIntroSequence)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] state, isOnboarding in
+            .sink { [weak self] state, isOnboarding, isInIntro in
                 guard let self = self else { return }
+                
+                /// Skip automatic configuration if we're in intro sequence
+                if isInIntro {
+                    return
+                }
                 
                 let newConfig: NotchlyConfiguration
                 
-                // Special case: if we're in expanded state during onboarding, use intro config
+                /// Special case: if we're in expanded state during onboarding, use intro config
                 if state == .expanded && isOnboarding {
                     newConfig = .intro
                 } else {
-                    // Normal state mapping
+                    /// Normal state mapping
                     switch state {
                     case .expanded:
                         newConfig = .large
