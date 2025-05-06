@@ -6,54 +6,53 @@
 ![Icon-256](https://github.com/user-attachments/assets/a8821599-f304-4a76-bbdd-77d38af7a571)
 ![Icon-256](https://github.com/user-attachments/assets/a8821599-f304-4a76-bbdd-77d38af7a571)
 
-Notchly is a macOS app that transforms the underutilized notch area on MacBook displays into a dynamic productivity hub. Inspired by the iPhone's Dynamic Island, Notchly combines elegance with powerful functionality to enhance your user experience through seamless tool integration and smooth animations.
+**Notchly** transforms the underutilized notch area on MacBooks into a buttery-smooth productivity hub.  
+Inspired by iPhone’s Dynamic Island. Built with SwiftUI. Backed by modular, real-time logic.
+
 </div>
 
 ---
 
 ## Vision
 
-Notchly aims to create a lightweight, user-friendly app that unlocks the full potential of your MacBook's notch by turning it into a dynamic space for productivity and interaction.
+Notchly turns the notch into a dynamic space for productivity — blending calendar, media, and live activity intelligence into a beautiful, hover-triggered interface.
 
 ---
 
 ## V2.0.0 Highlights
 
+### ✨ All-New Onboarding
+
+- Modular intro flow driven by SwiftUI enums (`IntroStage`, `LogoAnimationState`)
+- Animated path-drawing logo, rainbow transitions, and text reveal using native SwiftUI effects
+- Permission request logic that’s non-blocking, sandbox-friendly, and fully lifecycle-aware
+
+> _See [`fd8b321`](https://github.com/mason-blumling/Notchly/commit/fd8b3210ebcba2aa98da80d6962da98120811a99) for this milestone._
+
 ### 🚀 New Features
 
 - **Media Player Live Activities**  
-  Displays compact now-playing info in the notch when media is playing but not expanded.
+  Compact "now playing" controls auto-appear in the notch when music plays.
 
 - **Calendar Live Activities**  
-  Heads-up alerts appear in the notch 15m, 5m, and 1m before your next event — including countdown mode.
+  Pulsing notch alerts appear 15, 5, and 1 minute before upcoming events — with countdowns.
 
 - **Centralized App Environment**  
-  SwiftUI environment injection makes state and data flow more robust and scalable.
+  SwiftUI `.environmentObject` injection now powers shared state across the app.
 
-- **Modular Architecture**  
-  Media and calendar systems are now fully modularized for easier maintenance and cleaner transitions.
+- **NotchlyIntro**  
+  A delightful animated experience that introduces users to the notch with custom transitions, spring physics, and state-bound SwiftUI sequences.
 
 ### 💡 UX & Animation Improvements
 
 - **Perfectly Timed Transitions**  
-  Matched geometry, spring physics, and new animation helpers ensure buttery smooth expansion/contraction.
+  Matched geometry, spring physics, and new animation helpers ensure a polished, native feel.
 
 - **Live Syncing**  
-  Notch state reflects real-time changes from Calendar and Media without needing to hover.
+  Calendar and media changes update the notch in real time — no hover needed.
 
-- **Adaptive Layouts**  
-  Views now respect notch constraints and prevent visual bounce, overflow, or ghosting.
-
-### 🧼 Codebase Cleanup
-
-- **Memory & Performance Improvements**  
-  All timers, observers, and polling systems now respect lifecycle. Memory leaks resolved.
-
-- **Calendar + Media Overhaul**  
-  The entire stack was cleaned up to reduce redundant logic and better handle edge cases.
-
-- **Refined Logging + State Observers**  
-  Less spammy logging. Improved real-time debug output for playback, event triggers, and lifecycle changes.
+- **Intro-Driven Notch Expansion**  
+  The app's first-launch experience now visually expands the notch as part of the welcome animation.
 
 ---
 
@@ -63,46 +62,42 @@ Notchly aims to create a lightweight, user-friendly app that unlocks the full po
 
 - Smart event grouping, attendee logic, conflict detection
 - Auto-scroll to next event
-- Dynamic height adjustment
-- SwiftUI-native animations
+- SwiftUI-native event list and height animation
+- Live countdowns before meetings
 
 ### 🎵 Media Module
 
-- Apple Music + Spotify playback
-- Album artwork glow effect
-- Track info, controls, and scrubber
-- Idle fallback for no playback
-- Podcast support (fallback only for now)
+- Apple Music + Spotify support
+- Animated artwork glow + fallback states
+- Scrubber, controls, and hover transitions
+- Modular subviews for artwork, audio bars, metadata, and controls
 
-### ✨ Notch UI
+### 🖥️ Notch UI
 
-- Three modes: Collapsed, Activity, Expanded
-- Springy transitions and bounce feedback
-- Custom shape rendering per display
-- Hover detection with debounce logic
-- Lightweight matchedGeometryEffect implementation
+- Three states: Collapsed, Activity, Expanded
+- Springy bounce feedback + shape morphing
+- Custom notch shape rendering per display
+- Lightweight hover detection + debounce logic
+- LiveActivityView: unified layout for calendar + media overlays
 
 ---
 
 ## Coming Soon
 
-- **Window Resizing & Placement**  
-  Drag a window to the notch and let go to anchor + resize it to a supported area.
+- **Window Docking & Resize**  
+  Drag other windows to the notch to dock them into supported zones.
 
-- **Live Weather**  
-  Pull real-time forecast data directly into the notch.
+- **Weather Overlay**  
+  Real-time forecast inside the notch (in compact mode).
 
-- **Airdrop + Clipboard Features**  
-  View current transfers or copied content without leaving your flow.
+- **Clipboard & Airdrop Tracking**  
+  Let the notch reflect system transfers and copy history without breaking flow.
 
-- **AI-Based Features**  
-  Smart summaries, event suggestions, media cueing, and more.
+- **AI-Powered Assist**  
+  Summarize events, suggest music, auto-respond to meetings.
 
-- **Performance Optimizations**  
-  Additional energy use and memory profiling for long idle use.
-
-- **Sparkle Update Support**  
-  Built-in “Check for Updates” button with background version tracking.
+- **Sparkle Updates**  
+  One-click version checks + automatic update support.
 
 ---
 
@@ -112,7 +107,7 @@ Notchly aims to create a lightweight, user-friendly app that unlocks the full po
 
 - macOS 14.0+
 - Xcode 15+
-- A Mac with a notch (MacBook Pro or Air with Apple Silicon preferred)
+- A MacBook with a notch (M1 Pro or newer preferred)
 
 ### Installation
 
