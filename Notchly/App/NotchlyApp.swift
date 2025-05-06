@@ -32,8 +32,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
 
-        // Uncomment this line when you want to test the intro flows
-        UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+        /// Uncomment this line when you want to test the intro flows
+        /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
 
         Task { @MainActor in
             /// Create the view model
@@ -43,7 +43,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if let screen = NSScreen.main {
                 await self.viewModel.initializeWindow(screen: screen)
 
-                // Handle first launch logic
+                /// Handle first launch logic
                 self.handleFirstLaunch()
             }
         }
@@ -53,13 +53,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func handleFirstLaunch() {
         guard viewModel.isFirstLaunch else {
-            // Normal launch - ensure we're in collapsed state
+            /// Normal launch - ensure we're in collapsed state
             viewModel.state = .collapsed
             viewModel.isVisible = true
             return
         }
         
-        // First launch - show the intro sequence
+        /// First launch - show the intro sequence
         showIntroSequence()
     }
 
