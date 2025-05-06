@@ -133,24 +133,26 @@ struct IntroView: View {
     // MARK: - Full Name Stage
     
     private func fullNameStageView() -> some View {
+        // Keep using the same EnhancedNotchlyLogoAnimation instance
+        // but with specific parameters for this stage
         EnhancedNotchlyLogoAnimation(
-            startAnimation: false,
+            startAnimation: false,  // Important: Don't restart animation
             coordinateWithNotch: true
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            // Time the text reveal with the notch expansion
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                // Send the notification to trigger text reveal
+            // Important: Use a fixed delay to ensure proper timing
+            // with the notch expansion animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // Trigger text reveal notification
                 NotificationCenter.default.post(
                     name: Notification.Name("NotchlyRevealText"),
                     object: nil
                 )
             }
             
-            // After showing full name, begin transition to welcome
+            // After showing full name, prepare transition to welcome
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                // Start transitioning to welcome with a smooth animation
                 withAnimation(NotchlyAnimations.morphAnimation) {
                     currentStage = .welcome
                     coordinator.updateIntroConfig(for: .welcome)

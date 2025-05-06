@@ -53,6 +53,7 @@ struct NotchlyView: View {
         IntroView {
             coordinator.completeIntro()
         }
+        .id("introView")
     }
 
     // MARK: - Live Activity Logic
