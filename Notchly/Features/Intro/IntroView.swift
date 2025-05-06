@@ -11,6 +11,8 @@ import EventKit
 
 /// A complete intro experience for first-time users with smoothly coordinated animations.
 struct IntroView: View {
+    // MARK: - State & Environment
+
     @ObservedObject private var coordinator = NotchlyViewModel.shared
     @State private var currentStage: IntroStage = .logoDrawing
     @State private var showContent = false
@@ -19,43 +21,42 @@ struct IntroView: View {
     @State private var isCheckingCalendar = false
     @State private var isCheckingAutomation = false
     @State private var playSound = false
-    
-    // Animation state - now centralized
     @State private var logoAnimationState: LogoAnimationState = .initial
-    
-    // Called when the intro sequence completes
+
+    /// Completion handler triggered when the intro finishes
     var onComplete: () -> Void
-    
+
     // MARK: - Types
-    
-    // Animation state tracking
+
+    /// Enum tracking internal logo animation state
     enum LogoAnimationState: Equatable {
         case initial      // Before animation starts
-        case drawingN     // Drawing the N
-        case showRainbow  // Rainbow N animation
-        case showFullName // Reveal text alongside logo
+        case drawingN     // Drawing the "N"
+        case showRainbow  // Morph to rainbow coloring
+        case showFullName // Reveal "otchly" text
     }
-    
-    // Make this enum public so it can be accessed by NotchlyViewModel
+
+    /// Enum controlling stages of the onboarding experience
     public enum IntroStage: Int, CaseIterable {
-        case logoDrawing = 0    // Initial N logo animation
-        case logoRainbow        // N transitions to rainbow
-        case fullName           // "otchly" appears next to the N
-        case welcome            // Welcome message
-        case permissions        // Permission requests
-        case tips               // Usage tips
-        case complete           // Ready to exit
+        case logoDrawing = 0
+        case logoRainbow
+        case fullName
+        case welcome
+        case permissions
+        case tips
+        case complete
     }
-    
+
+    /// Enum tracking permission status for calendar/automation
     private enum PermissionStatus {
         case unknown
         case checking
         case granted
         case denied
     }
-    
-    // MARK: - Body
-    
+
+    // MARK: - Main View
+
     var body: some View {
         createNotchView()
             .onAppear {
@@ -63,50 +64,45 @@ struct IntroView: View {
                 checkPermissions()
             }
     }
-    
+
+    /// Primary notch animation container view
     @ViewBuilder
     private func createNotchView() -> some View {
         GeometryReader { geometry in
             ZStack {
-                // IMPORTANT: The logo animation is ALWAYS present
-                // but visibility is controlled by opacity based on stage
+                // Main logo animation (always mounted)
                 EnhancedLogoAnimation(state: $logoAnimationState)
                     .id("persistentLogoAnimation")
                     .opacity(showLogoAnimation ? 1.0 : 0.0)
-                    .zIndex(10) // Keep logo on top during transitions
+                    .zIndex(10)
                     .onChange(of: logoAnimationState) { _, newState in
                         triggerStateHaptics(for: newState)
                     }
-                
-                // Content layers appear based on stage
+
+                // Screen-specific overlay content
                 switch currentStage {
                 case .logoDrawing, .logoRainbow, .fullName:
-                    Color.clear // Logo is shown from the persistent animation above
-                    
+                    Color.clear
                 case .welcome:
                     welcomeStageView()
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    
                 case .permissions:
                     permissionsStageView(geometry: geometry)
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    
                 case .tips:
                     tipsStageView(geometry: geometry)
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    
                 case .complete:
                     EmptyView()
                 }
             }
-            // Reduced notch padding to avoid pushing content down too much
             .padding(.top, NotchlyViewModel.shared.hasNotch ? min(15, geometry.size.height * 0.05) : 0)
             .animation(NotchlyAnimations.morphAnimation, value: currentStage)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
-    
-    // Computed property to show/hide logo animation
+
+    /// Whether to show the logo animation overlay
     private var showLogoAnimation: Bool {
         switch currentStage {
         case .logoDrawing, .logoRainbow, .fullName:
@@ -115,56 +111,51 @@ struct IntroView: View {
             return false
         }
     }
-    
-    // MARK: - Haptic Feedback
-    
+
+    // MARK: - Haptics
+
+    /// Triggers macOS haptic feedback (if available)
     private func triggerHapticFeedback() {
         NSHapticFeedbackManager.defaultPerformer.perform(
             .levelChange,
             performanceTime: .default
         )
     }
-    
-    // Trigger haptics based on animation state changes
+
+    /// Applies haptic feedback on animation state transitions
     private func triggerStateHaptics(for state: LogoAnimationState) {
         switch state {
-        case .drawingN:
-            triggerHapticFeedback()
-        case .showRainbow:
-            triggerHapticFeedback()
-        case .showFullName:
+        case .drawingN, .showRainbow, .showFullName:
             triggerHapticFeedback()
         default:
             break
         }
     }
-    
-    // MARK: - Permission Checking
-    
+
+    // MARK: - Permissions
+
+    /// Initial permission status checks
     private func checkPermissions() {
-        // Check calendar permission
         let calendarStatus = EKEventStore.authorizationStatus(for: .event)
         calendarPermissionStatus = calendarStatus == .fullAccess ? .granted : .unknown
-        
-        // For automation, we'll leave it as unknown since we can't check without triggering
-        automationPermissionStatus = .unknown
+        automationPermissionStatus = .unknown // Cannot check without prompting
     }
-    
+
     // MARK: - Enhanced Components
-    
-    // Custom button style with hover effect
+
+    /// A capsule-shaped hoverable button with spring animation.
     struct HoverButtonStyle: ButtonStyle {
         var foregroundColor: Color
         var backgroundColor: Color
         var hoverColor: Color
-        
+
         @State private var isHovering = false
-        
+
         func makeBody(configuration: Configuration) -> some View {
             configuration.label
                 .foregroundColor(foregroundColor)
-                .padding(.vertical, 6) // Reduced from 8
-                .padding(.horizontal, 20) // Reduced from 30
+                .padding(.vertical, 6)
+                .padding(.horizontal, 20)
                 .background(isHovering ? hoverColor : backgroundColor)
                 .clipShape(Capsule())
                 .scaleEffect(configuration.isPressed ? 0.95 : 1)
@@ -177,41 +168,41 @@ struct IntroView: View {
         }
     }
 
+    /// Displays the animated N logo with transitions from white to rainbow to full 'Notchly' name.
     struct EnhancedLogoAnimation: View {
         @Binding var state: LogoAnimationState
-        
-        // Internal animation states
-        @State private var nProgress = 0.0
-        @State private var showRainbow = false
-        @State private var gradientOffset = 0.0
-        @State private var showFullText = false
-        @State private var textProgress = 0.0
-        @State private var logoShift: CGFloat = 0
-        @State private var logoScale: CGFloat = 1.0
-        
-        // Style parameters - adjusted for bigger, more visible logo
+
+        // MARK: - Animation State
+        @State private var nProgress = 0.0           // Trimmed stroke progress for 'N'
+        @State private var showRainbow = false       // Toggle for rainbow mode
+        @State private var gradientOffset = 0.0      // Angular gradient animation
+        @State private var showFullText = false      // Toggle for showing full 'Notchly'
+        @State private var textProgress = 0.0        // Opacity progress of text
+        @State private var logoShift: CGFloat = 0    // Horizontal shift during logo animation
+        @State private var logoScale: CGFloat = 1.0  // Scaling animation for logo
+
+        // MARK: - Style
         private let style = StrokeStyle(lineWidth: 5, lineCap: .round)
-        
+
         var body: some View {
             GeometryReader { geometry in
-                let size = min(geometry.size.width * 0.3, 120)
-                let fontSize = min(geometry.size.width * 0.12, 46)
-                
+                let size = min(geometry.size.width * 0.3, 120)       /// Max logo size
+                let fontSize = min(geometry.size.width * 0.12, 46)   /// Max font size
+
                 ZStack {
-                    // Logo N - scaled based on available space
                     Group {
-                        // White stroke path animation for N
+                        /// Base white 'N' stroke
                         NotchlyLogoShape()
                             .trim(from: 0, to: nProgress)
                             .stroke(Color.white, style: style)
                             .opacity(showRainbow ? 0 : 1)
-                        
-                        // Rainbow gradient path with blur glow
+
+                        /// Rainbow animated stroke with blur glow layers
                         if showRainbow {
                             let base = NotchlyLogoShape()
                                 .trim(from: 0, to: nProgress)
                                 .stroke(AngularGradient.notchly(offset: gradientOffset), style: style)
-                            
+
                             base.blur(radius: 5)
                             base.blur(radius: 2)
                             base
@@ -220,8 +211,8 @@ struct IntroView: View {
                     .scaleEffect(logoScale)
                     .frame(width: size, height: size)
                     .offset(x: logoShift)
-                    
-                    // Text component - positioned with appropriate spacing
+
+                    /// "otchly" label animation after logo reveals
                     if showFullText {
                         Text("otchly")
                             .font(.system(size: fontSize, weight: .bold, design: .rounded))
@@ -254,54 +245,54 @@ struct IntroView: View {
                     updateAnimationForState(newState, size: size)
                 }
                 .onAppear {
-                    // Start initial animation if we're in the right state
+                    /// Start animation if state is .initial
                     if state == .initial {
                         state = .drawingN
                     }
                 }
             }
         }
-        
-        // Responds to state changes with appropriate animations - faster timing
+
+        /// Updates internal animation states when the external `state` changes
         private func updateAnimationForState(_ newState: LogoAnimationState, size: CGFloat) {
             switch newState {
             case .initial:
-                // Reset state
+                /// Reset all values
                 nProgress = 0
                 showRainbow = false
                 showFullText = false
                 textProgress = 0
                 logoShift = 0
                 logoScale = 1.0
-                
+
             case .drawingN:
-                // Draw the N with white stroke - faster animation (2.2s instead of 3.0s)
+                /// Animate drawing stroke
                 withAnimation(.easeInOut(duration: 2.2)) {
                     nProgress = 1.0
                 }
-                
+
             case .showRainbow:
-                // Crossfade to rainbow - slightly faster (0.8s instead of 1.0s)
+                /// Fade in rainbow stroke
                 withAnimation(.easeInOut(duration: 0.8)) {
                     showRainbow = true
                 }
-                
-                // Start the rainbow rotation animation
+
+                /// Spin the angular gradient continuously
                 withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
                     gradientOffset = 360
                 }
-                
+
             case .showFullName:
-                // First shift the logo left - smaller shift based on size
+                /// Animate logo shifting left
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     logoShift = -size * 0.5
                     logoScale = 0.9
                 }
-                
+
                 showFullText = true
                 textProgress = 0
-                
-                // Then fade in the text with slight delay - faster reveal
+
+                /// Reveal text after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     withAnimation(.easeInOut(duration: 1.2)) {
                         textProgress = 1.0
@@ -310,6 +301,7 @@ struct IntroView: View {
             }
         }
     }
+
 
     // MARK: - Animation Sequence
     
@@ -365,7 +357,7 @@ struct IntroView: View {
     private func welcomeStageView() -> some View {
         GeometryReader { geometry in
             VStack {
-                // Top logo - with appropriate spacing
+                /// Top logo - with appropriate spacing
                 HStack {
                     Image(systemName: "macbook")
                         .font(.system(size: 18))
@@ -384,19 +376,19 @@ struct IntroView: View {
                 }
                 .padding(.top, 18)
                 
-                // Title with properly sized spacing
+                /// Title
                 Text("Welcome to Notchly")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .padding(.top, 8)
                 
-                // Subtitle with appropriate spacing
+                /// Subtitle
                 Text("Your MacBook notch, reimagined")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .padding(.top, 3)
                 
-                // Description with appropriate spacing
+                /// Description
                 Text("Transform the notch into a dynamic productivity hub with seamless controls for your media and calendar.")
                     .font(.system(size: 14))
                     .foregroundColor(.white.opacity(0.7))
@@ -406,7 +398,7 @@ struct IntroView: View {
                 
                 Spacer()
                 
-                // Next button with consistent styling
+                /// Next button
                 Button(action: { advanceStage() }) {
                     Text("Next")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -435,7 +427,7 @@ struct IntroView: View {
         let buttonTextSize = min(geometry.size.width * 0.022, 14)
         
         return VStack(spacing: geometry.size.height * 0.02) {
-            // Title section aligned with other screens
+            /// Title section aligned with other screens
             Text("Before we get started")
                 .font(.system(size: titleSize, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
@@ -577,7 +569,6 @@ struct IntroView: View {
         let buttonTextSize = min(geometry.size.width * 0.025, 15)
         
         return VStack(spacing: geometry.size.height * 0.015) {
-            // Title section aligned with other screens
             Text("Quick Tips")
                 .font(.system(size: titleSize, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
@@ -593,7 +584,6 @@ struct IntroView: View {
             Spacer()
                 .frame(height: geometry.size.height * 0.02)
                 
-            // Simple horizontal layout with reduced spacing
             HStack(spacing: min(geometry.size.width * 0.015, 10)) {
                 tipCard(
                     icon: "hand.point.up.fill",
@@ -646,18 +636,18 @@ struct IntroView: View {
                 .background(Color.white.opacity(0.15))
                 .clipShape(Circle())
             
-            // Title
+            /// Title
             Text(title)
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             
-            // Description with more comprehensive text
+            /// Description
             Text(enhancedDescription(for: title))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
-                .frame(height: 45) // Increased from 35 to fit longer text
-                .lineLimit(4)    // Allow one more line
+                .frame(height: 45)
+                .lineLimit(4)
         }
         .frame(width: 200)
         .padding(.vertical, 10)
@@ -666,7 +656,7 @@ struct IntroView: View {
         .cornerRadius(10)
     }
 
-    // Helper function to provide enhanced descriptions
+    /// Helper function to provide enhanced descriptions
     private func enhancedDescription(for title: String) -> String {
         switch title {
         case "Hover to Expand":
@@ -744,7 +734,7 @@ struct IntroView: View {
     private func requestAutomationPermission() {
         isCheckingAutomation = true
         
-        // First check if permission is already granted with a non-blocking script
+        /// First check if permission is already granted with a non-blocking script
         let checkScript = NSAppleScript(source: """
             try
                 tell application "System Events"
@@ -759,7 +749,7 @@ struct IntroView: View {
         let result = checkScript?.executeAndReturnError(&checkError)
         
         if result != nil, let boolValue = result?.booleanValue, boolValue == true {
-            // Permission already granted
+            /// Permission already granted
             DispatchQueue.main.async {
                 isCheckingAutomation = false
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -775,8 +765,8 @@ struct IntroView: View {
             return
         }
         
-        // If we reach here, we need to request permission
-        // Use a light-weight approach that won't freeze the UI
+        /// If we reach here, we need to request permission
+        /// Use a light-weight approach that won't freeze the UI
         DispatchQueue.global(qos: .userInitiated).async {
             let requestScript = NSAppleScript(source: """
                 tell application "System Events"
@@ -787,7 +777,7 @@ struct IntroView: View {
             
             requestScript?.executeAndReturnError(nil)
             
-            // Check again after a short delay
+            /// Check again after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
                 let verifyScript = NSAppleScript(source: """
                     try
@@ -826,12 +816,12 @@ struct IntroView: View {
     // MARK: - Sequence Control
     
     private func advanceStage() {
-        // Find the next stage in the sequence
+        /// Find the next stage in the sequence
         if let currentIndex = IntroStage.allCases.firstIndex(of: currentStage),
            currentIndex < IntroStage.allCases.count - 1 {
             let nextStage = IntroStage.allCases[currentIndex + 1]
             
-            // Use spring animation for better bounce
+            /// Use spring animation for better bounce
             withAnimation(.spring(response: 0.6, dampingFraction: 0.75, blendDuration: 0.3)) {
                 currentStage = nextStage
                 coordinator.updateIntroConfig(for: nextStage)
