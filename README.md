@@ -19,7 +19,7 @@ Notchly turns the notch into a dynamic space for productivity — blending calen
 
 ---
 
-## V2.0.0 Highlights
+## V2.0.0 & V2.5.0 Highlights
 
 ### ✨ All-New Onboarding
 
