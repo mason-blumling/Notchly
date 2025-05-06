@@ -134,8 +134,13 @@ struct NotchlyShapeView<Content: View>: View {
         // Detect if we have a notch
         let hasNotch = NotchlyViewModel.shared.hasNotch
         
-        // Adjust top inset based on notch presence
-        let insetTop = configuration.topCornerRadius * 0.65 + (hasNotch ? 30 : 0) // Add extra padding for notch
+        /// Only apply the notch padding for specific states
+        let shouldApplyNotchPadding = hasNotch &&
+            (state != .expanded || NotchlyViewModel.shared.isInIntroSequence)
+        
+        /// Adjust top inset based on notch presence and context
+        let insetTop = configuration.topCornerRadius * 0.65 +
+            (shouldApplyNotchPadding ? 30 : 0) /// Only add extra padding when needed
         let insetSide = configuration.bottomCornerRadius * 0.4
 
         return NotchlyLayoutGuide(

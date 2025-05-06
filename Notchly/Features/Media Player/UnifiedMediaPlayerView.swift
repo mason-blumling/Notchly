@@ -101,7 +101,9 @@ struct UnifiedMediaPlayerView: View {
                 GlowingBlobView(blobColor: backgroundGlowColor)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.trailing, 120)
-                    .scaleEffect(y: 1.2)
+                    /// Adjust vertical scaling to ensure full height coverage
+                    .scaleEffect(y: 1.4)
+                    .offset(y: -20)
                     .blur(radius: 40)
                     .mask(
                         LinearGradient(
