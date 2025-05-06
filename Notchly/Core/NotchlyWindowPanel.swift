@@ -7,13 +7,13 @@
 
 import AppKit
 
-/// `NotchlyWindowPanel` is a custom `NSPanel` subclass that acts as the main floating panel
-/// for Notchly. It ensures the window remains anchored at the top and prevents unintended movement.
+/// Custom floating NSPanel for Notchly's notch UI.
+/// Ensures the notch window remains pinned to the top of the screen, always visible.
 class NotchlyWindowPanel: NSPanel {
 
     // MARK: - Initializer
 
-    /// Initializes the custom Notchly window panel.
+    /// Initializes the floating notch panel with custom behavior.
     override init(
         contentRect: NSRect,
         styleMask style: NSWindow.StyleMask,
@@ -27,26 +27,26 @@ class NotchlyWindowPanel: NSPanel {
 
     // MARK: - Panel Configuration
 
-    /// Configures the panel settings to maintain expected behavior.
+    /// Applies configuration settings for visibility, layering, and appearance.
     private func configurePanel() {
-        self.hasShadow = false               /// Removes shadow for a clean UI
-        self.backgroundColor = .clear        /// Ensures a transparent background
-        self.level = .screenSaver            /// Keeps the panel above most other windows
-        self.collectionBehavior = .canJoinAllSpaces /// Allows it to remain across multiple Spaces
+        self.hasShadow = false                      // Avoid glow/shadow behind the notch shape
+        self.backgroundColor = .clear               // Use full transparency (composited by NotchlyShape)
+        self.level = .screenSaver                   // Float above normal windows and menu bar
+        self.collectionBehavior = .canJoinAllSpaces // Persist across desktop Spaces
     }
 
     // MARK: - Window Behavior Overrides
 
-    /// Allows the window to become the key window.
+    /// Allow the panel to become the key window (if needed for interaction).
     override var canBecomeKey: Bool {
         true
     }
 
-    /// Overrides `setFrameOrigin` to prevent accidental movement and keep the notch pinned at the top.
+    /// Prevent any vertical drift — keeps the notch aligned to the top of the screen at all times.
     override func setFrameOrigin(_ point: NSPoint) {
         guard let screen = self.screen ?? NSScreen.main else { return }
 
-        let lockedY = screen.frame.maxY - self.frame.height // 🔥 Always align to the screen’s top edge
+        let lockedY = screen.frame.maxY - self.frame.height
         super.setFrameOrigin(NSPoint(x: point.x, y: lockedY))
     }
 }

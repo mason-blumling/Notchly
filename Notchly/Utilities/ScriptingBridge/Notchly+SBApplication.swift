@@ -14,25 +14,25 @@ extension SBApplication {
         url: URL,
         launchIfNeeded: Bool
     ) -> SBApplication? {
-        // Look up the private Obj-C selector
+        /// Look up the private Obj-C selector
         let cls: AnyObject = SBApplication.self
         let sel = NSSelectorFromString("applicationWithURL:launchIfNeeded:")
-        
-        // Bail if the class doesn’t respond
+
+        /// Bail if the class doesn’t respond
         guard cls.responds(to: sel) else {
             return nil
         }
-        
-        // Perform the selector with two arguments
+
+        /// Perform the selector with two arguments
         let unmanaged = cls.perform(sel, with: url, with: launchIfNeeded)
-        
-        // Extract and cast
+
+        /// Extract and cast
         guard
             let sbApp = unmanaged?.takeUnretainedValue() as? SBApplication
         else {
             return nil
         }
-        
+
         return sbApp
     }
 }
