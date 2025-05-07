@@ -8,6 +8,7 @@
 import SwiftUI
 import AppKit
 import EventKit
+import AVFoundation
 
 /// A complete intro experience for first-time users with smoothly coordinated animations.
 struct IntroView: View {
@@ -171,7 +172,7 @@ struct IntroView: View {
     /// Displays the animated N logo with transitions from white to rainbow to full 'Notchly' name.
     struct EnhancedLogoAnimation: View {
         @Binding var state: LogoAnimationState
-
+        
         // MARK: - Animation State
         @State private var nProgress = 0.0           // Trimmed stroke progress for 'N'
         @State private var showRainbow = false       // Toggle for rainbow mode
@@ -180,15 +181,15 @@ struct IntroView: View {
         @State private var textProgress = 0.0        // Opacity progress of text
         @State private var logoShift: CGFloat = 0    // Horizontal shift during logo animation
         @State private var logoScale: CGFloat = 1.0  // Scaling animation for logo
-
+        
         // MARK: - Style
         private let style = StrokeStyle(lineWidth: 5, lineCap: .round)
-
+        
         var body: some View {
             GeometryReader { geometry in
                 let size = min(geometry.size.width * 0.3, 120)       /// Max logo size
                 let fontSize = min(geometry.size.width * 0.12, 46)   /// Max font size
-
+                
                 ZStack {
                     Group {
                         /// Base white 'N' stroke
@@ -196,13 +197,13 @@ struct IntroView: View {
                             .trim(from: 0, to: nProgress)
                             .stroke(Color.white, style: style)
                             .opacity(showRainbow ? 0 : 1)
-
+                        
                         /// Rainbow animated stroke with blur glow layers
                         if showRainbow {
                             let base = NotchlyLogoShape()
                                 .trim(from: 0, to: nProgress)
                                 .stroke(AngularGradient.notchly(offset: gradientOffset), style: style)
-
+                            
                             base.blur(radius: 5)
                             base.blur(radius: 2)
                             base
@@ -211,7 +212,7 @@ struct IntroView: View {
                     .scaleEffect(logoScale)
                     .frame(width: size, height: size)
                     .offset(x: logoShift)
-
+                    
                     /// "otchly" label animation after logo reveals
                     if showFullText {
                         Text("otchly")
@@ -252,7 +253,7 @@ struct IntroView: View {
                 }
             }
         }
-
+        
         /// Updates internal animation states when the external `state` changes
         private func updateAnimationForState(_ newState: LogoAnimationState, size: CGFloat) {
             switch newState {
@@ -264,34 +265,37 @@ struct IntroView: View {
                 textProgress = 0
                 logoShift = 0
                 logoScale = 1.0
-
+                
             case .drawingN:
+                /// Play the N animation sound
+                AudioPlayer.shared.playSound(named: "light-brand-ident-swoop")
+                
                 /// Animate drawing stroke
-                withAnimation(.easeInOut(duration: 2.2)) {
+                withAnimation(.easeInOut(duration: 3.75)) {
                     nProgress = 1.0
                 }
-
+                
             case .showRainbow:
                 /// Fade in rainbow stroke
-                withAnimation(.easeInOut(duration: 0.8)) {
+                withAnimation(.easeInOut(duration: 0.85)) {
                     showRainbow = true
                 }
-
+                
                 /// Spin the angular gradient continuously
                 withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
                     gradientOffset = 360
                 }
-
+                
             case .showFullName:
                 /// Animate logo shifting left
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     logoShift = -size * 0.5
                     logoScale = 0.9
                 }
-
+                
                 showFullText = true
                 textProgress = 0
-
+                
                 /// Reveal text after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     withAnimation(.easeInOut(duration: 1.2)) {

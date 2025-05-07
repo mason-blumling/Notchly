@@ -52,6 +52,8 @@
 		58BCC0F72DC72D1500F91323 /* NotchlyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC0F62DC72D0D00F91323 /* NotchlyViewModel.swift */; };
 		58BCC1952DC7FFA100F91323 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1942DC7FF9D00F91323 /* IntroView.swift */; };
 		58BCC1972DC800E000F91323 /* NotchlyViewModel+Intro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1962DC800DF00F91323 /* NotchlyViewModel+Intro.swift */; };
+		58BCC1BB2DCB099000F91323 /* light-brand-ident-swoop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 58BCC1BA2DCB099000F91323 /* light-brand-ident-swoop.mp3 */; };
+		58BCC1BD2DCB0A4700F91323 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1BC2DCB0A4600F91323 /* AudioPlayer.swift */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
 		58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */; };
@@ -152,6 +154,8 @@
 		58BCC0F62DC72D0D00F91323 /* NotchlyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyViewModel.swift; sourceTree = "<group>"; };
 		58BCC1942DC7FF9D00F91323 /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
 		58BCC1962DC800DF00F91323 /* NotchlyViewModel+Intro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotchlyViewModel+Intro.swift"; sourceTree = "<group>"; };
+		58BCC1BA2DCB099000F91323 /* light-brand-ident-swoop.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "light-brand-ident-swoop.mp3"; sourceTree = "<group>"; };
+		58BCC1BC2DCB0A4600F91323 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		58C2A7112D3DAD0200764D80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		58C2A7182D3DAD0200764D80 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -344,6 +348,8 @@
 		58A0A8C22DB4AA8200854FE6 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				58BCC1BA2DCB099000F91323 /* light-brand-ident-swoop.mp3 */,
+				58BCC1BC2DCB0A4600F91323 /* AudioPlayer.swift */,
 				58A0A8C52DB599E600854FE6 /* Notchly+NSScreen.swift */,
 				58A0A8AC2DB35B5100854FE6 /* RenderSafeView.swift */,
 				58C97B812D45E9EB006FFC06 /* Figma Files */,
@@ -673,6 +679,7 @@
 				58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */,
 				58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */,
 				586807D22D6EB3C9005D4DB5 /* No Artwork.png in Resources */,
+				58BCC1BB2DCB099000F91323 /* light-brand-ident-swoop.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -726,6 +733,7 @@
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				5862FF582DA372120037843C /* TrackScrubberView.swift in Sources */,
 				58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */,
+				58BCC1BD2DCB0A4700F91323 /* AudioPlayer.swift in Sources */,
 				5862FF5A2DA372CC0037843C /* MediaControlsView.swift in Sources */,
 				58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */,
 				5862FF562DA371530037843C /* TrackInfoView.swift in Sources */,
@@ -935,7 +943,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -981,7 +989,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Notchly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

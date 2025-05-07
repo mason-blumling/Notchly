@@ -33,7 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
 
         /// Uncomment this line when you want to test the intro flows
-        /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+        UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
 
         Task { @MainActor in
             /// Create the view model
