@@ -36,7 +36,8 @@ public final class NotchlyViewModel: ObservableObject {
     @Published var configuration: NotchlyConfiguration = .default
     
     @Published var hasNotch: Bool = false
-    
+    @Published public var isNotchEnabled: Bool = true
+
     /// Window management
     public var windowController: NSWindowController?
     
@@ -179,6 +180,11 @@ public final class NotchlyViewModel: ObservableObject {
     
     /// Show the notch on the specified or current screen
     public func show(on screen: NSScreen? = nil) {
+        guard isNotchEnabled else {
+            print("⚠️ Notchly is Disabled, ignoring show()")
+            return
+        }
+
         let target = screen
                   ?? NSScreen.screenWithMouse
                   ?? NSScreen.largestScreen
@@ -195,9 +201,20 @@ public final class NotchlyViewModel: ObservableObject {
     
     /// Hide the notch panel
     public func hide() {
+        deinitializeWindow()
         isVisible = false
     }
-    
+
+    public func enable() {
+        isNotchEnabled = true
+        show()
+    }
+
+    public func disable() {
+        isNotchEnabled = false
+        hide()
+    }
+
     // MARK: - Private Setup Methods
     
     private func setupStateObservation() {

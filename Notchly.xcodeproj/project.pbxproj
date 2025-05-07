@@ -54,6 +54,8 @@
 		58BCC1972DC800E000F91323 /* NotchlyViewModel+Intro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1962DC800DF00F91323 /* NotchlyViewModel+Intro.swift */; };
 		58BCC1BB2DCB099000F91323 /* light-brand-ident-swoop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 58BCC1BA2DCB099000F91323 /* light-brand-ident-swoop.mp3 */; };
 		58BCC1BD2DCB0A4700F91323 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1BC2DCB0A4600F91323 /* AudioPlayer.swift */; };
+		58BCC1C02DCB0D4200F91323 /* NotchlyStatusBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1BF2DCB0D3C00F91323 /* NotchlyStatusBarItem.swift */; };
+		58BCC1C22DCB0D7400F91323 /* StatusBarIconGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BCC1C12DCB0D7300F91323 /* StatusBarIconGenerator.swift */; };
 		58C2A71C2D3DAD0200764D80 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */; };
 		58C2A71D2D3DAD0200764D80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58C2A7112D3DAD0200764D80 /* Assets.xcassets */; };
 		58C2A7262D3DAD0200764D80 /* NotchlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2A71A2D3DAD0200764D80 /* NotchlyApp.swift */; };
@@ -156,6 +158,8 @@
 		58BCC1962DC800DF00F91323 /* NotchlyViewModel+Intro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotchlyViewModel+Intro.swift"; sourceTree = "<group>"; };
 		58BCC1BA2DCB099000F91323 /* light-brand-ident-swoop.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "light-brand-ident-swoop.mp3"; sourceTree = "<group>"; };
 		58BCC1BC2DCB0A4600F91323 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
+		58BCC1BF2DCB0D3C00F91323 /* NotchlyStatusBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyStatusBarItem.swift; sourceTree = "<group>"; };
+		58BCC1C12DCB0D7300F91323 /* StatusBarIconGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarIconGenerator.swift; sourceTree = "<group>"; };
 		58C2A70F2D3DAD0200764D80 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		58C2A7112D3DAD0200764D80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		58C2A7182D3DAD0200764D80 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -450,6 +454,15 @@
 			path = Shapes;
 			sourceTree = "<group>";
 		};
+		58BCC1BE2DCB0D3500F91323 /* Status Bar */ = {
+			isa = PBXGroup;
+			children = (
+				58BCC1BF2DCB0D3C00F91323 /* NotchlyStatusBarItem.swift */,
+				58BCC1C12DCB0D7300F91323 /* StatusBarIconGenerator.swift */,
+			);
+			path = "Status Bar";
+			sourceTree = "<group>";
+		};
 		58C2A7102D3DAD0200764D80 /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
@@ -499,6 +512,7 @@
 				58C97BF32D49B148006FFC06 /* Calendar */,
 				58BCC0EF2DC6DE6800F91323 /* Intro */,
 				586807CD2D6EB1C3005D4DB5 /* Media Player */,
+				58BCC1BE2DCB0D3500F91323 /* Status Bar */,
 				580F20612D59E39900D66D57 /* Weather */,
 			);
 			path = Features;
@@ -733,6 +747,7 @@
 				58C97C1A2D5003AD006FFC06 /* NotchlyEventList.swift in Sources */,
 				5862FF582DA372120037843C /* TrackScrubberView.swift in Sources */,
 				58832F412D9A239400745CF2 /* PodcastsFallbackView.swift in Sources */,
+				58BCC1C02DCB0D4200F91323 /* NotchlyStatusBarItem.swift in Sources */,
 				58BCC1BD2DCB0A4700F91323 /* AudioPlayer.swift in Sources */,
 				5862FF5A2DA372CC0037843C /* MediaControlsView.swift in Sources */,
 				58832F4D2D9A4AF900745CF2 /* ExtractArtworkColor.swift in Sources */,
@@ -751,6 +766,7 @@
 				5862FF5C2DA373A20037843C /* MediaPlayerIdleView.swift in Sources */,
 				58C97C1C2D5003CD006FFC06 /* NotchlyCalendarUtilities.swift in Sources */,
 				5862FF622DB1F7F20037843C /* AudioBarsView.swift in Sources */,
+				58BCC1C22DCB0D7400F91323 /* StatusBarIconGenerator.swift in Sources */,
 				588330462D798485006251C1 /* MarqueeText.swift in Sources */,
 				58BCC1952DC7FFA100F91323 /* IntroView.swift in Sources */,
 				58A0A8C12DB4A83100854FE6 /* NotchlyView.swift in Sources */,

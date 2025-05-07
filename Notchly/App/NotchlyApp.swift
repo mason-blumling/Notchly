@@ -29,22 +29,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate!
     var viewModel: NotchlyViewModel!
 
+    /// Strong reference to status bar manager (critical to prevent deallocation)
+    private var statusBarItem: NotchlyStatusBarItem?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        /// Uncomment this line when you want to test the intro flows
+        /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+
+        print("🚀 Notchly App is Launching...")
         AppDelegate.shared = self
 
-        /// Uncomment this line when you want to test the intro flows
-        UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+        /// Initialize the status bar item
+        DispatchQueue.main.async {
+            self.statusBarItem = NotchlyStatusBarItem()
+            print("Status Bar Item Initialized")
+        }
 
         Task { @MainActor in
             /// Create the view model
             self.viewModel = NotchlyViewModel.shared
+            print("ViewModel Initialized")
 
             /// Initialize and show on the main screen
             if let screen = NSScreen.main {
                 await self.viewModel.initializeWindow(screen: screen)
+                print("Window Initialized on Main Screen")
 
                 /// Handle first launch logic
                 self.handleFirstLaunch()
+            } else {
+                print("⚠️ No Main Screen Found")
             }
         }
     }
@@ -56,10 +70,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             /// Normal launch - ensure we're in collapsed state
             viewModel.state = .collapsed
             viewModel.isVisible = true
+            print("Normal Launch Complete")
             return
         }
         
         /// First launch - show the intro sequence
+        print("First Launch Detected - Showing Intro")
         showIntroSequence()
     }
 
@@ -72,14 +88,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
             viewModel.showIntro()
         }
-    }
-}
-
-// MARK: - Sample Content View
-
-/// A placeholder content view for testing the hover state.
-struct ContentView: View {
-    var body: some View {
-        VStack { Text("HI") }
     }
 }
