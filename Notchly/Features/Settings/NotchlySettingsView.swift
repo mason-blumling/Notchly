@@ -17,17 +17,19 @@ struct NotchlySettingsView: View {
     
     /// Environment color scheme for dark/light mode adaptability
     @Environment(\.colorScheme) private var colorScheme
-    
-    // MARK: - Tab Definition
-    
+
+    // MARK: - Settings Tab Definition
+
+    /// Defines all available tabs in the Notchly settings window
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
         case appearance = "Appearance"
         case media = "Media"
         case calendar = "Calendar"
         case weather = "Weather"
+        case permissions = "Permissions"
         case about = "About"
-        
+
         var id: String { self.rawValue }
         
         var iconName: String {
@@ -37,6 +39,7 @@ struct NotchlySettingsView: View {
             case .media: return "music.note"
             case .calendar: return "calendar"
             case .weather: return "cloud.sun"
+            case .permissions: return "lock.shield"
             case .about: return "info.circle"
             }
         }
@@ -128,6 +131,8 @@ struct NotchlySettingsView: View {
                             calendarSettings
                         case .weather:
                             weatherSettings
+                        case .permissions:
+                            NotchlyPermissionsView()
                         case .about:
                             aboutView
                         }

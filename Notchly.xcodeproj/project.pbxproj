@@ -47,6 +47,7 @@
 		58A234F52DCDC3DA00A29C44 /* NotchlySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A234F42DCDC3D500A29C44 /* NotchlySettings.swift */; };
 		58A234F72DCDC46700A29C44 /* NotchlySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A234F62DCDC46000A29C44 /* NotchlySettingsView.swift */; };
 		58A234F92DCDC48A00A29C44 /* NotchlySettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A234F82DCDC48100A29C44 /* NotchlySettingsWindowController.swift */; };
+		58A2350D2DCE7FC600A29C44 /* NotchlyPermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A2350C2DCE7FC000A29C44 /* NotchlyPermissionsView.swift */; };
 		58B109B32DB8B96600BEC548 /* Notchly+SBApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B109B22DB8B95C00BEC548 /* Notchly+SBApplication.swift */; };
 		58B109BE2DB9EFA100BEC548 /* NotchlyLogoShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B109BD2DB9EF9800BEC548 /* NotchlyLogoShape.swift */; };
 		58B109C12DBA022600BEC548 /* Notchly+LogoAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B109C02DBA022100BEC548 /* Notchly+LogoAnimation.swift */; };
@@ -150,6 +151,7 @@
 		58A234F42DCDC3D500A29C44 /* NotchlySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlySettings.swift; sourceTree = "<group>"; };
 		58A234F62DCDC46000A29C44 /* NotchlySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlySettingsView.swift; sourceTree = "<group>"; };
 		58A234F82DCDC48100A29C44 /* NotchlySettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlySettingsWindowController.swift; sourceTree = "<group>"; };
+		58A2350C2DCE7FC000A29C44 /* NotchlyPermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchlyPermissionsView.swift; sourceTree = "<group>"; };
 		58A40D662D094923002B5165 /* Notchly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D772D094925002B5165 /* NotchlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A40D812D094925002B5165 /* NotchlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -371,6 +373,7 @@
 		58A234FA2DCDE4E800A29C44 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				58A2350C2DCE7FC000A29C44 /* NotchlyPermissionsView.swift */,
 				58A234F42DCDC3D500A29C44 /* NotchlySettings.swift */,
 				58A234F62DCDC46000A29C44 /* NotchlySettingsView.swift */,
 				58A234F82DCDC48100A29C44 /* NotchlySettingsWindowController.swift */,
@@ -778,6 +781,7 @@
 				5862FF512DA36C620037843C /* ArtworkView.swift in Sources */,
 				58BCC1972DC800E000F91323 /* NotchlyViewModel+Intro.swift in Sources */,
 				58B109BE2DB9EFA100BEC548 /* NotchlyLogoShape.swift in Sources */,
+				58A2350D2DCE7FC600A29C44 /* NotchlyPermissionsView.swift in Sources */,
 				5862FF4E2DA3620B0037843C /* NotchlyMediaPlayer.swift in Sources */,
 				587D3D4F2D40C4810034FA71 /* NotchlyShape.swift in Sources */,
 				58C97BD42D48813E006FFC06 /* NotchlyWindowPanel.swift in Sources */,
