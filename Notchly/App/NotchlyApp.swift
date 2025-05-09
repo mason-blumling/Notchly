@@ -7,6 +7,8 @@
 
 import SwiftUI
 import Combine
+import EventKit
+import os.log
 
 // MARK: - Application Entry Point
 
@@ -36,50 +38,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         /// Uncomment this line when you want to test the intro flows
         /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
 
-        print("🚀 Notchly App is Launching...")
+        NotchlyLogger.lifecycle("🚀 Notchly app is launching...")
         AppDelegate.shared = self
 
         /// Initialize the status bar item
         DispatchQueue.main.async {
             self.statusBarItem = NotchlyStatusBarItem()
-            print("Status Bar Item Initialized")
+            NotchlyLogger.lifecycle("Status bar item initialized")
         }
 
         Task { @MainActor in
             /// Create the view model
             self.viewModel = NotchlyViewModel.shared
-            print("ViewModel Initialized")
+            NotchlyLogger.lifecycle("View model initialized")
+
+            /// Initialize the environment (with new proactive initialization)
+            AppEnvironment.shared.initialize()
+            NotchlyLogger.lifecycle("App environment initialized")
 
             /// Initialize and show on the main screen
             if let screen = NSScreen.main {
                 await self.viewModel.initializeWindow(screen: screen)
-                print("Window Initialized on Main Screen")
+                NotchlyLogger.lifecycle("Notchly window initialized on main screen")
 
                 /// Handle first launch logic
                 self.handleFirstLaunch()
             } else {
-                print("⚠️ No Main Screen Found")
+                NotchlyLogger.lifecycle("⚠️ No main screen found")
             }
         }
+
+        /// Set up testing keyboard shortcut with helper
+        NotchlyTestingHelper.shared.setupForAppDelegate(self)
     }
-    
-    /// Handles first launch logic and shows intro if needed
+
+    /// This method stays in AppDelegate because it's core app functionality
     @MainActor
     func handleFirstLaunch() {
         guard viewModel.isFirstLaunch else {
             /// Normal launch - ensure we're in collapsed state
             viewModel.state = .collapsed
             viewModel.isVisible = true
-            print("Normal Launch Complete")
+            NotchlyLogger.lifecycle("Normal launch complete")
             return
         }
-        
+
         /// First launch - show the intro sequence
-        print("First Launch Detected - Showing Intro")
+        NotchlyLogger.lifecycle("First launch detected – showing intro sequence")
         showIntroSequence()
     }
 
-    /// Initiates the enhanced intro sequence with multi-stage animations
+    /// This method stays in AppDelegate because it's core app functionality
     @MainActor
     private func showIntroSequence() {
         Task { @MainActor in
@@ -88,5 +97,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
             viewModel.showIntro()
         }
+    }
+
+    /// Just this menu-triggering method stays in AppDelegate
+    @objc func showDevTestingMenu() {
+        NotchlyTestingHelper.shared.showTestingMenu(for: self)
     }
 }

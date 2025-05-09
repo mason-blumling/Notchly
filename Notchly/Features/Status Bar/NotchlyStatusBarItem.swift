@@ -20,7 +20,7 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
     // MARK: - Initialization
 
     override init() {
-        print("🔄 Creating status bar item...")
+        NotchlyLogger.lifecycle("🔄 Creating status bar item...")
         self.statusItem = NSStatusBar.system.statusItem(withLength: 22)
         self.statusBarMenu = NSMenu(title: "Notchly Menu")
 
@@ -29,23 +29,23 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
         setupMenu()
         configureStatusItem()
         statusItem.isVisible = true
-        print("✅ Status bar item created")
+        NotchlyLogger.lifecycle("✅ Status bar item created")
     }
     
     // MARK: - Configuration
     
     private func configureStatusItem() {
         guard let button = statusItem.button else {
-            print("⚠️ Failed to get button from status item")
+            NotchlyLogger.lifecycle("⚠️ Failed to get button from status item")
             return
         }
 
         if let generatedIcon = StatusBarIconGenerator.createGeneratedIcon() {
             button.image = generatedIcon
-            print("✅ Button configured with SwiftUI-generated Notchly icon")
+            NotchlyLogger.lifecycle("✅ Button configured with SwiftUI-generated Notchly icon")
         } else {
             button.title = "N"
-            print("⚠️ Failed to render SwiftUI icon, using fallback title")
+            NotchlyLogger.lifecycle("⚠️ Failed to render SwiftUI icon, using fallback title")
         }
 
         button.action = #selector(handleStatusItemClick)
@@ -56,7 +56,7 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
     private func setupMenu() {
         statusBarMenu.delegate = self
 
-        // Create menu items
+        /// Create menu items
         let preferencesItem = NSMenuItem(
             title: "Preferences...",
             action: #selector(openPreferences),
@@ -74,6 +74,13 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
             action: #selector(toggleNotchlyVisibility),
             keyEquivalent: "s"
         )
+        
+        let refreshItem = NSMenuItem(
+            title: "Refresh Notchly Window",
+            action: #selector(refreshNotchlyWindow),
+            keyEquivalent: "r"
+        )
+        refreshItem.target = self
         
         let quitItem = NSMenuItem(
             title: "Quit Notchly",
@@ -94,6 +101,8 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
         statusBarMenu.addItem(NSMenuItem.separator())
         statusBarMenu.addItem(showHideItem)
         statusBarMenu.addItem(NSMenuItem.separator())
+        statusBarMenu.addItem(refreshItem)
+        statusBarMenu.addItem(NSMenuItem.separator())
         statusBarMenu.addItem(quitItem)
     }
 
@@ -107,23 +116,23 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
     // MARK: - Actions
     
     @objc func handleStatusItemClick(_ sender: NSStatusBarButton) {
-        // Show menu regardless of click type
+        /// Show menu regardless of click type
         statusItem.menu = statusBarMenu
         sender.performClick(nil)
 
-        // Reset menu to nil after click (so left-click works again)
+        /// Reset menu to nil after click (so left-click works again)
         DispatchQueue.main.async {
             self.statusItem.menu = nil
         }
     }
     
     @objc func openPreferences(_ sender: Any) {
-        print("⚙️ Opening preferences window")
+        NotchlyLogger.lifecycle("⚙️ Opening preferences window")
         NotchlySettingsWindowController.shared.showWindow()
     }
     
     @objc func checkForUpdates(_ sender: Any) {
-        print("🔍 Check for updates clicked")
+        NotchlyLogger.lifecycle("🔍 Check for updates clicked")
         let alert = NSAlert()
         alert.messageText = "Check for Updates"
         alert.informativeText = "Update checking will be implemented with Sparkle in a future update."
@@ -133,7 +142,7 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
     }
     
     @objc func toggleNotchlyVisibility(_ sender: Any) {
-        print("🔄 Toggle Notchly enable/disable clicked")
+        NotchlyLogger.lifecycle("🔄 Toggle Notchly enable/disable clicked")
         Task { @MainActor in
             let viewModel = NotchlyViewModel.shared
             if viewModel.isNotchEnabled {
@@ -142,6 +151,10 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
                 viewModel.enable()
             }
         }
+    }
+    
+    @MainActor @objc func refreshNotchlyWindow(_ sender: Any) {
+        NotchlyViewModel.shared.refreshWindow()
     }
     
     @objc func quitNotchly(_ sender: Any) {

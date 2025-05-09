@@ -174,9 +174,8 @@ class NotchlySettings: ObservableObject {
             saveSettings()
             
             if enableCalendar {
-                /// If enabling, load/refresh events
-                loadAvailableCalendars()
-                refreshCalendarEvents()
+                /// If enabling, load/refresh events using non-async version
+                loadAvailableCalendarsAndRefresh()
             } else {
                 /// If disabling, clear events
                 Task { @MainActor in
@@ -191,7 +190,16 @@ class NotchlySettings: ObservableObject {
     @Published var selectedCalendarIDs: Set<String> {
         didSet {
             saveSettings()
-            refreshCalendarEvents()
+            Task { @MainActor in
+                await refreshCalendarEvents()
+            }
+        }
+    }
+    
+    @Published var calendarStyle: CalendarStyle {
+        didSet {
+            saveSettings()
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -202,6 +210,14 @@ class NotchlySettings: ObservableObject {
             if !enableCalendarAlerts {
                 disableCalendarLiveActivity()
             }
+        }
+    }
+    
+    /// Show canceled events in calendar views
+    @Published var showCanceledEvents: Bool {
+        didSet {
+            saveSettings()
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -261,6 +277,19 @@ class NotchlySettings: ObservableObject {
         }
     }
     
+    @MainActor
+    func handleCalendarPermissionGranted() async {
+        /// Update the permission status internally
+        let currentStatus = EKEventStore.authorizationStatus(for: .event)
+        print("📊 Settings received permission update: \(currentStatus.rawValue)")
+        
+        /// If we have permission now, load available calendars
+        if currentStatus == .fullAccess {
+            /// Load available calendars and events
+            await loadAvailableCalendars()
+        }
+    }
+    
     // MARK: - Types
     
     /// Appearance mode options
@@ -286,6 +315,14 @@ class NotchlySettings: ObservableObject {
     enum WeatherUnit: String, CaseIterable, Identifiable {
         case celsius = "Celsius"
         case fahrenheit = "Fahrenheit"
+        
+        var id: String { self.rawValue }
+    }
+    
+    /// Calendar Style options
+    enum CalendarStyle: String, CaseIterable, Identifiable {
+        case block = "Block"
+        case timeline = "Timeline"
         
         var id: String { self.rawValue }
     }
@@ -343,7 +380,8 @@ class NotchlySettings: ObservableObject {
         
         /// Calendar
         self.enableCalendar = defaults.bool(forKey: "enableCalendar")
-        
+        self.showCanceledEvents = defaults.bool(forKey: "showCanceledEvents")
+
         if let savedIDs = defaults.stringArray(forKey: "selectedCalendarIDs") {
             self.selectedCalendarIDs = Set(savedIDs)
         } else {
@@ -363,6 +401,13 @@ class NotchlySettings: ObservableObject {
         self.showEventLocation = defaults.bool(forKey: "showEventLocation")
         self.showEventAttendees = defaults.bool(forKey: "showEventAttendees")
         
+        if let styleString = defaults.string(forKey: "calendarStyle"),
+           let style = CalendarStyle(rawValue: styleString) {
+            self.calendarStyle = style
+        } else {
+            self.calendarStyle = .block // Default to existing view
+        }
+
         /// Weather
         self.enableWeather = defaults.bool(forKey: "enableWeather")
         
@@ -375,7 +420,9 @@ class NotchlySettings: ObservableObject {
         
         /// Apply default values if first launch
         if isFirstLaunch() {
-            applyDefaultSettings()
+            Task { @MainActor in
+                await applyDefaultSettings()
+            }
         }
         
         /// Apply settings immediately
@@ -420,7 +467,9 @@ class NotchlySettings: ObservableObject {
         defaults.set(showEventOrganizer, forKey: "showEventOrganizer")
         defaults.set(showEventLocation, forKey: "showEventLocation")
         defaults.set(showEventAttendees, forKey: "showEventAttendees")
-        
+        defaults.set(calendarStyle.rawValue, forKey: "calendarStyle")
+        defaults.set(showCanceledEvents, forKey: "showCanceledEvents")
+
         /// Weather
         defaults.set(enableWeather, forKey: "enableWeather")
         defaults.set(weatherUnit.rawValue, forKey: "weatherUnit")
@@ -434,8 +483,8 @@ class NotchlySettings: ObservableObject {
     }
     
     // MARK: - Default Settings
-    
-    private func applyDefaultSettings() {
+    @MainActor
+    private func applyDefaultSettings() async {
         /// General
         launchAtLogin = true
         horizontalOffset = 0.0
@@ -450,7 +499,7 @@ class NotchlySettings: ObservableObject {
         /// Media Player
         enableAppleMusic = true
         enableSpotify = true
-        enablePodcasts = true
+        enablePodcasts = false
         artworkClickAction = .openApp
         enableBackgroundGlow = true
         showAudioBars = true
@@ -459,17 +508,18 @@ class NotchlySettings: ObservableObject {
         enableCalendar = true
         enableCalendarAlerts = true
         alertTiming = [15, 5]
-        maxEventsToDisplay = 5
+        maxEventsToDisplay = 15
         showEventOrganizer = true
         showEventLocation = true
         showEventAttendees = true
-        
+        showCanceledEvents = false
+
         /// Weather
         enableWeather = true
-        weatherUnit = .celsius
+        weatherUnit = .fahrenheit
         
         /// Add all calendars by default
-        loadAvailableCalendars()
+        await loadAvailableCalendars()
         
         /// Save all the defaults
         saveSettings()
@@ -496,19 +546,19 @@ class NotchlySettings: ObservableObject {
                 do {
                     try service.register()
                 } catch {
-                    print("Failed to register login item: \(error.localizedDescription)")
+                    NotchlyLogger.error("Failed to register login item: \(error.localizedDescription)", category: .lifecycle)
                 }
             } else {
                 do {
                     try service.unregister()
                 } catch {
-                    print("Failed to unregister login item: \(error.localizedDescription)")
+                    NotchlyLogger.error("Failed to unregister login item: \(error.localizedDescription)", category: .lifecycle)
                 }
             }
         } else {
             /// Safely unwrap the shared file list
             guard let loginItemsRef = LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil)?.takeUnretainedValue() else {
-                print("Failed to create login items list")
+                NotchlyLogger.error("Failed to create login items list", category: .lifecycle)
                 return
             }
             
@@ -537,36 +587,140 @@ class NotchlySettings: ObservableObject {
         }
     }
 
-    private func loadAvailableCalendars() {
-        Task {
-            let calendarManager = AppEnvironment.shared.calendarManager
+    func loadAvailableCalendarsAndRefresh() {
+        Task { @MainActor in
+            await loadAvailableCalendars()
+        }
+    }
+
+    @MainActor
+    func updateEnableCalendarSetting(_ value: Bool) async {
+        /// Store the previous value to detect changes
+        let previousValue = enableCalendar
+        
+        /// Update the stored value
+        enableCalendar = value
+        saveSettings()
+        
+        /// If enabling for the first time, check permission
+        if value && !previousValue {
+            /// Check current permission status
+            let currentStatus = EKEventStore.authorizationStatus(for: .event)
             
-            switch EKEventStore.authorizationStatus(for: .event) {
-            case .fullAccess:
-                /// Full access granted - if this is the first time, select all calendars
-                let calendars = calendarManager.getAllCalendars()
-                
-                /// Only set all calendars to selected if we're initializing for the first time
-                /// (otherwise, respect the user's existing selection)
-                if selectedCalendarIDs.isEmpty || isFirstLaunch() {
-                    selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
-                    /// Force a save of the selected IDs
-                    saveSettings()
-                    /// Refresh immediately to load events
-                    refreshCalendarEvents()
+            if currentStatus != .fullAccess {
+                /// If we don't have permission, request it
+                NotchlyLogger.calendar("🔄 Requesting calendar permission after enabling calendar feature")
+                AppEnvironment.shared.calendarManager.requestAccess { [weak self] success in
+                    guard let self = self else { return }
+                    
+                    Task { @MainActor in
+                        if success {
+                            NotchlyLogger.calendar("✅ Calendar permission granted after enabling feature")
+                            await self.loadAvailableCalendars()
+                            /// Also refresh the UI
+                            NotificationCenter.default.post(
+                                name: SettingsChangeType.calendar.notificationName,
+                                object: nil,
+                                userInfo: ["permissionGranted": true]
+                            )
+                        } else {
+                            NotchlyLogger.calendar("❌ Calendar permission denied after enabling feature")
+                            /// Notify that permission was denied
+                            NotificationCenter.default.post(
+                                name: SettingsChangeType.calendar.notificationName,
+                                object: nil,
+                                userInfo: ["permissionDenied": true]
+                            )
+                        }
+                    }
                 }
-            default:
-                /// No access or limited access
+            } else {
+                /// If we already have permission, just load calendars
+                await loadAvailableCalendars()
+                await refreshCalendarEvents()
+            }
+        } else if !value && previousValue {
+            /// If disabling, clear events
+            AppEnvironment.shared.calendarManager.clearEvents()
+            disableCalendarLiveActivity()
+        }
+        
+        /// Always notify that calendar setting changed
+        NotificationCenter.default.post(
+            name: SettingsChangeType.calendar.notificationName,
+            object: nil,
+            userInfo: ["enabled": value]
+        )
+    }
+
+    @MainActor
+    func loadAvailableCalendars() async {
+        let calendarManager = AppEnvironment.shared.calendarManager
+        
+        /// First check if we have calendar permission
+        if calendarManager.hasCalendarPermission() {
+            /// We have permission, load calendars
+            let calendars = calendarManager.getAllCalendars()
+            
+            /// Only set all calendars to selected if we're initializing for the first time or if selection is empty
+            if selectedCalendarIDs.isEmpty || isFirstLaunch() {
+                selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                /// Force a save of the selected IDs
+                saveSettings()
+            }
+        } else {
+            /// No permission, don't try to load
+            NotchlyLogger.calendar("⚠️ Cannot load calendars - no permission")
+            if !selectedCalendarIDs.isEmpty {
+                /// Clear selections if we don't have permission anymore
                 selectedCalendarIDs = []
+                saveSettings()
             }
         }
     }
     
-    private func refreshCalendarEvents() {
-        /// Refresh calendar events based on selected calendars
-        Task {
-            await AppEnvironment.shared.calendarManager.reloadSelectedCalendars(selectedCalendarIDs)
+    func handleCalendarPermissionChange(isGranted: Bool) {
+        if isGranted {
+            /// Permission was granted, load calendars
+            Task { @MainActor in
+                await loadAvailableCalendars()
+            }
+
+            /// Update any UI by posting a notification
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil
+            )
+            
+            /// No need to change enableCalendar as the user has already set it
+        } else {
+            /// Permission denied, show warning
+            NotchlyLogger.calendar("⚠️ Calendar permission was denied")
+
+            /// Post notification to UI can update accordingly
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil,
+                userInfo: ["permissionDenied": true]
+            )
         }
+    }
+    
+    @MainActor
+    func refreshCalendarEvents() async {
+        /// Only proceed if calendar is enabled and we have permission
+        guard enableCalendar && EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
+            NotchlyLogger.calendar("📅 Skipping calendar refresh: Calendar is disabled or no permission")
+            return
+        }
+        
+        NotchlyLogger.calendar("📅 Refreshing calendar events with selected IDs: \(selectedCalendarIDs.count)")
+
+        /// Wait for the reload to complete
+        await AppEnvironment.shared.calendarManager.reloadSelectedCalendars(selectedCalendarIDs)
+        
+        /// Notify that calendar data has changed
+        notifySettingsChanged(.calendar, userInfo: ["dataRefreshed": true])
     }
     
     private func disableCalendarLiveActivity() {

@@ -16,20 +16,20 @@ extension NSImage {
     func dominantColor() -> NSColor? {
         /// First check if the image is valid and the right type
         if self.isKind(of: NSAppleEventDescriptor.self) {
-            print("⚠️ Invalid image type: NSAppleEventDescriptor")
+            NotchlyLogger.error("⚠️ Invalid image type: NSAppleEventDescriptor", category: .mediaPlayer)
             return nil
         }
         
         /// Safely try to get TIFF representation
         guard let tiffData = self.tiffRepresentation else {
-            print("⚠️ Could not get TIFF representation from image")
+            NotchlyLogger.error("⚠️ Could not get TIFF representation from image", category: .mediaPlayer)
             return nil
         }
         
         /// Convert image to TIFF representation and Core Image-compatible format
         guard let bitmap = NSBitmapImageRep(data: tiffData),
               let ciImage = CIImage(bitmapImageRep: bitmap) else {
-            print("⚠️ Could not create bitmap or CIImage from image")
+            NotchlyLogger.error("⚠️ Could not create bitmap or CIImage from image", category: .mediaPlayer)
             return nil
         }
         
@@ -49,13 +49,13 @@ extension NSImage {
                 kCIInputExtentKey: extentVector
             ]
         ) else {
-            print("⚠️ Could not create CIAreaAverage filter")
+            NotchlyLogger.error("⚠️ Could not create CIAreaAverage filter", category: .mediaPlayer)
             return nil
         }
         
         /// Get filtered output image (should be a 1x1 pixel)
         guard let outputImage = filter.outputImage else {
-            print("⚠️ No output image from filter")
+            NotchlyLogger.error("⚠️ No output image from filter", category: .mediaPlayer)
             return nil
         }
         

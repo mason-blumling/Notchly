@@ -45,7 +45,6 @@ private extension NotchlyDateSelector {
             .font(.system(size: 26, weight: .bold))
             .foregroundColor(monthBounce ? Color.white.opacity(0.6) : .white)
             .padding(.leading, 6)
-            .background(monthGradient)
             .offset(x: 8, y: -4)
             .scaleEffect(monthBounce ? 1.15 : 1.0)
             .animation(NotchlyAnimations.fastBounce, value: monthBounce)
@@ -87,6 +86,7 @@ private extension NotchlyDateSelector {
                 .frame(height: 44)
                 .padding(.horizontal, 5)
         }
+        .padding(.leading, 75)
         .frame(height: 44)
         .scrollTargetLayout()
         .scrollPosition(id: $scrollPosition, anchor: .center)
@@ -173,7 +173,7 @@ private extension NotchlyDateSelector {
         let todayIndex = indexForDate(Date())
         
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            scrollPosition = todayIndex + 3
+            scrollPosition = todayIndex + 4
         }
 
         triggerHapticFeedback()

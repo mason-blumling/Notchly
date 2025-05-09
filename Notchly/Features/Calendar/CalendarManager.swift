@@ -7,6 +7,7 @@
 
 import Foundation
 import EventKit
+import os.log
 
 // MARK: - CalendarManager
 
@@ -15,50 +16,150 @@ import EventKit
 class CalendarManager: ObservableObject {
     private let eventStore: EKEventStore
     private var lastSystemChange: Date? = nil
-    
+    private var lastFetchTime: Date? = nil
+    private var lastBroadcastedPermission: EKAuthorizationStatus?
+
     @Published var events: [EKEvent] = []
-    
+
     // MARK: - Init
-    
+
     init(eventStore: EKEventStore = EKEventStore()) {
         self.eventStore = eventStore
         subscribeToCalendarChanges()
     }
-    
+
     // MARK: - Permissions
-    
+
+    /// Checks if we have proper calendar permissions
+    func hasCalendarPermission() -> Bool {
+        return EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    }
+
+    @MainActor
+    func checkAndBroadcastPermissionStatus() {
+        let status = EKEventStore.authorizationStatus(for: .event)
+
+        guard status != lastBroadcastedPermission else {
+            return
+        }
+        
+        lastBroadcastedPermission = status
+        NotchlyLogger.info("📅 Current calendar permission status: \(status == .fullAccess ? "'Full-Access'" : "Not-Granted")", category: .calendar)
+
+        NotificationCenter.default.post(
+            name: Notification.Name("NotchlyCalendarPermissionChanged"),
+            object: nil,
+            userInfo: ["status": status.rawValue, "granted": status == .fullAccess]
+        )
+    }
+
+    /// Enhanced version of requestAccess that provides better permission handling
     func requestAccess(completion: @escaping (Bool) -> Void) {
-        eventStore.requestFullAccessToEvents { [weak self] granted, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("❌ Calendar access error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
-            
-            guard granted else {
-                print("❌ Calendar access denied by user.")
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
-            
+        NotchlyLogger.info("📅 Checking calendar permission status...", category: .calendar)
+        let currentStatus = EKEventStore.authorizationStatus(for: .event)
+
+        switch currentStatus {
+        case .fullAccess:
+            NotchlyLogger.notice("✅ Calendar access already granted", category: .calendar)
+            self.refreshCalendarData()
             DispatchQueue.main.async {
-                print("✅ Calendar access granted, fetching events...")
-                /// Force fetch events with maximum date range to ensure we get something
-                let startDate = Calendar.current.date(byAdding: .month, value: -2, to: Date())!
-                let endDate = Calendar.current.date(byAdding: .month, value: 2, to: Date())!
-                let loadedEvents = self.fetchEvents(startDate: startDate, endDate: endDate)
-                
-                /// Important: set published property to trigger UI updates
-                self.events = loadedEvents
-                
-                print("📆 Fetched \(loadedEvents.count) events after permission granted")
+                self.checkAndBroadcastPermissionStatus()
                 completion(true)
+            }
+
+        case .notDetermined:
+            NotchlyLogger.info("📝 Requesting calendar access...", category: .calendar)
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    NotchlyLogger.error("❌ Calendar access error: \(error.localizedDescription)", category: .calendar)
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
+                    return
+                }
+                
+                if granted {
+                    NotchlyLogger.notice("✅ Calendar access granted", category: .calendar)
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
+                } else {
+                    NotchlyLogger.error("❌ Calendar access denied by user", category: .calendar)
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
+                }
+            }
+            
+        case .authorized, .restricted, .denied, .writeOnly:
+            NotchlyLogger.info("⚠️ Calendar has partial access: \(currentStatus.rawValue)", category: .calendar)
+
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+
+                if granted {
+                    NotchlyLogger.notice("✅ Calendar access upgraded to full access", category: .calendar)
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
+                } else {
+                    NotchlyLogger.error("❌ Unable to upgrade calendar access: \(error?.localizedDescription ?? "No reason given")", category: .calendar)
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
+                }
+            }
+
+        @unknown default:
+            NotchlyLogger.error("⚠️ Unknown calendar permission state: \(currentStatus.rawValue)", category: .calendar)
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+
+                if granted {
+                    NotchlyLogger.notice("✅ Calendar access granted from unknown state", category: .calendar)
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
+                } else {
+                    NotchlyLogger.error("❌ Unable to get calendar access: \(error?.localizedDescription ?? "No reason provided")", category: .calendar)
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
+                }
             }
         }
     }
-    
+
+    /// Refreshes calendar data after permissions are granted
+    private func refreshCalendarData() {
+        NotchlyLogger.notice("📅 Refreshing calendar data after permission granted...", category: .calendar)
+        let startDate = Calendar.current.date(byAdding: .month, value: -2, to: Date())!
+        let endDate = Calendar.current.date(byAdding: .month, value: 2, to: Date())!
+        let loadedEvents = self.fetchEvents(startDate: startDate, endDate: endDate)
+
+        DispatchQueue.main.async {
+            self.events = loadedEvents
+            NotchlyLogger.notice("📆 Fetched \(loadedEvents.count) events after permission confirmed", category: .calendar)
+
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil
+            )
+        }
+    }
+
     // MARK: - Fetching
 
     @MainActor
@@ -66,35 +167,42 @@ class CalendarManager: ObservableObject {
         return eventStore.calendars(for: .event)
     }
 
-    func fetchEvents(
-        startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
-        endDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
-    ) -> [EKEvent] {
-        print("🔍 Fetching events from \(startDate) to \(endDate)")
-        print("🔍 Authorization status: \(EKEventStore.authorizationStatus(for: .event).rawValue)")
+    func fetchEvents(startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
+                     endDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date())!) -> [EKEvent] {
+        let now = Date()
         
+        /// Suppress logs if called again within 0.5 seconds
+        let shouldLog = {
+            if let last = self.lastFetchTime, now.timeIntervalSince(last) < 0.5 {
+                return false
+            }
+            self.lastFetchTime = now
+            return true
+        }()
+
+        if shouldLog {
+            NotchlyLogger.debug("🔍 Fetching events from \(startDate) to \(endDate)", category: .calendar)
+            NotchlyLogger.debug("🔍 Authorization status: \(EKEventStore.authorizationStatus(for: .event) == .fullAccess ? "'Full-Access'" : "Not-Granted")", category: .calendar)
+        }
+
         let calendars = eventStore.calendars(for: .event)
-        print("🔍 Found \(calendars.count) calendars")
-        
+        if shouldLog {
+            NotchlyLogger.debug("🔍 Found \(calendars.count) User Calendars", category: .calendar)
+        }
+
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: calendars)
         let fetchedEvents = eventStore.events(matching: predicate)
-        print("🔍 Fetched \(fetchedEvents.count) events")
-        
-        if fetchedEvents.isEmpty {
-            /// Debug: Display some calendar information to diagnose
-            for calendar in calendars {
-                print("  - Calendar: \(calendar.title) (source: \(calendar.source.title))")
-            }
-        } else {
-            /// Sample a few events to verify data
-            let sampleCount = min(fetchedEvents.count, 3)
-            print("🔍 Sample events:")
-            for i in 0..<sampleCount {
-                let event = fetchedEvents[i]
-                print("  - \(event.title ?? "Untitled") on \(String(describing: event.startDate))")
+
+        if shouldLog {
+            NotchlyLogger.debug("🔍 Fetched \(fetchedEvents.count) Events", category: .calendar)
+
+            if fetchedEvents.isEmpty {
+                for calendar in calendars {
+                    NotchlyLogger.debug("  - Calendar: \(calendar.title) (source: \(calendar.source.title))", category: .calendar)
+                }
             }
         }
-        
+
         self.events = fetchedEvents
         return fetchedEvents
     }
@@ -103,7 +211,6 @@ class CalendarManager: ObservableObject {
     func nextEventStartingSoon(thresholdMinutes: Int = 90) -> EKEvent? {
         let now = Date()
         let cutoff = Calendar.current.date(byAdding: .minute, value: thresholdMinutes, to: now)!
-        
         return events
             .filter {
                 !$0.isAllDay &&
@@ -121,62 +228,100 @@ class CalendarManager: ObservableObject {
             self.events = []
             return
         }
-        
-        /// Create a method to get filtered events that avoids direct access to private properties
+
         let startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())!
         let endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
-        
-        /// Use the existing fetchEvents method which has access to the eventStore
         var fetchedEvents: [EKEvent] = []
-        
-        /// Get all available calendars
+
         let allCalendars = await getAllCalendars()
-        
-        /// Filter for just the selected ones
-        let selectedCalendars = allCalendars.filter { calendar in
-            selectedIDs.contains(calendar.calendarIdentifier)
-        }
-        
-        /// Only fetch if we have calendars selected
+        let selectedCalendars = allCalendars.filter { selectedIDs.contains($0.calendarIdentifier) }
+
         if !selectedCalendars.isEmpty {
-            /// Use a custom implementation that doesn't need direct eventStore access
             fetchedEvents = fetchEventsForCalendars(selectedCalendars, startDate: startDate, endDate: endDate)
         }
-        
+
         self.events = fetchedEvents
     }
     
     /// Helper method to fetch events for specific calendars without requiring direct eventStore access
     private func fetchEventsForCalendars(_ calendars: [EKCalendar], startDate: Date, endDate: Date) -> [EKEvent] {
-        /// This method is implemented in the CalendarManager class and has access to the eventStore
-        return fetchEvents(startDate: startDate, endDate: endDate)
-            .filter { event in
-                /// Only include events from the selected calendars
-                guard let eventCalendar = event.calendar else { return false }
-                return calendars.contains(where: { $0.calendarIdentifier == eventCalendar.calendarIdentifier })
-            }
+        return fetchEvents(startDate: startDate, endDate: endDate).filter {
+            guard let calendar = $0.calendar else { return false }
+            return calendars.contains(where: { $0.calendarIdentifier == calendar.calendarIdentifier })
+        }
     }
-    
-    /// Clear all events
+
     @MainActor
     func clearEvents() {
         self.events = []
     }
-    
-    // MARK: - Lifecycle Hooks
-    
+
+    // MARK: - Enhanced Calendar Wake Handling
+
+    @MainActor
     func suspendUpdates() {
-        print("🛑 Suspending calendar updates...")
+        NotchlyLogger.info("🛑 Suspending calendar updates...", category: .calendar)
+        
+        /// Cancel any lingering operations
+        lastSystemChange = nil
+        lastFetchTime = nil
+        
+        /// Post notification to inform listeners
         NotificationCenter.default.post(name: .NotchlySuspendCalendarUpdates, object: nil)
     }
-    
+
+    @MainActor
     func reloadEvents() {
-        print("🔁 [Wake] Reloading calendar events...")
-        self.events = self.fetchEvents()
-        print("📆 Reload complete: \(self.events.count) events fetched.")
-        NotificationCenter.default.post(name: .NotchlyResumeCalendarUpdates, object: nil)
+        NotchlyLogger.notice("🔁 [Wake] Reloading calendar events...", category: .calendar)
+        
+        /// Check permission status first
+        let hasPermission = self.hasCalendarPermission()
+        guard hasPermission else {
+            NotchlyLogger.notice("📅 Skipping calendar reload - no permission", category: .calendar)
+            return
+        }
+        
+        /// Implement retry mechanism for stability
+        Task {
+            /// Try up to 3 times with increasing delays
+            var attempts = 0
+            var success = false
+            
+            while attempts < 3 && !success {
+                do {
+                    attempts += 1
+                    
+                    /// Add exponential backoff delay between attempts
+                    if attempts > 1 {
+                        try await Task.sleep(nanoseconds: UInt64(0.5 * Double(attempts) * 1_000_000_000))
+                    }
+                    
+                    /// Fetch events with normal date range
+                    let startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())!
+                    let endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+                    let fetchedEvents = self.fetchEvents(startDate: startDate, endDate: endDate)
+                    
+                    /// Update the events property
+                    self.events = fetchedEvents
+                    
+                    NotchlyLogger.notice("📆 Reload complete: \(fetchedEvents.count) events fetched.", category: .calendar)
+                    success = true
+                    
+                    /// Notify listeners that calendar updates are resumed
+                    NotificationCenter.default.post(name: .NotchlyResumeCalendarUpdates, object: nil)
+                } catch {
+                    NotchlyLogger.error("❌ Calendar reload attempt \(attempts) failed: \(error.localizedDescription)", category: .calendar)
+                }
+            }
+            
+            if !success {
+                NotchlyLogger.error("❌ All calendar reload attempts failed", category: .calendar)
+                /// Post notification anyway to prevent UI from waiting indefinitely
+                NotificationCenter.default.post(name: .NotchlyResumeCalendarUpdates, object: nil)
+            }
+        }
     }
-    
+
     // MARK: - Change Monitoring
     
     private func subscribeToCalendarChanges() {
@@ -186,33 +331,32 @@ class CalendarManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            
-            print("📱 Received calendar change notification")
-            
-            if let last = self.lastSystemChange,
-               Date().timeIntervalSince(last) < 2 {
-                print("⏱️ Debouncing duplicate notification")
+
+            NotchlyLogger.debug("📱 Received calendar change notification", category: .calendar)
+
+            if let last = self.lastSystemChange, Date().timeIntervalSince(last) < 2 {
+                NotchlyLogger.debug("⏱️ Debouncing duplicate notification", category: .calendar)
                 return
             }
             
             self.lastSystemChange = Date()
-            print("🔄 Reloading events after system change...")
-            
+            NotchlyLogger.debug("🔄 Reloading events after system change...", category: .calendar)
+
             let previous = self.events
             let updated = self.fetchEvents()
-            
+
             guard updated != previous else {
-                print("📆 No changes detected in event list")
+                NotchlyLogger.debug("📆 No changes detected in event list", category: .calendar)
                 return
             }
-            
+
             let delta = updated.count - previous.count
             if delta > 0 {
-                print("📆 New event(s) detected: +\(delta) (\(updated.count) total)")
+                NotchlyLogger.notice("📆 New event(s) detected: +\(delta) (\(updated.count) total)", category: .calendar)
             } else if delta < 0 {
-                print("📆 Event(s) removed: \(delta) (\(updated.count) total)")
+                NotchlyLogger.notice("📆 Event(s) removed: \(delta) (\(updated.count) total)", category: .calendar)
             } else {
-                print("📆 Event list updated (possible edits, same count: \(updated.count))")
+                NotchlyLogger.notice("📆 Event list updated (possible edits, same count: \(updated.count))", category: .calendar)
             }
             
             /// Important: Update on main thread

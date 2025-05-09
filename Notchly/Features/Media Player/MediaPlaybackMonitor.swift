@@ -202,8 +202,8 @@ final class MediaPlaybackMonitor: ObservableObject {
                     return
                 }
                 
-                // Force update by creating a new instance
-                // This ensures SwiftUI detects the change
+                /// Force update by creating a new instance
+                /// This ensures SwiftUI detects the change
                 self.nowPlaying = NowPlayingInfo(
                     title: info.title,
                     artist: info.artist,

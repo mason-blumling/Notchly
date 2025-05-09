@@ -124,7 +124,7 @@ private extension NotchlyEventList {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 pressedEventID = nil
             }
-            openEventInCalendar(event)
+            openEventInCalendar(event: event, date: event.startDate)
         }
         .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.calendar.notificationName)) { _ in
             /// Force view refresh when calendar settings change
@@ -214,11 +214,18 @@ extension NotchlyEventList {
         let settings = NotchlySettings.shared
         let maxEvents = settings.maxEventsToDisplay
         
-        let events = calendarManager.events
+        var events = calendarManager.events
             .filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
-            .sorted { $0.startDate < $1.startDate }
         
-        // Apply limit from settings
+        /// Filter out canceled events if the setting is disabled
+        if !settings.showCanceledEvents {
+            events = events.filter { $0.status != .canceled }
+        }
+        
+        /// Sort the filtered events
+        events = events.sorted { $0.startDate < $1.startDate }
+        
+        /// Apply limit from settings
         if events.count > maxEvents {
             return Array(events.prefix(maxEvents))
         }
@@ -227,12 +234,36 @@ extension NotchlyEventList {
     }
     
     /// Opens the selected event in the macOS Calendar app.
-    func openEventInCalendar(_ event: EKEvent) {
-        guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+    func openEventInCalendar(event: EKEvent, date: Date) {
+        guard let eventIdentifier = event.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) else {
+            print("Error: Could not encode event identifier.")
             return
         }
-        if let url = URL(string: "ical://ekevent/\(eventIdentifier)?method=show&options=more") {
+
+        let formattedDate = date.toCalendarDateString()
+
+        if let url = URL(string: "ical://ekevent/\(formattedDate)/\(eventIdentifier)?method=show&options=more") {
             NSWorkspace.shared.open(url)
+        } else {
+            print("Error: Could not create URL.")
         }
+    }
+
+    /// Formats a Date to an AppleScript-friendly string (e.g., "Monday, May 12, 2025 at 9:00:00 AM")
+    private func formattedDate(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX") // Safe default
+        formatter.dateStyle = .full
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
+}
+
+extension Date {
+    fileprivate func toCalendarDateString() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return dateFormatter.string(from: self)
     }
 }

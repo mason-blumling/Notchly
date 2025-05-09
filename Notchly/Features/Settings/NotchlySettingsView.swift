@@ -17,17 +17,19 @@ struct NotchlySettingsView: View {
     
     /// Environment color scheme for dark/light mode adaptability
     @Environment(\.colorScheme) private var colorScheme
-    
-    // MARK: - Tab Definition
-    
+
+    // MARK: - Settings Tab Definition
+
+    /// Defines all available tabs in the Notchly settings window
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
         case appearance = "Appearance"
         case media = "Media"
         case calendar = "Calendar"
         case weather = "Weather"
+        case permissions = "Permissions"
         case about = "About"
-        
+
         var id: String { self.rawValue }
         
         var iconName: String {
@@ -37,6 +39,7 @@ struct NotchlySettingsView: View {
             case .media: return "music.note"
             case .calendar: return "calendar"
             case .weather: return "cloud.sun"
+            case .permissions: return "lock.shield"
             case .about: return "info.circle"
             }
         }
@@ -128,6 +131,8 @@ struct NotchlySettingsView: View {
                             calendarSettings
                         case .weather:
                             weatherSettings
+                        case .permissions:
+                            NotchlyPermissionsView()
                         case .about:
                             aboutView
                         }
@@ -162,7 +167,7 @@ struct NotchlySettingsView: View {
         }
         .onAppear {
             loadCalendars()
-            checkCalendarPermission()
+            AppEnvironment.shared.checkCalendarPermissionStatus()
         }
     }
     
@@ -297,7 +302,7 @@ struct NotchlySettingsView: View {
     
     private var appearanceSettings: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            // Theme
+            /// Theme
             SettingsSectionView(title: "Theme", icon: "paintpalette") {
                 VStack(alignment: .leading, spacing: contentSpacing) {
                     Text("Appearance Mode")
@@ -377,7 +382,7 @@ struct NotchlySettingsView: View {
             SettingsSectionView(title: "Media Sources", icon: "music.note.list") {
                 VStack(spacing: contentSpacing) {
                     ToggleRow(
-                        icon: "applemusic",
+                        icon: "appleMusic-Universal",
                         title: "Apple Music",
                         description: "Show Apple Music playback controls",
                         isOn: $settings.enableAppleMusic
@@ -386,7 +391,7 @@ struct NotchlySettingsView: View {
                     Divider().padding(.vertical, 4)
                     
                     ToggleRow(
-                        icon: "spotify",
+                        icon: "spotify-Universal",
                         title: "Spotify",
                         description: "Show Spotify playback controls",
                         isOn: $settings.enableSpotify
@@ -395,7 +400,7 @@ struct NotchlySettingsView: View {
                     Divider().padding(.vertical, 4)
                     
                     ToggleRow(
-                        icon: "podcast",
+                        icon: "podcasts-Universal",
                         title: "Podcasts",
                         description: "Show Podcasts playback controls",
                         isOn: $settings.enablePodcasts
@@ -424,7 +429,7 @@ struct NotchlySettingsView: View {
             SettingsSectionView(title: "Visual Effects", icon: "sparkles") {
                 VStack(spacing: contentSpacing) {
                     ToggleRow(
-                        icon: "paintpalette.fill",  // Updated icon for background glow
+                        icon: "paintpalette.fill",  /// Updated icon for background glow
                         title: "Show Background Glow",
                         description: "Display color-adaptive glow behind album artwork",
                         isOn: $settings.enableBackgroundGlow
@@ -447,7 +452,6 @@ struct NotchlySettingsView: View {
     
     private var calendarSettings: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            /// Calendar integration
             SettingsSectionView(title: "Calendar Integration", icon: "calendar.badge.clock") {
                 VStack(spacing: contentSpacing) {
                     HStack {
@@ -465,7 +469,7 @@ struct NotchlySettingsView: View {
                         
                         Spacer()
                         
-                        if calendarPermissionStatus != .fullAccess {
+                        if EKEventStore.authorizationStatus(for: .event) != .fullAccess {
                             Button("Request Access") {
                                 requestCalendarAccess()
                             }
@@ -474,7 +478,7 @@ struct NotchlySettingsView: View {
                         }
                     }
                     
-                    if calendarPermissionStatus != .fullAccess {
+                    if EKEventStore.authorizationStatus(for: .event) != .fullAccess {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
@@ -485,88 +489,149 @@ struct NotchlySettingsView: View {
                         }
                         .padding(.top, 8)
                     }
-                }
-            }
-            .disabled(calendarPermissionStatus != .fullAccess)
-            
-            if settings.enableCalendar && calendarPermissionStatus == .fullAccess {
-                /// Visible calendars
-                SettingsSectionView(title: "Visible Calendars", icon: "list.bullet.rectangle") {
-                    ZStack {
-                        if isLoadingCalendars {
-                            VStack {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                    .frame(maxWidth: .infinity, minHeight: 100)
-                                
-                                Text("Loading calendars...")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(secondaryTextColor)
-                            }
-                        } else if availableCalendars.isEmpty {
-                            Text("No calendars found")
-                                .font(.system(size: 13))
-                                .foregroundColor(secondaryTextColor)
-                                .frame(maxWidth: .infinity, minHeight: 100)
-                        } else {
-                            ScrollView {
-                                VStack(spacing: 2) {
-                                    ForEach(availableCalendars, id: \.calendarIdentifier) { calendar in
-                                        EnhancedCalendarRow(
-                                            calendar: calendar,
-                                            isSelected: settings.selectedCalendarIDs.contains(calendar.calendarIdentifier),
-                                            onToggle: { isSelected in
-                                                if isSelected {
-                                                    settings.selectedCalendarIDs.insert(calendar.calendarIdentifier)
-                                                } else {
-                                                    settings.selectedCalendarIDs.remove(calendar.calendarIdentifier)
+                    
+                    if settings.enableCalendar {
+                        Divider().padding(.vertical, 4)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Calendar Style")
+                                .font(.system(size: 14, weight: .semibold))
+                            
+                            /// Calendar style selector with previews
+                            HStack(spacing: 20) {
+                                /// Block style option
+                                VStack {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(colorScheme == .dark ?
+                                                  Color(NSColor.textBackgroundColor).opacity(0.15) :
+                                                  Color(NSColor.textBackgroundColor).opacity(0.6))
+                                            .frame(width: 120, height: 80)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(settings.calendarStyle == .block ? Color.accentColor : Color.gray.opacity(0.3),
+                                                            lineWidth: settings.calendarStyle == .block ? 2 : 1)
+                                            )
+                                        
+                                        /// Block calendar preview
+                                        VStack(spacing: 8) {
+                                            HStack(alignment: .center, spacing: 0) {
+                                                Text("May")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .frame(width: 32, alignment: .leading)
+                                                
+                                                Spacer(minLength: 4)
+                                                
+                                                HStack(spacing: 4) {
+                                                    ForEach(["M", "T1", "W", "T2", "F"], id: \.self) { day in
+                                                        let displayText = day.count > 1 ? String(day.first!) : day
+                                                        Text(displayText)
+                                                            .font(.system(size: 9))
+                                                            .foregroundColor(.gray)
+                                                            .frame(width: 10)
+                                                    }
                                                 }
                                             }
-                                        )
+                                            .padding(.horizontal, 4)
+                                            
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.3))
+                                                .frame(height: 14)
+                                                .cornerRadius(2)
+                                                .padding(.horizontal, 4)
+                                            
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(height: 14)
+                                                .cornerRadius(2)
+                                                .padding(.horizontal, 4)
+                                        }
+                                        .frame(width: 110)
+                                    }
+                                    
+                                    Text("Block")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(settings.calendarStyle == .block ? .accentColor : .primary)
+                                        .padding(.top, 4)
+                                }
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        settings.calendarStyle = .block
                                     }
                                 }
-                                .padding(.vertical, 4)
-                            }
-                            .frame(maxHeight: 200)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(NSColor.textBackgroundColor).opacity(0.3))
-                            )
-                        }
-                    }
-                }
-                
-                /// Event alerts
-                SettingsSectionView(title: "Event Alerts", icon: "bell") {
-                    VStack(spacing: contentSpacing) {
-                        ToggleRow(
-                            title: "Enable Event Alerts",
-                            description: "Get notified before upcoming calendar events",
-                            isOn: $settings.enableCalendarAlerts
-                        )
-                        
-                        if settings.enableCalendarAlerts {
-                            Divider().padding(.vertical, 4)
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Show alerts before event:")
-                                    .font(.system(size: 14, weight: .semibold))
                                 
-                                HStack(spacing: 20) {
-                                    ForEach([15, 5, 1], id: \.self) { minutes in
-                                        AlertMinuteOption(
-                                            minutes: minutes,
-                                            isSelected: settings.alertTiming.contains(minutes),
-                                            onToggle: { isSelected in
-                                                if isSelected {
-                                                    if !settings.alertTiming.contains(minutes) {
-                                                        settings.alertTiming.append(minutes)
+                                /// Timeline style option
+                                VStack {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(colorScheme == .dark ?
+                                                  Color(NSColor.textBackgroundColor).opacity(0.15) :
+                                                  Color(NSColor.textBackgroundColor).opacity(0.6))
+                                            .frame(width: 120, height: 80)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(settings.calendarStyle == .timeline ? Color.accentColor : Color.gray.opacity(0.3),
+                                                            lineWidth: settings.calendarStyle == .timeline ? 2 : 1)
+                                            )
+                                        
+                                        /// Timeline calendar preview
+                                        VStack(spacing: 8) {
+                                            HStack(alignment: .center) {
+                                                Text("May")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .frame(width: 40, alignment: .leading)
+
+                                                let days = ["04", "05", "06"]
+                                                let weekdays = ["M", "T", "W"]
+
+                                                HStack(spacing: 8) {
+                                                    ForEach(Array(days.enumerated()), id: \.element) { index, day in
+                                                        VStack(spacing: 2) {
+                                                            Text(weekdays[index])
+                                                                .font(.system(size: 6))
+                                                                .foregroundColor(.gray)
+
+                                                            Text(day)
+                                                                .font(.system(size: 9))
+                                                        }
                                                     }
-                                                } else {
-                                                    settings.alertTiming.removeAll { $0 == minutes }
                                                 }
                                             }
-                                        )
+                                            .padding(.leading, 4)
+                                            
+                                            /// Timeline event visualization
+                                            HStack(spacing: 4) {
+                                                Text("Meeting")
+                                                    .font(.system(size: 8))
+                                                    .frame(width: 48, alignment: .trailing)
+                                                
+                                                Circle()
+                                                    .fill(Color.blue)
+                                                    .frame(width: 6, height: 6)
+                                                
+                                                Text("10:00 AM")
+                                                    .font(.system(size: 8))
+                                                    .frame(width: 48, alignment: .leading)
+                                            }
+                                            .offset(x: 2)
+                                            
+                                            /// Line and second event
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.3))
+                                                .frame(width: 1, height: 16)
+                                                .offset(x: 2)
+                                        }
+                                        .frame(width: 110)
+                                    }
+                                    
+                                    Text("Timeline")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(settings.calendarStyle == .timeline ? .accentColor : .primary)
+                                        .padding(.top, 4)
+                                }
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        settings.calendarStyle = .timeline
                                     }
                                 }
                             }
@@ -574,87 +639,252 @@ struct NotchlySettingsView: View {
                         }
                     }
                 }
-                
-                /// Display options
-                SettingsSectionView(title: "Display Options", icon: "text.viewfinder") {
-                    VStack(spacing: contentSpacing) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Maximum Events")
-                                    .font(.system(size: 14, weight: .semibold))
-                                
-                                Text("Show up to \(settings.maxEventsToDisplay) events")
-                                    .font(.system(size: 12))
+            }
+
+            if settings.enableCalendar && EKEventStore.authorizationStatus(for: .event) == .fullAccess {
+                Group {
+                    /// Visible calendars
+                    SettingsSectionView(title: "Visible Calendars", icon: "list.bullet.rectangle") {
+                        ZStack {
+                            if isLoadingCalendars {
+                                VStack {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                        .frame(maxWidth: .infinity, minHeight: 100)
+                                    
+                                    Text("Loading calendars...")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(secondaryTextColor)
+                                }
+                            } else if availableCalendars.isEmpty {
+                                Text("No calendars found")
+                                    .font(.system(size: 13))
                                     .foregroundColor(secondaryTextColor)
-                            }
-                            
-                            Spacer()
-                            
-                            HStack(spacing: 0) {
-                                Button(action: {
-                                    if settings.maxEventsToDisplay > 1 {
-                                        settings.maxEventsToDisplay -= 1
+                                    .frame(maxWidth: .infinity, minHeight: 100)
+                            } else {
+                                ScrollView {
+                                    VStack(spacing: 2) {
+                                        ForEach(availableCalendars, id: \.calendarIdentifier) { calendar in
+                                            EnhancedCalendarRow(
+                                                calendar: calendar,
+                                                isSelected: settings.selectedCalendarIDs.contains(calendar.calendarIdentifier),
+                                                onToggle: { isSelected in
+                                                    if isSelected {
+                                                        settings.selectedCalendarIDs.insert(calendar.calendarIdentifier)
+                                                    } else {
+                                                        settings.selectedCalendarIDs.remove(calendar.calendarIdentifier)
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
-                                }) {
-                                    Image(systemName: "minus")
-                                        .padding(8)
+                                    .padding(.vertical, 4)
                                 }
-                                .buttonStyle(StepperButtonStyle())
-                                .disabled(settings.maxEventsToDisplay <= 1)
-                                
-                                Text("\(settings.maxEventsToDisplay)")
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                                    .frame(width: 36, alignment: .center)
-                                
-                                Button(action: {
-                                    if settings.maxEventsToDisplay < 20 {
-                                        settings.maxEventsToDisplay += 1
-                                    }
-                                }) {
-                                    Image(systemName: "plus")
-                                        .padding(8)
-                                }
-                                .buttonStyle(StepperButtonStyle())
-                                .disabled(settings.maxEventsToDisplay >= 20)
+                                .frame(maxHeight: 200)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(NSColor.textBackgroundColor).opacity(0.3))
+                                )
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            )
-                            .cornerRadius(8)
                         }
-                        
-                        Divider().padding(.vertical, 4)
-                        
-                        ToggleRow(
-                            icon: "person",
-                            title: "Show Event Organizer",
-                            description: "Display who organized each event",
-                            isOn: $settings.showEventOrganizer
-                        )
-                        
-                        Divider().padding(.vertical, 4)
-                        
-                        ToggleRow(
-                            icon: "mappin.and.ellipse",
-                            title: "Show Event Location",
-                            description: "Display event locations when available",
-                            isOn: $settings.showEventLocation
-                        )
-                        
-                        Divider().padding(.vertical, 4)
-                        
-                        ToggleRow(
-                            icon: "person.2",
-                            title: "Show Event Attendees",
-                            description: "Display attendee status for each event",
-                            isOn: $settings.showEventAttendees
-                        )
+                    }
+                    
+                    /// Event alerts
+                    SettingsSectionView(title: "Event Alerts", icon: "bell") {
+                        VStack(spacing: contentSpacing) {
+                            ToggleRow(
+                                title: "Enable Event Alerts",
+                                description: "Get notified before upcoming calendar events",
+                                isOn: $settings.enableCalendarAlerts
+                            )
+                            
+                            if settings.enableCalendarAlerts {
+                                Divider().padding(.vertical, 4)
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Show alerts before event:")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    
+                                    HStack(spacing: 20) {
+                                        ForEach([15, 5, 1], id: \.self) { minutes in
+                                            AlertMinuteOption(
+                                                minutes: minutes,
+                                                isSelected: settings.alertTiming.contains(minutes),
+                                                onToggle: { isSelected in
+                                                    if isSelected {
+                                                        if !settings.alertTiming.contains(minutes) {
+                                                            settings.alertTiming.append(minutes)
+                                                        }
+                                                    } else {
+                                                        settings.alertTiming.removeAll { $0 == minutes }
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+                    }
+                    
+                    /// Display options
+                    SettingsSectionView(title: "Display Options", icon: "text.viewfinder") {
+                        VStack(spacing: contentSpacing) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Maximum Events")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    
+                                    Text("Show up to \(settings.maxEventsToDisplay) events")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(secondaryTextColor)
+                                }
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 0) {
+                                    Button(action: {
+                                        if settings.maxEventsToDisplay > 1 {
+                                            settings.maxEventsToDisplay -= 1
+                                        }
+                                    }) {
+                                        Image(systemName: "minus")
+                                            .padding(8)
+                                    }
+                                    .buttonStyle(StepperButtonStyle())
+                                    .disabled(settings.maxEventsToDisplay <= 1)
+                                    
+                                    Text("\(settings.maxEventsToDisplay)")
+                                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                                        .frame(width: 36, alignment: .center)
+                                    
+                                    Button(action: {
+                                        if settings.maxEventsToDisplay < 20 {
+                                            settings.maxEventsToDisplay += 1
+                                        }
+                                    }) {
+                                        Image(systemName: "plus")
+                                            .padding(8)
+                                    }
+                                    .buttonStyle(StepperButtonStyle())
+                                    .disabled(settings.maxEventsToDisplay >= 20)
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                                .cornerRadius(8)
+                            }
+                            
+                            Divider().padding(.vertical, 4)
+                            
+                            ToggleRow(
+                                icon: "person",
+                                title: "Show Event Organizer",
+                                description: "Display who organized each event",
+                                isOn: $settings.showEventOrganizer
+                            )
+                            
+                            Divider().padding(.vertical, 4)
+                            
+                            ToggleRow(
+                                icon: "mappin.and.ellipse",
+                                title: "Show Event Location",
+                                description: "Display event locations when available",
+                                isOn: $settings.showEventLocation
+                            )
+                            
+                            Divider().padding(.vertical, 4)
+                            
+                            ToggleRow(
+                                icon: "person.2",
+                                title: "Show Event Attendees",
+                                description: "Display attendee status for each event",
+                                isOn: $settings.showEventAttendees
+                            )
+                            
+                            Divider().padding(.vertical, 4)
+
+                            ToggleRow(
+                                icon: "xmark.circle",
+                                title: "Show Canceled Events",
+                                description: "Display events that have been canceled",
+                                isOn: $settings.showCanceledEvents
+                            )
+                        }
                     }
                 }
             }
         }
-        .disabled(calendarPermissionStatus != .fullAccess && settings.enableCalendar)
+        .onAppear {
+            AppEnvironment.shared.checkCalendarPermissionStatus()
+            loadCalendars()
+        }
+    }
+    
+    private func requestCalendarAccess() {
+        isLoadingCalendars = true
+        
+        AppEnvironment.shared.requestCalendarPermission { granted in
+            DispatchQueue.main.async {
+                self.isLoadingCalendars = false
+                /// Always re-check the permission status after request
+                self.checkCalendarPermission()
+                
+                /// If granted, also notify Settings model to update its state and load calendars
+                if granted {
+                    Task { @MainActor in
+                        /// Update calendar settings
+                        await NotchlySettings.shared.handleCalendarPermissionGranted()
+                        
+                        /// Force enable calendar in settings if permission was just granted
+                        /// and it's currently disabled
+                        if !NotchlySettings.shared.enableCalendar {
+                            await NotchlySettings.shared.updateEnableCalendarSetting(true)
+                        }
+                        
+                        /// Load calendars immediately - this is the key fix
+                        await self.loadCalendarsAsync()
+                        
+                        /// After a small delay, force a UI refresh with animation
+                        try? await Task.sleep(nanoseconds: 500_000_000) /// 0.5 seconds
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            /// This triggers a UI refresh by toggling a state property
+                            self.selectedTab = .calendar
+                        }
+                    }
+                }
+                
+                /// Post notification to update any UI components
+                NotificationCenter.default.post(
+                    name: SettingsChangeType.calendar.notificationName,
+                    object: nil,
+                    userInfo: ["permissionChanged": true, "permissionGranted": granted]
+                )
+            }
+        }
+    }
+    
+    /// Async version of loadCalendars for use in Task contexts
+    @MainActor
+    private func loadCalendarsAsync() async {
+        if EKEventStore.authorizationStatus(for: .event) == .fullAccess {
+            let calendars = AppEnvironment.shared.calendarManager.getAllCalendars()
+            
+            self.availableCalendars = calendars
+            self.isLoadingCalendars = false
+            
+            /// If we have permission but no selected calendars, select all
+            if NotchlySettings.shared.selectedCalendarIDs.isEmpty && !calendars.isEmpty {
+                NotchlySettings.shared.selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                /// Force refresh of calendar data
+                await NotchlySettings.shared.refreshCalendarEvents()
+            }
+        } else {
+            self.availableCalendars = []
+            self.isLoadingCalendars = false
+        }
     }
     
     // MARK: - Weather Settings
@@ -799,38 +1029,33 @@ struct NotchlySettingsView: View {
         isLoadingCalendars = true
         
         Task {
-            let eventStore = EKEventStore()
-            switch EKEventStore.authorizationStatus(for: .event) {
-            case .fullAccess:
-                availableCalendars = eventStore.calendars(for: .event)
-            default:
-                availableCalendars = []
-            }
-            
-            DispatchQueue.main.async {
-                isLoadingCalendars = false
+            if EKEventStore.authorizationStatus(for: .event) == .fullAccess {
+                let calendars = AppEnvironment.shared.calendarManager.getAllCalendars()
+                
+                DispatchQueue.main.async {
+                    self.availableCalendars = calendars
+                    self.isLoadingCalendars = false
+                    
+                    /// If we have permission but no selected calendars, select all
+                    if NotchlySettings.shared.selectedCalendarIDs.isEmpty && !calendars.isEmpty {
+                        NotchlySettings.shared.selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                        /// Force refresh of calendar data
+                        Task { @MainActor in
+                            await NotchlySettings.shared.refreshCalendarEvents()
+                        }
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.availableCalendars = []
+                    self.isLoadingCalendars = false
+                }
             }
         }
     }
     
     private func checkCalendarPermission() {
         calendarPermissionStatus = EKEventStore.authorizationStatus(for: .event)
-    }
-    
-    private func requestCalendarAccess() {
-        isLoadingCalendars = true
-        
-        Task {
-            AppEnvironment.shared.calendarManager.requestAccess { granted in
-                DispatchQueue.main.async {
-                    self.isLoadingCalendars = false
-                    self.checkCalendarPermission()
-                    if granted {
-                        self.loadCalendars()
-                    }
-                }
-            }
-        }
     }
     
     private func openURL(_ urlString: String) {
@@ -900,10 +1125,18 @@ struct ToggleRow: View {
     var body: some View {
         HStack(spacing: 12) {
             if let icon = icon {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 24, height: 24)
+                if icon == "appleMusic-Universal" || icon == "spotify-Universal" || icon == "podcasts-Universal" {
+                    Image(icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(.accentColor)
+                        .frame(width: 24, height: 24)
+                }
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -1069,7 +1302,7 @@ struct CustomSlider: View {
         let percent = clampedPosition / width
         let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percent)
         
-        // Round to nearest step
+        /// Round to nearest step
         let roundedValue = round(newValue / step) * step
         value = max(range.lowerBound, min(roundedValue, range.upperBound))
     }
@@ -1132,7 +1365,7 @@ struct EnhancedCalendarRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Calendar color indicator
+            /// Calendar color indicator
             Circle()
                 .fill(Color(cgColor: calendar.cgColor))
                 .frame(width: 14, height: 14)
@@ -1141,7 +1374,7 @@ struct EnhancedCalendarRow: View {
                         .stroke(Color.white.opacity(0.7), lineWidth: 1)
                 )
             
-            // Calendar title
+            /// Calendar title
             Text(calendar.title)
                 .font(.system(size: 13))
                 .lineLimit(1)
@@ -1149,7 +1382,7 @@ struct EnhancedCalendarRow: View {
             
             Spacer()
             
-            // Toggle switch
+            /// Toggle switch
             Toggle("", isOn: Binding(
                 get: { isSelected },
                 set: { onToggle($0) }

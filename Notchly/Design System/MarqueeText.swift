@@ -58,7 +58,6 @@ struct MarqueeText: View {
             }
             .frame(width: containerWidth, alignment: .leading)
             .clipped()
-            .overlay(fadeEffect())
         }
         .frame(height: 20)
     }
