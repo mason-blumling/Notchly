@@ -34,7 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         /// Uncomment this line when you want to test the intro flows
-         UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+        /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
 
         print("🚀 Notchly App is Launching...")
         AppDelegate.shared = self

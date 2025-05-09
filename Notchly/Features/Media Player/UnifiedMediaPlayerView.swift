@@ -14,9 +14,12 @@ struct UnifiedMediaPlayerView: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
     var isExpanded: Bool
     var namespace: Namespace.ID
+    
     @State private var backgroundGlowColor: Color = .clear
     @State private var showBars = false
-
+    @State private var showAudioBars: Bool = true
+    @State private var currentArtworkAction: NotchlySettings.ArtworkClickAction = .openApp
+    @ObservedObject private var settings = NotchlySettings.shared
     @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     // MARK: - Player State Enum
@@ -38,14 +41,14 @@ struct UnifiedMediaPlayerView: View {
         let expandedSize: CGFloat = 100
         let activitySize: CGFloat = 24
         
-        // Use state directly for more stable sizing
+        /// Use state directly for more stable sizing
         switch coordinator.state {
         case .expanded:
             return expandedSize
         case .mediaActivity, .calendarActivity:
             return activitySize
         case .collapsed:
-            // For collapsed state, interpolate based on width
+            /// For collapsed state, interpolate based on width
             let expandedWidth = NotchlyConfiguration.large.width
             let activityWidth = NotchlyConfiguration.activity.width
             let currentWidth = coordinator.configuration.width
@@ -69,7 +72,6 @@ struct UnifiedMediaPlayerView: View {
             /// Glow background (only in expanded state)
             if playerState == .expanded {
                 expandedBackgroundGlow()
-                    .opacity(backgroundGlowOpacity)
             }
 
             Group {
@@ -88,43 +90,75 @@ struct UnifiedMediaPlayerView: View {
             }
         }
         .animation(coordinator.animation, value: coordinator.configuration)
+        .onAppear {
+            /// Initialize state from settings
+            showAudioBars = settings.showAudioBars
+            currentArtworkAction = settings.artworkClickAction
+        }
         .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
             updateGlowColor(from: new)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.visualization.notificationName)) { notification in
+            if let show = notification.userInfo?["showAudioBars"] as? Bool {
+                withAnimation {
+                    self.showAudioBars = show
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.artwork.notificationName)) { notification in
+            if let actionStr = notification.userInfo?["action"] as? String,
+               let action = NotchlySettings.ArtworkClickAction(rawValue: actionStr) {
+                self.currentArtworkAction = action
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.backgroundGlow.notificationName)) { _ in
+            /// Just trigger a re-render when the background glow setting changes
         }
     }
 
     // MARK: - Expanded Glow Background
 
     private func expandedBackgroundGlow() -> some View {
-        HStack(spacing: 0) {
-            RenderSafeView {
-                GlowingBlobView(blobColor: backgroundGlowColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.trailing, 120)
-                    /// Adjust vertical scaling to ensure full height coverage
-                    .scaleEffect(y: 1.4)
-                    .offset(y: -20)
-                    .blur(radius: 40)
-                    .mask(
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: .black, location: 0.0),
-                                .init(color: .black, location: 0.75),
-                                .init(color: .clear, location: 1.0)
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .opacity(0.5)
-                    .transition(.opacity)
-                    .allowsHitTesting(false)
-            }
-            Spacer()
+        /// Early return if glow is disabled in settings
+        guard settings.enableBackgroundGlow else {
+            return AnyView(EmptyView())
         }
+        
+        /// Calculate opacity based on configuration width
+        let glowOpacity = calculateGlowOpacity()
+        
+        return AnyView(
+            HStack(spacing: 0) {
+                RenderSafeView {
+                    GlowingBlobView(blobColor: backgroundGlowColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.trailing, 120)
+                        /// Adjust vertical scaling to ensure full height coverage
+                        .scaleEffect(y: 1.4)
+                        .offset(y: -20)
+                        .blur(radius: 40)
+                        .mask(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .black, location: 0.0),
+                                    .init(color: .black, location: 0.75),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .opacity(0.5 * glowOpacity)
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                }
+                Spacer()
+            }
+        )
     }
 
-    private var backgroundGlowOpacity: Double {
+    /// Calculates the appropriate glow opacity based on current configuration
+    private func calculateGlowOpacity() -> Double {
         let expandedWidth = NotchlyConfiguration.large.width
         let activityWidth = NotchlyConfiguration.activity.width
         let currentWidth = coordinator.configuration.width
@@ -174,10 +208,23 @@ struct UnifiedMediaPlayerView: View {
                     Spacer(minLength: 8)
                         .frame(maxWidth: .infinity)
                     
-                    AudioBarsView()
-                        .frame(width: 30, height: 24)
-                        .opacity(activityContentOpacity)
-                        .offset(x: 2)
+                    if showAudioBars {
+                        AudioBarsView()
+                            .frame(width: 30, height: 24, alignment: .center)
+                            .background(Color.clear) // Explicit background
+                            .opacity(activityContentOpacity)
+                            .overlay(
+                                /// Debug outline that can be removed in production
+                                Rectangle()
+                                    .stroke(Color.clear, lineWidth: 1)
+                            )
+                    } else {
+                        /// Simple alternative when audio bars disabled
+                        Image(systemName: "music.note")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .opacity(activityContentOpacity)
+                    }
 
                     Spacer()
                         .frame(width: 16)
@@ -212,14 +259,16 @@ struct UnifiedMediaPlayerView: View {
         let defaultWidth = NotchlyConfiguration.default.width
         let currentWidth = coordinator.configuration.width
 
-        if currentWidth <= defaultWidth {
+        guard currentWidth > defaultWidth else { return 0 }
+
+        let clamped = min(max(currentWidth, defaultWidth), activityWidth)
+        let progress = (clamped - defaultWidth) / (activityWidth - defaultWidth)
+
+        if coordinator.state == .expanded {
             return 0
-        } else if currentWidth >= activityWidth {
-            return coordinator.state == .expanded ? 0 : 1
-        } else {
-            let progress = (currentWidth - defaultWidth) / (activityWidth - defaultWidth)
-            return Double(max(0, min(1, progress)))
         }
+
+        return Double(progress)
     }
 
     // MARK: - Artwork View
@@ -230,10 +279,9 @@ struct UnifiedMediaPlayerView: View {
             ArtworkView(
                 artwork: artwork,
                 isExpanded: playerState == .expanded,
-                action: openAppForTrack
+                action: handleArtworkClick
             )
             .cornerRadius(playerState == .expanded ? 10 : 4)
-            // Remove individual animation, let the container handle it
         } else {
             RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4)
                 .fill(Color.gray.opacity(0.3))
@@ -248,14 +296,42 @@ struct UnifiedMediaPlayerView: View {
     // MARK: - Glow Color Utility
 
     private func updateGlowColor(from image: NSImage?) {
-        if let image,
-           let dom = image.dominantColor(),
-           let vib = dom.vibrantColor() {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                backgroundGlowColor = Color(nsColor: vib)
+        /// Skip processing if glow effect is disabled
+        guard settings.enableBackgroundGlow else {
+            backgroundGlowColor = .gray.opacity(0.25)
+            return
+        }
+        
+        /// Process image only if we have a valid one
+        if let image = image,
+           !image.isKind(of: NSAppleEventDescriptor.self) {
+            Task { @MainActor in
+                if let dom = image.dominantColor(),
+                   let vib = dom.vibrantColor() {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        backgroundGlowColor = Color(nsColor: vib)
+                    }
+                } else {
+                    backgroundGlowColor = .gray.opacity(0.25)
+                }
             }
         } else {
             backgroundGlowColor = .gray.opacity(0.25)
+        }
+    }
+
+    // MARK: - Artwork Click Action
+
+    private func handleArtworkClick() {
+        switch currentArtworkAction {
+        case .openApp:
+            openAppForTrack()
+        case .playPause:
+            mediaMonitor.togglePlayPause()
+        case .openAlbum:
+            openAlbumForTrack()
+        case .doNothing:
+            break
         }
     }
 
@@ -270,6 +346,19 @@ struct UnifiedMediaPlayerView: View {
 
         if let url = URL(string: urlScheme) {
             NSWorkspace.shared.open(url)
+        }
+    }
+    
+    private func openAlbumForTrack() {
+        /// Logic to open the current album (implementation varies by player)        
+        if mediaMonitor.activePlayerName.lowercased() == "spotify" {
+            if let url = URL(string: "spotify:album:") {
+                NSWorkspace.shared.open(url)
+            }
+        } else {
+            if let url = URL(string: "music://") {
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 }

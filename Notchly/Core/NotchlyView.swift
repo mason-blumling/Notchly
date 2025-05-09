@@ -15,7 +15,7 @@ struct NotchlyView: View {
 
     @ObservedObject var viewModel: NotchlyViewModel
     @EnvironmentObject var appEnvironment: AppEnvironment
-
+    @ObservedObject private var settings = NotchlySettings.shared
     @Namespace private var notchAnimation
 
     // MARK: - Local State
@@ -60,9 +60,17 @@ struct NotchlyView: View {
 
     /// Determines whether the calendar live activity alert should show.
     private var shouldShowCalendarLiveActivity: Bool {
-        coordinator.state != .expanded &&
-        calendarActivityMonitor.upcomingEvent != nil &&
-        !calendarActivityMonitor.timeRemainingString.isEmpty
+        let settings = NotchlySettings.shared
+        
+        /// First check settings permissions
+        guard settings.enableCalendar && settings.enableCalendarAlerts else {
+            return false
+        }
+        
+        /// Then check the standard conditions
+        return coordinator.state != .expanded &&
+               calendarActivityMonitor.upcomingEvent != nil &&
+               !calendarActivityMonitor.timeRemainingString.isEmpty
     }
 
     /// Controls opacity for expanded content based on notch animation progress.
@@ -127,7 +135,7 @@ struct NotchlyView: View {
                 }
                 .onHover { hovering in
                     guard !viewModel.ignoreHoverOnboarding else { return }
-                    debounceHover(hovering)
+                    viewModel.debounceHover(hovering)
                 }
                 .position(x: geometry.size.width / 2, y: coordinator.configuration.height / 2)
             }
@@ -142,73 +150,92 @@ struct NotchlyView: View {
     }
     
     // MARK: - Content Views
-    
+
     private func expandedContent(in layout: NotchlyLayoutGuide) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            UnifiedMediaPlayerView(
-                mediaMonitor: mediaMonitor,
-                isExpanded: true,
-                namespace: notchAnimation
-            )
-            .frame(
-                width: layout.leftContentFrame.width,
-                height: layout.leftContentFrame.height
-            )
+            /// Only show media player if the media app is enabled
+            if isMediaAppEnabled(mediaMonitor.activePlayerName) {
+                UnifiedMediaPlayerView(
+                    mediaMonitor: mediaMonitor,
+                    isExpanded: true,
+                    namespace: notchAnimation
+                )
+                .frame(
+                    width: layout.leftContentFrame.width,
+                    height: layout.leftContentFrame.height
+                )
+            } else {
+                /// Show placeholder if current media app is disabled
+                Color.clear
+                    .frame(
+                        width: layout.leftContentFrame.width,
+                        height: layout.leftContentFrame.height
+                    )
+            }
 
-            NotchlyCalendarView(calendarManager: calendarManager)
+            /// Only show calendar if enabled
+            if settings.enableCalendar {
+                NotchlyCalendarView(calendarManager: calendarManager)
+                    .frame(
+                        width: layout.rightContentFrame.width,
+                        height: layout.rightContentFrame.height
+                    )
+            } else {
+                /// Show placeholder if calendar is disabled
+                VStack {
+                    Text("Calendar disabled")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                }
                 .frame(
                     width: layout.rightContentFrame.width,
                     height: layout.rightContentFrame.height
                 )
+            }
         }
         .frame(width: layout.bounds.width)
         .opacity(expandedContentOpacity)
     }
-    
+
     private func collapsedContent(in layout: NotchlyLayoutGuide) -> some View {
-        UnifiedMediaPlayerView(
-            mediaMonitor: mediaMonitor,
-            isExpanded: false,
-            namespace: notchAnimation
-        )
-        .frame(
-            width: layout.bounds.width,
-            height: layout.bounds.height,
-            alignment: .leading
-        )
-        .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
-    }
-
-    // MARK: - Hover Handling
-
-    private func debounceHover(_ hovering: Bool) {
-        debounceWorkItem?.cancel()
-        debounceWorkItem = DispatchWorkItem {
-            guard hovering != viewModel.isMouseInside else { return }
-            withAnimation(coordinator.animation) {
-                viewModel.isMouseInside = hovering
-                coordinator.update(
-                    expanded: hovering,
-                    mediaActive: mediaMonitor.isPlaying,
-                    calendarActive: calendarActivityMonitor.upcomingEvent != nil
+        Group {
+            if isMediaAppEnabled(mediaMonitor.activePlayerName) {
+                UnifiedMediaPlayerView(
+                    mediaMonitor: mediaMonitor,
+                    isExpanded: false,
+                    namespace: notchAnimation
                 )
+                .frame(
+                    width: layout.bounds.width,
+                    height: layout.bounds.height,
+                    alignment: .leading
+                )
+                .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
+            } else {
+                /// Empty view if media app is disabled
+                Color.clear
+                    .frame(
+                        width: layout.bounds.width,
+                        height: layout.bounds.height
+                    )
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: debounceWorkItem!)
     }
 
     // MARK: - Subscriptions
 
     private func setupSubscriptions() {
         /// Only start monitoring calendar if we're not in the intro and have permission
-        if !shouldShowIntro {
+        if !shouldShowIntro && NotchlySettings.shared.enableCalendar {
             calendarActivityMonitor.evaluateLiveActivity()
         }
 
-        /// Respond to live activity changes
+        /// Respond to live activity changes (with settings check)
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
             .sink { isActive in
+                guard NotchlySettings.shared.enableCalendarAlerts else { return }
+                
                 viewModel.calendarHasLiveActivity = isActive
                 forceCollapseForCalendar = true
 
@@ -224,7 +251,8 @@ struct NotchlyView: View {
                     deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
                 ) {
                     forceCollapseForCalendar = false
-                    let mediaPlaying = mediaMonitor.isPlaying
+                    let mediaPlaying = mediaMonitor.isPlaying &&
+                                       isMediaAppEnabled(mediaMonitor.activePlayerName)
 
                     coordinator.update(
                         expanded: false,
@@ -236,19 +264,55 @@ struct NotchlyView: View {
             }
             .store(in: &cancellables)
 
-        /// Respond to media playback changes
+        /// Respond to media playback changes (with settings check)
         mediaMonitor.$isPlaying
             .sink { playing in
-                viewModel.isMediaPlaying = playing
+                /// Check if this media app is enabled in settings
+                let isEnabled = isMediaAppEnabled(mediaMonitor.activePlayerName)
+                let effectivePlaying = playing && isEnabled
+                
+                viewModel.isMediaPlaying = effectivePlaying
 
                 if coordinator.state != .expanded {
                     coordinator.update(
                         expanded: false,
-                        mediaActive: playing,
+                        mediaActive: effectivePlaying,
                         calendarActive: calendarActivityMonitor.upcomingEvent != nil
                     )
                 }
             }
             .store(in: &cancellables)
+            
+        /// Add listener for media settings changes
+        NotificationCenter.default.publisher(for: SettingsChangeType.media.notificationName)
+            .sink { _ in
+                // Refresh UI based on media settings changes
+                if coordinator.state != .expanded {
+                    coordinator.update(
+                        expanded: false,
+                        mediaActive: mediaMonitor.isPlaying && isMediaAppEnabled(mediaMonitor.activePlayerName),
+                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
+                    )
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    /**
+     Helper to check if a media app is enabled in settings
+     */
+    private func isMediaAppEnabled(_ appName: String) -> Bool {
+        let settings = NotchlySettings.shared
+        let appNameLower = appName.lowercased()
+        
+        if appNameLower.contains("music") || appNameLower.contains("apple") {
+            return settings.enableAppleMusic
+        } else if appNameLower.contains("spotify") {
+            return settings.enableSpotify
+        } else if appNameLower.contains("podcast") {
+            return settings.enablePodcasts
+        }
+        
+        return true /// Default to enabled if unknown
     }
 }

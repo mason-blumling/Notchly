@@ -14,13 +14,25 @@ extension NSImage {
     /// Returns the average (dominant) color of the image using the CIAreaAverage Core Image filter.
     /// This is useful for extracting a background glow or theme color from album artwork.
     func dominantColor() -> NSColor? {
-        /// Convert image to TIFF representation and Core Image-compatible format
-        guard let tiffData = self.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let ciImage = CIImage(bitmapImageRep: bitmap) else {
+        /// First check if the image is valid and the right type
+        if self.isKind(of: NSAppleEventDescriptor.self) {
+            print("⚠️ Invalid image type: NSAppleEventDescriptor")
             return nil
         }
-
+        
+        /// Safely try to get TIFF representation
+        guard let tiffData = self.tiffRepresentation else {
+            print("⚠️ Could not get TIFF representation from image")
+            return nil
+        }
+        
+        /// Convert image to TIFF representation and Core Image-compatible format
+        guard let bitmap = NSBitmapImageRep(data: tiffData),
+              let ciImage = CIImage(bitmapImageRep: bitmap) else {
+            print("⚠️ Could not create bitmap or CIImage from image")
+            return nil
+        }
+        
         /// Define the area of the image to analyze (entire image)
         let extentVector = CIVector(
             x: ciImage.extent.origin.x,
@@ -28,7 +40,7 @@ extension NSImage {
             z: ciImage.extent.size.width,
             w: ciImage.extent.size.height
         )
-
+        
         /// Create the CIAreaAverage filter
         guard let filter = CIFilter(
             name: "CIAreaAverage",
@@ -37,14 +49,16 @@ extension NSImage {
                 kCIInputExtentKey: extentVector
             ]
         ) else {
+            print("⚠️ Could not create CIAreaAverage filter")
             return nil
         }
-
+        
         /// Get filtered output image (should be a 1x1 pixel)
         guard let outputImage = filter.outputImage else {
+            print("⚠️ No output image from filter")
             return nil
         }
-
+        
         /// Render the image to extract RGBA pixel data
         var bitmapData = [UInt8](repeating: 0, count: 4)
         let context = CIContext(options: nil)
@@ -56,7 +70,7 @@ extension NSImage {
             format: .RGBA8,
             colorSpace: CGColorSpaceCreateDeviceRGB()
         )
-
+        
         /// Convert raw bytes to NSColor
         return NSColor(
             red: CGFloat(bitmapData[0]) / 255.0,

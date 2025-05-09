@@ -57,6 +57,12 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
         statusBarMenu.delegate = self
 
         // Create menu items
+        let preferencesItem = NSMenuItem(
+            title: "Preferences...",
+            action: #selector(openPreferences),
+            keyEquivalent: ","
+        )
+        
         let checkForUpdatesItem = NSMenuItem(
             title: "Check for Updates...",
             action: #selector(checkForUpdates),
@@ -75,12 +81,15 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
             keyEquivalent: "q"
         )
         
-        // Set target for menu items
+        /// Set target for menu items
+        preferencesItem.target = self
         checkForUpdatesItem.target = self
         showHideItem.target = self
         quitItem.target = self
         
-        // Add items to menu
+        /// Add items to menu
+        statusBarMenu.addItem(preferencesItem)
+        statusBarMenu.addItem(NSMenuItem.separator())
         statusBarMenu.addItem(checkForUpdatesItem)
         statusBarMenu.addItem(NSMenuItem.separator())
         statusBarMenu.addItem(showHideItem)
@@ -106,6 +115,11 @@ class NotchlyStatusBarItem: NSObject, NSMenuDelegate {
         DispatchQueue.main.async {
             self.statusItem.menu = nil
         }
+    }
+    
+    @objc func openPreferences(_ sender: Any) {
+        print("⚙️ Opening preferences window")
+        NotchlySettingsWindowController.shared.showWindow()
     }
     
     @objc func checkForUpdates(_ sender: Any) {

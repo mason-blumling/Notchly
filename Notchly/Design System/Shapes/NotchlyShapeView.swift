@@ -81,6 +81,8 @@ struct NotchlyShapeView<Content: View>: View {
     let animation: Animation
     let content: (NotchlyLayoutGuide) -> Content
     var namespace: Namespace.ID?
+    
+    @State private var backgroundOpacity: Double = 1.0
 
     var body: some View {
         /// Create shared layout metrics for sizing child content
@@ -92,7 +94,7 @@ struct NotchlyShapeView<Content: View>: View {
                 bottomCornerRadius: configuration.bottomCornerRadius,
                 topCornerRadius: configuration.topCornerRadius
             )
-            .fill(NotchlyTheme.background)
+            .fill(NotchlyTheme.background.opacity(backgroundOpacity))
             .frame(
                 width: configuration.width,
                 height: configuration.height
@@ -125,6 +127,17 @@ struct NotchlyShapeView<Content: View>: View {
         )
         .animation(animation, value: configuration.width)
         .animation(animation, value: configuration.height)
+        .onAppear {
+            /// Initialize opacity from settings
+            backgroundOpacity = NotchlySettings.shared.backgroundOpacity
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.backgroundOpacity.notificationName)) { notification in
+            if let opacity = notification.userInfo?["opacity"] as? Double {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.backgroundOpacity = opacity
+                }
+            }
+        }
     }
 
     // MARK: - Layout Calculation
