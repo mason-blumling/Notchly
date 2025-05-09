@@ -50,10 +50,11 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 self?.resumeTimers()
             }
         }
+
         NotificationCenter.default.publisher(for: SettingsChangeType.calendar.notificationName)
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                // Re-evaluate alerts based on new settings
+                /// Re-evaluate alerts based on new settings
                 self.evaluateLiveActivity()
             }
             .store(in: &cancellables)
@@ -197,25 +198,4 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             expirationTimer?.invalidate()
         }
     }
-}
-
-extension CalendarLiveActivityMonitor {
-    // This function checks if the alert timing is enabled in settings
-    func shouldShowAlert(for minutes: Int) -> Bool {
-        // Check if this alert time is enabled in settings
-        return NotchlySettings.shared.alertTiming.contains(minutes)
-    }
-    
-    // Call this from NotchlySettings to disable alerts
-    func disableAllAlerts() {
-        Task { @MainActor in
-            reset() // Uses the existing reset method
-        }
-    }
-}
-
-// Then in NotchlySettings.swift, change:
-@MainActor private func disableCalendarLiveActivity() {
-    // Use the proper method to disable calendar alerts
-    AppEnvironment.shared.calendarActivityMonitor.disableAllAlerts()
 }

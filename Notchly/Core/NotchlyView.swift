@@ -150,8 +150,6 @@ struct NotchlyView: View {
     }
     
     // MARK: - Content Views
-    
-    // Replace expandedContent method in NotchlyView.swift with this one:
 
     private func expandedContent(in layout: NotchlyLayoutGuide) -> some View {
         HStack(alignment: .top, spacing: 0) {
@@ -235,16 +233,16 @@ struct NotchlyView: View {
         /// Respond to live activity changes (with settings check)
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
-            .sink { isActive in  // Remove [self] capture
+            .sink { isActive in
                 guard NotchlySettings.shared.enableCalendarAlerts else { return }
                 
-                viewModel.calendarHasLiveActivity = isActive  // Use direct property access
-                forceCollapseForCalendar = true  // Use direct property access
+                viewModel.calendarHasLiveActivity = isActive
+                forceCollapseForCalendar = true
 
                 /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
-                coordinator.update(  // Use direct property access
+                coordinator.update(
                     expanded: false,
-                    mediaActive: mediaMonitor.isPlaying,  // Use direct property access
+                    mediaActive: mediaMonitor.isPlaying,
                     calendarActive: isActive
                 )
 
@@ -252,34 +250,34 @@ struct NotchlyView: View {
                 DispatchQueue.main.asyncAfter(
                     deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
                 ) {
-                    forceCollapseForCalendar = false  // Direct property access
-                    let mediaPlaying = mediaMonitor.isPlaying &&  // Direct property access
-                                       isMediaAppEnabled(mediaMonitor.activePlayerName)  // Direct method call
+                    forceCollapseForCalendar = false
+                    let mediaPlaying = mediaMonitor.isPlaying &&
+                                       isMediaAppEnabled(mediaMonitor.activePlayerName)
 
-                    coordinator.update(  // Direct property access
+                    coordinator.update(
                         expanded: false,
                         mediaActive: mediaPlaying,
                         calendarActive: false
                     )
-                    showMediaAfterCalendar = mediaPlaying && !isActive  // Direct property access
+                    showMediaAfterCalendar = mediaPlaying && !isActive
                 }
             }
             .store(in: &cancellables)
 
         /// Respond to media playback changes (with settings check)
         mediaMonitor.$isPlaying
-            .sink { playing in  // Remove [self] capture
-                // Check if this media app is enabled in settings
-                let isEnabled = isMediaAppEnabled(mediaMonitor.activePlayerName)  // Direct method call
+            .sink { playing in
+                /// Check if this media app is enabled in settings
+                let isEnabled = isMediaAppEnabled(mediaMonitor.activePlayerName)
                 let effectivePlaying = playing && isEnabled
                 
-                viewModel.isMediaPlaying = effectivePlaying  // Direct property access
+                viewModel.isMediaPlaying = effectivePlaying
 
-                if coordinator.state != .expanded {  // Direct property access
-                    coordinator.update(  // Direct property access
+                if coordinator.state != .expanded {
+                    coordinator.update(
                         expanded: false,
                         mediaActive: effectivePlaying,
-                        calendarActive: calendarActivityMonitor.upcomingEvent != nil  // Direct property access
+                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
                     )
                 }
             }
@@ -315,6 +313,6 @@ struct NotchlyView: View {
             return settings.enablePodcasts
         }
         
-        return true // Default to enabled if unknown
+        return true /// Default to enabled if unknown
     }
 }

@@ -91,7 +91,7 @@ struct UnifiedMediaPlayerView: View {
         }
         .animation(coordinator.animation, value: coordinator.configuration)
         .onAppear {
-            // Initialize state from settings
+            /// Initialize state from settings
             showAudioBars = settings.showAudioBars
             currentArtworkAction = settings.artworkClickAction
         }
@@ -112,7 +112,7 @@ struct UnifiedMediaPlayerView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.backgroundGlow.notificationName)) { _ in
-            // Just trigger a re-render when the background glow setting changes
+            /// Just trigger a re-render when the background glow setting changes
         }
     }
 
@@ -214,11 +214,12 @@ struct UnifiedMediaPlayerView: View {
                             .opacity(activityContentOpacity)
                             .offset(x: 2)
                     } else {
-                        // Simple alternative when audio bars disabled
+                        /// Simple alternative when audio bars disabled
                         Image(systemName: "music.note")
                             .font(.system(size: 12))
                             .foregroundColor(.white)
                             .opacity(activityContentOpacity)
+                            .offset(x: 2)
                     }
 
                     Spacer()
@@ -324,7 +325,6 @@ struct UnifiedMediaPlayerView: View {
         case .openAlbum:
             openAlbumForTrack()
         case .doNothing:
-            // Do nothing
             break
         }
     }
@@ -346,12 +346,10 @@ struct UnifiedMediaPlayerView: View {
     private func openAlbumForTrack() {
         /// Logic to open the current album (implementation varies by player)        
         if mediaMonitor.activePlayerName.lowercased() == "spotify" {
-            // Spotify-specific: try to open album view
             if let url = URL(string: "spotify:album:") {
                 NSWorkspace.shared.open(url)
             }
         } else {
-            // For Apple Music, just open the app
             if let url = URL(string: "music://") {
                 NSWorkspace.shared.open(url)
             }

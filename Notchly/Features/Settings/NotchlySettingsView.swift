@@ -13,7 +13,7 @@ struct NotchlySettingsView: View {
     @State private var selectedTab: SettingsTab = .general
     @Environment(\.presentationMode) var presentationMode
     
-    // For tabs
+    /// For Tabs
     enum SettingsTab: String, CaseIterable {
         case general = "General"
         case appearance = "Appearance"
@@ -34,14 +34,14 @@ struct NotchlySettingsView: View {
         }
     }
     
-    // Calendar loading
+    /// Calendar loading
     @State private var availableCalendars: [EKCalendar] = []
     @State private var isLoadingCalendars: Bool = false
     @State private var calendarPermissionStatus: EKAuthorizationStatus = .notDetermined
     
     var body: some View {
         NavigationView {
-            // Sidebar
+            /// Sidebar
             List {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
                     HStack {
@@ -64,9 +64,9 @@ struct NotchlySettingsView: View {
             .listStyle(SidebarListStyle())
             .frame(minWidth: 140, idealWidth: 180)
             
-            // Main Content
+            /// Main Content
             VStack(spacing: 0) {
-                // Content header
+                /// Content header
                 ZStack {
                     Text(selectedTab.rawValue)
                         .font(.headline)
@@ -79,7 +79,7 @@ struct NotchlySettingsView: View {
                     alignment: .bottom
                 )
                 
-                // Content area
+                /// Content area
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         switch selectedTab {
@@ -101,7 +101,7 @@ struct NotchlySettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
-                // Bottom actions bar with save button
+                /// Bottom actions bar with save button
                 HStack {
                     Spacer()
                     
@@ -414,7 +414,7 @@ struct NotchlySettingsView: View {
                 SettingsSection(title: "Location") {
                     VStack(alignment: .leading, spacing: 8) {
                         Button("Use Current Location") {
-                            // Request location permissions when implemented
+                            /// Request location permissions when implemented
                         }
                         .buttonStyle(.bordered)
                         
@@ -431,7 +431,7 @@ struct NotchlySettingsView: View {
     
     private var aboutView: some View {
         VStack(spacing: 20) {
-            // App logo
+            /// App logo
             NotchlyLogoShape()
                 .fill(AngularGradient.notchly(offset: 0))
                 .frame(width: 80, height: 80)
@@ -440,7 +440,7 @@ struct NotchlySettingsView: View {
             Text("Notchly")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
             
-            Text("Version 1.0.0")
+            Text("Version 2.5.1")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
@@ -501,7 +501,7 @@ struct NotchlySettingsView: View {
         isLoadingCalendars = true
         
         Task {
-            await AppEnvironment.shared.calendarManager.requestAccess { granted in
+            AppEnvironment.shared.calendarManager.requestAccess { granted in
                 DispatchQueue.main.async {
                     self.isLoadingCalendars = false
                     self.checkCalendarPermission()
@@ -525,13 +525,13 @@ extension AngularGradient {
     static func notchly(offset: Double) -> AngularGradient {
         AngularGradient(
             gradient: Gradient(colors: [
-                Color(red: 0.941, green: 0.42, blue: 0.455),  // Red
-                Color(red: 0.95, green: 0.55, blue: 0.34),    // Orange
-                Color(red: 0.95, green: 0.77, blue: 0.34),    // Yellow
-                Color(red: 0.46, green: 0.81, blue: 0.44),    // Green
-                Color(red: 0.34, green: 0.67, blue: 0.95),    // Blue
-                Color(red: 0.62, green: 0.37, blue: 0.92),    // Purple
-                Color(red: 0.941, green: 0.42, blue: 0.455)   // Back to red
+                Color(red: 0.941, green: 0.42, blue: 0.455),  /// Red
+                Color(red: 0.95, green: 0.55, blue: 0.34),    /// Orange
+                Color(red: 0.95, green: 0.77, blue: 0.34),    /// Yellow
+                Color(red: 0.46, green: 0.81, blue: 0.44),    /// Green
+                Color(red: 0.34, green: 0.67, blue: 0.95),    /// Blue
+                Color(red: 0.62, green: 0.37, blue: 0.92),    /// Purple
+                Color(red: 0.941, green: 0.42, blue: 0.455)   /// Back to red
             ]),
             center: .center,
             angle: .degrees(offset)

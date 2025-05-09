@@ -37,16 +37,16 @@ class NotchlySettingsWindowController: NSWindowController {
         window.titlebarAppearsTransparent = false
         window.standardWindowButton(.zoomButton)?.isHidden = true
         
-        // Set minimum window size
+        /// Set minimum window size
         window.minSize = NSSize(width: 700, height: 500)
         
-        // Use the SwiftUI settings view as the window content
+        /// Use the SwiftUI settings view as the window content
         let settingsView = NotchlySettingsView()
         window.contentView = NSHostingView(rootView: settingsView)
 
         super.init(window: window)
         
-        // Handle window close notifications
+        /// Handle window close notifications
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(windowWillClose(_:)),

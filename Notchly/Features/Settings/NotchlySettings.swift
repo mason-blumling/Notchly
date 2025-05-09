@@ -150,7 +150,6 @@ class NotchlySettings: ObservableObject {
         }
     }
 
-    
     /// Enable the background glow effect
     @Published var enableBackgroundGlow: Bool {
         didSet {
@@ -175,11 +174,11 @@ class NotchlySettings: ObservableObject {
             saveSettings()
             
             if enableCalendar {
-                // If enabling, load/refresh events
+                /// If enabling, load/refresh events
                 loadAvailableCalendars()
                 refreshCalendarEvents()
             } else {
-                // If disabling, clear events
+                /// If disabling, clear events
                 Task { @MainActor in
                     AppEnvironment.shared.calendarManager.clearEvents()
                     disableCalendarLiveActivity()
@@ -300,12 +299,12 @@ class NotchlySettings: ObservableObject {
     // MARK: - Initialization
     
     private init() {
-        // Load settings or use defaults
+        /// Load settings or use defaults
         self.launchAtLogin = defaults.bool(forKey: "launchAtLogin")
         self.horizontalOffset = defaults.double(forKey: "horizontalOffset")
         self.hoverSensitivity = defaults.double(forKey: "hoverSensitivity")
         
-        // Appearance
+        /// Appearance
         if let appearanceString = defaults.string(forKey: "appearanceMode"),
            let mode = AppearanceMode(rawValue: appearanceString) {
             self.appearanceMode = mode
@@ -313,7 +312,7 @@ class NotchlySettings: ObservableObject {
             self.appearanceMode = .system
         }
         
-        // Convert stored RGB to Color
+        /// Convert stored RGB to Color
         let red = defaults.double(forKey: "accentColorRed")
         let green = defaults.double(forKey: "accentColorGreen")
         let blue = defaults.double(forKey: "accentColorBlue")
@@ -321,13 +320,13 @@ class NotchlySettings: ObservableObject {
         if red > 0 || green > 0 || blue > 0 {
             self.accentColor = Color(red: red, green: green, blue: blue)
         } else {
-            self.accentColor = Color.blue // Default
+            self.accentColor = Color.blue
         }
         
         self.useSystemAccent = defaults.bool(forKey: "useSystemAccent")
         self.backgroundOpacity = defaults.double(forKey: "backgroundOpacity")
         
-        // Media Player
+        /// Media Player
         self.enableAppleMusic = defaults.bool(forKey: "enableAppleMusic")
         self.enableSpotify = defaults.bool(forKey: "enableSpotify")
         self.enablePodcasts = defaults.bool(forKey: "enablePodcasts")
@@ -342,7 +341,7 @@ class NotchlySettings: ObservableObject {
         self.enableBackgroundGlow = defaults.bool(forKey: "enableBackgroundGlow")
         self.showAudioBars = defaults.bool(forKey: "showAudioBars")
         
-        // Calendar
+        /// Calendar
         self.enableCalendar = defaults.bool(forKey: "enableCalendar")
         
         if let savedIDs = defaults.stringArray(forKey: "selectedCalendarIDs") {
@@ -356,7 +355,7 @@ class NotchlySettings: ObservableObject {
         if let savedTimings = defaults.array(forKey: "alertTiming") as? [Int] {
             self.alertTiming = savedTimings
         } else {
-            self.alertTiming = [15, 5] // Default is 15 and 5 minutes
+            self.alertTiming = [15, 5] /// Default is 15 and 5 minutes
         }
         
         self.maxEventsToDisplay = defaults.integer(forKey: "maxEventsToDisplay")
@@ -364,7 +363,7 @@ class NotchlySettings: ObservableObject {
         self.showEventLocation = defaults.bool(forKey: "showEventLocation")
         self.showEventAttendees = defaults.bool(forKey: "showEventAttendees")
         
-        // Weather
+        /// Weather
         self.enableWeather = defaults.bool(forKey: "enableWeather")
         
         if let unitString = defaults.string(forKey: "weatherUnit"),
@@ -374,12 +373,12 @@ class NotchlySettings: ObservableObject {
             self.weatherUnit = .celsius
         }
         
-        // Apply default values if first launch
+        /// Apply default values if first launch
         if isFirstLaunch() {
             applyDefaultSettings()
         }
         
-        // Apply settings immediately
+        /// Apply settings immediately
         applyAppearanceMode()
     }
     
@@ -491,7 +490,6 @@ class NotchlySettings: ObservableObject {
     }
     
     private func updateLoginItem() {
-        // Modern approach to handle login items using SMAppService (macOS 13+)
         if #available(macOS 13.0, *) {
             let service = SMAppService.mainApp
             if launchAtLogin {
@@ -508,9 +506,6 @@ class NotchlySettings: ObservableObject {
                 }
             }
         } else {
-            /// Fallback for older macOS versions
-            let bundleIdentifier = Bundle.main.bundleIdentifier!
-            
             /// Safely unwrap the shared file list
             guard let loginItemsRef = LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil)?.takeUnretainedValue() else {
                 print("Failed to create login items list")
@@ -575,7 +570,7 @@ class NotchlySettings: ObservableObject {
     }
     
     private func disableCalendarLiveActivity() {
-        // Disable any active calendar alerts
+        /// Disable any active calendar alerts
         Task { @MainActor in
             AppEnvironment.shared.calendarActivityMonitor.reset()
         }

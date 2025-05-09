@@ -354,13 +354,11 @@ public final class NotchlyViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: debounceWorkItem!)
     }
 
-    /**
-     Updated window positioning that respects background opacity setting
-     */
+    /// Updated window positioning that respects background opacity setting
     func updateWindowAppearance() {
         guard let window = windowController?.window else { return }
         
-        // Apply background opacity if window panel supports it
+        /// Apply background opacity if window panel supports it
         if let panel = window as? NotchlyWindowPanel {
             panel.applyBackgroundOpacity(NotchlySettings.shared.backgroundOpacity)
         }

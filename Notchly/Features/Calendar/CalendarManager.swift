@@ -192,7 +192,7 @@ class CalendarManager: ObservableObject {
             if let last = self.lastSystemChange,
                Date().timeIntervalSince(last) < 2 {
                 print("⏱️ Debouncing duplicate notification")
-                return // debounce duplicate change events
+                return
             }
             
             self.lastSystemChange = Date()
@@ -215,7 +215,7 @@ class CalendarManager: ObservableObject {
                 print("📆 Event list updated (possible edits, same count: \(updated.count))")
             }
             
-            // Important: Update on main thread
+            /// Important: Update on main thread
             DispatchQueue.main.async {
                 self.events = updated
             }

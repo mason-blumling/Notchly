@@ -368,6 +368,16 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		58A234FA2DCDE4E800A29C44 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				58A234F42DCDC3D500A29C44 /* NotchlySettings.swift */,
+				58A234F62DCDC46000A29C44 /* NotchlySettingsView.swift */,
+				58A234F82DCDC48100A29C44 /* NotchlySettingsWindowController.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		58A40D5D2D094923002B5165 = {
 			isa = PBXGroup;
 			children = (
@@ -518,6 +528,7 @@
 				58C97BF32D49B148006FFC06 /* Calendar */,
 				58BCC0EF2DC6DE6800F91323 /* Intro */,
 				586807CD2D6EB1C3005D4DB5 /* Media Player */,
+				58A234FA2DCDE4E800A29C44 /* Settings */,
 				58BCC1BE2DCB0D3500F91323 /* Status Bar */,
 				580F20612D59E39900D66D57 /* Weather */,
 			);
@@ -527,9 +538,6 @@
 		58C97BED2D49ACC3006FFC06 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				58A234F82DCDC48100A29C44 /* NotchlySettingsWindowController.swift */,
-				58A234F62DCDC46000A29C44 /* NotchlySettingsView.swift */,
-				58A234F42DCDC3D500A29C44 /* NotchlySettings.swift */,
 				58C97BF62D4A0D81006FFC06 /* NotchlyConfiguration.swift */,
 				5862FF432DA0AABF0037843C /* NotchlyLiveActivityView.swift */,
 				58A0A8C02DB4A83000854FE6 /* NotchlyView.swift */,
