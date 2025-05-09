@@ -60,7 +60,12 @@ class CalendarManager: ObservableObject {
     }
     
     // MARK: - Fetching
-    
+
+    @MainActor
+    func getAllCalendars() -> [EKCalendar] {
+        return eventStore.calendars(for: .event)
+    }
+
     func fetchEvents(
         startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
         endDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date())!

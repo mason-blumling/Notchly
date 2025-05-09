@@ -159,3 +159,64 @@ struct NotchlyShapeView<Content: View>: View {
         )
     }
 }
+
+extension NotchlyShapeView {
+    /**
+     Modified version of body that respects the background opacity setting.
+     This should replace the original body property.
+     */
+    var bodyWithOpacitySettings: some View {
+        /// Create shared layout metrics for sizing child content
+        let layoutGuide = createLayoutGuide()
+        
+        /// Get the user's background opacity setting
+        let backgroundOpacity = NotchlySettings.shared.backgroundOpacity
+        
+        return ZStack(alignment: .top) {
+            /// 🟦 Background shape behind the content
+            NotchlyShape(
+                bottomCornerRadius: configuration.bottomCornerRadius,
+                topCornerRadius: configuration.topCornerRadius
+            )
+            .fill(NotchlyTheme.background.opacity(backgroundOpacity))
+            .frame(
+                width: configuration.width,
+                height: configuration.height
+            )
+            .shadow(
+                color: NotchlyTheme.shadow,
+                radius: configuration.shadowRadius
+            )
+            .animation(animation, value: configuration.width)
+            .animation(animation, value: configuration.height)
+            .animation(animation, value: configuration.topCornerRadius)
+            .animation(animation, value: configuration.bottomCornerRadius)
+            
+            /// 🟨 Foreground content sized and aligned using layout guide
+            content(layoutGuide)
+                .frame(
+                    width: configuration.width,
+                    height: configuration.height
+                )
+        }
+        .frame(
+            width: configuration.width,
+            height: configuration.height
+        )
+        .clipShape(
+            NotchlyShape(
+                bottomCornerRadius: configuration.bottomCornerRadius,
+                topCornerRadius: configuration.topCornerRadius
+            )
+        )
+        .animation(animation, value: configuration.width)
+        .animation(animation, value: configuration.height)
+        .onReceive(NotificationCenter.default.publisher(for: .NotchlyBackgroundOpacityChanged)) { notification in
+            // Handle opacity change notification if needed
+            if let opacity = notification.userInfo?["opacity"] as? Double {
+                // Can trigger any additional updates needed
+                print("📝 Shape received opacity update: \(opacity)")
+            }
+        }
+    }
+}

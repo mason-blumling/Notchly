@@ -141,11 +141,12 @@ private extension NotchlyEventList {
 
     /// Displays the event title, status, and other details.
     func eventDetails(_ event: EKEvent, isPending: Bool, isAwaitingResponses: Bool) -> some View {
-        let awaitingNames = awaitingAttendees(event)
-        let declinedNames = declinedAttendees(event)
-        let maybeNames = maybeAttendees(event)
-        let organizer = eventOrganizer(event) // ✅ Use our function
-        let eventLocation = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let settings = NotchlySettings.shared
+        let awaitingNames = settings.showEventAttendees ? awaitingAttendees(event) : []
+        let declinedNames = settings.showEventAttendees ? declinedAttendees(event) : []
+        let maybeNames = settings.showEventAttendees ? maybeAttendees(event) : []
+        let organizer = settings.showEventOrganizer ? eventOrganizer(event) : nil
+        let eventLocation = settings.showEventLocation ? event.location?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(event.title)
@@ -160,33 +161,33 @@ private extension NotchlyEventList {
                     .font(.caption)
             }
 
-            if isAwaitingResponses, !awaitingNames.isEmpty {
+            if isAwaitingResponses, !awaitingNames.isEmpty, settings.showEventAttendees {
                 Text("Waiting on \(awaitingNames.joined(separator: ", "))")
                     .foregroundColor(.blue)
                     .font(.caption)
             }
 
-            if !declinedNames.isEmpty {
+            if !declinedNames.isEmpty && settings.showEventAttendees {
                 Text("❌ Declined: \(declinedNames.joined(separator: ", "))")
                     .foregroundColor(.red)
                     .font(.caption)
             }
 
-            if !maybeNames.isEmpty {
+            if !maybeNames.isEmpty && settings.showEventAttendees {
                 Text("🤔 Maybe: \(maybeNames.joined(separator: ", "))")
                     .foregroundColor(.yellow)
                     .font(.caption)
             }
 
-            /// 👤 Show organizer ONLY if it is NOT the user**
-            if let organizer, !organizer.isEmpty {
+            /// 👤 Show organizer ONLY if it is NOT the user AND setting is enabled
+            if let organizer, !organizer.isEmpty, settings.showEventOrganizer {
                 Text("Organizer: \(organizer)")
                     .font(.caption)
                     .foregroundColor(.gray.opacity(0.8))
             }
 
-            /// 📍 Show location if available
-            if let location = eventLocation, !location.isEmpty {
+            /// 📍 Show location if available AND setting is enabled
+            if let location = eventLocation, !location.isEmpty, settings.showEventLocation {
                 Text("📍 \(location)")
                     .font(.caption)
                     .foregroundColor(.gray.opacity(0.8))
@@ -207,7 +208,19 @@ extension NotchlyEventList {
     
     /// Retrieves events for the selected date.
     func eventsForSelectedDate() -> [EKEvent] {
-        calendarManager.events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
+        let settings = NotchlySettings.shared
+        let maxEvents = settings.maxEventsToDisplay
+        
+        let events = calendarManager.events
+            .filter { Calendar.current.isDate($0.startDate, inSameDayAs: selectedDate) }
+            .sorted { $0.startDate < $1.startDate }
+        
+        // Apply limit from settings
+        if events.count > maxEvents {
+            return Array(events.prefix(maxEvents))
+        }
+        
+        return events
     }
     
     /// Opens the selected event in the macOS Calendar app.

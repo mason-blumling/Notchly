@@ -96,32 +96,39 @@ struct UnifiedMediaPlayerView: View {
     // MARK: - Expanded Glow Background
 
     private func expandedBackgroundGlow() -> some View {
-        HStack(spacing: 0) {
-            RenderSafeView {
-                GlowingBlobView(blobColor: backgroundGlowColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.trailing, 120)
-                    /// Adjust vertical scaling to ensure full height coverage
-                    .scaleEffect(y: 1.4)
-                    .offset(y: -20)
-                    .blur(radius: 40)
-                    .mask(
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: .black, location: 0.0),
-                                .init(color: .black, location: 0.75),
-                                .init(color: .clear, location: 1.0)
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .opacity(0.5)
-                    .transition(.opacity)
-                    .allowsHitTesting(false)
-            }
-            Spacer()
+        /// Only show glow if enabled in settings
+        if !NotchlySettings.shared.enableBackgroundGlow {
+            return AnyView(EmptyView())
         }
+
+        return AnyView(
+            HStack(spacing: 0) {
+                RenderSafeView {
+                    GlowingBlobView(blobColor: backgroundGlowColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.trailing, 120)
+                        /// Adjust vertical scaling to ensure full height coverage
+                        .scaleEffect(y: 1.4)
+                        .offset(y: -20)
+                        .blur(radius: 40)
+                        .mask(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .black, location: 0.0),
+                                    .init(color: .black, location: 0.75),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .opacity(0.5)
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                }
+                Spacer()
+            }
+        )
     }
 
     private var backgroundGlowOpacity: Double {
@@ -271,5 +278,127 @@ struct UnifiedMediaPlayerView: View {
         if let url = URL(string: urlScheme) {
             NSWorkspace.shared.open(url)
         }
+    }
+}
+
+/**
+ This file contains extension methods and properties for the UnifiedMediaPlayerView
+ to make it respect user settings. These should be integrated into the original file.
+ */
+
+// MARK: - Settings Extensions for UnifiedMediaPlayerView
+
+/**
+ Replace existing expandedBackgroundGlow() method with this version
+ that respects user settings for background glow
+ */
+extension UnifiedMediaPlayerView {
+    
+
+    
+    /**
+     Modified media content view to respect settings for audio bars
+     This function handles the presence of audio bars based on settings
+     */
+    private func activityContentWithSettings() -> some View {
+        // Check if audio bars are enabled in settings
+        if NotchlySettings.shared.showAudioBars {
+            return AnyView(
+                AudioBarsView()
+                    .frame(width: 30, height: 24)
+                    .opacity(activityContentOpacity)
+                    .offset(x: 2)
+            )
+        } else {
+            // Simple alternative when audio bars disabled
+            return AnyView(
+                Image(systemName: "play.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 10, height: 10)
+                    .foregroundColor(.white.opacity(0.7))
+                    .opacity(activityContentOpacity)
+                    .offset(x: 2)
+            )
+        }
+    }
+    
+    /**
+     Settings-aware version of openAppForTrack that respects the user's preference
+     for what happens when clicking on artwork
+     */
+    private func handleArtworkClick() {
+        let settings = NotchlySettings.shared
+        let action = settings.artworkClickAction
+        
+        switch action {
+        case .openApp:
+            openMediaApp()
+        case .playPause:
+            mediaMonitor.togglePlayPause()
+        case .openAlbum:
+            openCurrentAlbum()
+        case .doNothing:
+            // Do nothing as requested
+            break
+        }
+    }
+    
+    // Helper methods for artwork actions
+    
+    private func openMediaApp() {
+        let urlScheme = mediaMonitor.activePlayerName.lowercased() == "spotify"
+            ? "spotify://"
+            : (mediaMonitor.activePlayerName.lowercased() == "podcasts"
+               ? "podcasts://"
+               : "music://")
+
+        if let url = URL(string: urlScheme) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    private func openCurrentAlbum() {
+        // Logic to open the current album (implementation varies by player)
+        // This is an approximate implementation
+        
+        if mediaMonitor.activePlayerName.lowercased() == "spotify" {
+            // Spotify-specific: try to open album view
+            if let url = URL(string: "spotify:album:") {
+                NSWorkspace.shared.open(url)
+            }
+        } else {
+            // For Apple Music, just open the app
+            if let url = URL(string: "music://") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+    
+    /**
+     Helper method to determine if media player is enabled in settings
+     */
+    private func isMediaAppEnabled(appName: String) -> Bool {
+        let settings = NotchlySettings.shared
+        let appNameLower = appName.lowercased()
+        
+        if appNameLower.contains("music") || appNameLower.contains("apple") {
+            return settings.enableAppleMusic
+        } else if appNameLower.contains("spotify") {
+            return settings.enableSpotify
+        } else if appNameLower.contains("podcast") {
+            return settings.enablePodcasts
+        }
+        
+        return true
+    }
+    
+    /**
+     This property should be used in the body view where opacity values
+     for the background are set, to respect the user's transparency setting
+     */
+    private var settingsAdjustedBackgroundOpacity: Double {
+        let userOpacity = NotchlySettings.shared.backgroundOpacity
+        return backgroundGlowOpacity * userOpacity
     }
 }

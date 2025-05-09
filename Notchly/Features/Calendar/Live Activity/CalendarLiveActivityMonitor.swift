@@ -86,69 +86,77 @@ final class CalendarLiveActivityMonitor: ObservableObject {
 
     // MARK: - Evaluation Logic
 
-    func evaluateLiveActivity() {
-        guard let event = calendarManager.nextEventStartingSoon(),
-              event.eventIdentifier != dismissedEventID else {
-            reset()
-            return
-        }
+   func evaluateLiveActivity() {
+       let settings = NotchlySettings.shared
+       
+       /// Exit early if calendar or alerts are disabled in settings
+       guard settings.enableCalendar && settings.enableCalendarAlerts else {
+           reset()
+           return
+       }
+       
+       guard let event = calendarManager.nextEventStartingSoon(),
+             event.eventIdentifier != dismissedEventID else {
+           reset()
+           return
+       }
 
-        let now = Date()
-        let remaining = event.startDate.timeIntervalSince(now)
+       let now = Date()
+       let remaining = event.startDate.timeIntervalSince(now)
 
-        if previousRemaining == nil {
-            previousRemaining = remaining
-        }
+       if previousRemaining == nil {
+           previousRemaining = remaining
+       }
 
-        if remaining < 0 {
-            /// Event already started
-            reset()
+       if remaining < 0 {
+           /// Event already started
+           reset()
 
-        } else if remaining < 60 {
-            /// 1-minute countdown phase
-            timeRemainingString = "\(Int(remaining))s"
-            upcomingEvent = event
+       } else if remaining < 60 && settings.alertTiming.contains(1) {
+           /// 1-minute countdown phase (only if 1m alerts enabled)
+           timeRemainingString = "\(Int(remaining))s"
+           upcomingEvent = event
 
-            if lastShownPhase != "countdown" {
-                print("⏱️ Showing countdown for event: \(event.title ?? "Unknown")")
-                expirationTimer?.invalidate()
-                lastShownPhase = "countdown"
-                isLiveActivityVisible = true
+           if lastShownPhase != "countdown" {
+               print("⏱️ Showing countdown for event: \(event.title ?? "Unknown")")
+               expirationTimer?.invalidate()
+               lastShownPhase = "countdown"
+               isLiveActivityVisible = true
 
-                let eventID = event.eventIdentifier
-                expirationTimer = Timer.scheduledTimer(withTimeInterval: remaining + 1.0, repeats: false) { [weak self] _ in
-                    Task { @MainActor in
-                        self?.reset()
-                        self?.dismissedEventID = eventID
-                    }
-                }
-            }
+               let eventID = event.eventIdentifier
+               expirationTimer = Timer.scheduledTimer(withTimeInterval: remaining + 1.0, repeats: false) { [weak self] _ in
+                   Task { @MainActor in
+                       self?.reset()
+                       self?.dismissedEventID = eventID
+                   }
+               }
+           }
 
-        } else if remaining < 300 {
-            /// 5-minute alert
-            if previousRemaining! > 300 && lastShownPhase != "5m" {
-                print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
-                timeRemainingString = "5m"
-                upcomingEvent = event
-                lastShownPhase = "5m"
-                scheduleExpiration(for: event)
-                isLiveActivityVisible = true
-            }
+       } else if remaining < 300 && settings.alertTiming.contains(5) {
+           /// 5-minute alert (only if 5m alerts enabled)
+           if previousRemaining! > 300 && lastShownPhase != "5m" {
+               print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
+               timeRemainingString = "5m"
+               upcomingEvent = event
+               lastShownPhase = "5m"
+               scheduleExpiration(for: event)
+               isLiveActivityVisible = true
+           }
 
-        } else if remaining < 900 {
-            /// 15-minute alert
-            if previousRemaining! > 900 && lastShownPhase != "15m" {
-                print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
-                timeRemainingString = "15m"
-                upcomingEvent = event
-                lastShownPhase = "15m"
-                scheduleExpiration(for: event)
-                isLiveActivityVisible = true
-            }
-        }
+       } else if remaining < 900 && settings.alertTiming.contains(15) {
+           /// 15-minute alert (only if 15m alerts enabled)
+           if previousRemaining! > 900 && lastShownPhase != "15m" {
+               print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
+               timeRemainingString = "15m"
+               upcomingEvent = event
+               lastShownPhase = "15m"
+               scheduleExpiration(for: event)
+               isLiveActivityVisible = true
+           }
+       }
 
-        previousRemaining = remaining
-    }
+       previousRemaining = remaining
+   }
 
     // MARK: - Expiration & Reset
 
@@ -169,13 +177,37 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         }
     }
 
-    /// Fully resets all activity state.
-    private func reset() {
-        upcomingEvent = nil
-        timeRemainingString = ""
-        previousRemaining = nil
-        lastShownPhase = nil
-        isLiveActivityVisible = false
-        expirationTimer?.invalidate()
+
+    func reset() {
+        /// Directly call reset to disable any active alerts
+        Task { @MainActor in
+            upcomingEvent = nil
+            timeRemainingString = ""
+            previousRemaining = nil
+            lastShownPhase = nil
+            isLiveActivityVisible = false
+            expirationTimer?.invalidate()
+        }
     }
+}
+
+extension CalendarLiveActivityMonitor {
+    // This function checks if the alert timing is enabled in settings
+    func shouldShowAlert(for minutes: Int) -> Bool {
+        // Check if this alert time is enabled in settings
+        return NotchlySettings.shared.alertTiming.contains(minutes)
+    }
+    
+    // Call this from NotchlySettings to disable alerts
+    func disableAllAlerts() {
+        Task { @MainActor in
+            reset() // Uses the existing reset method
+        }
+    }
+}
+
+// Then in NotchlySettings.swift, change:
+@MainActor private func disableCalendarLiveActivity() {
+    // Use the proper method to disable calendar alerts
+    AppEnvironment.shared.calendarActivityMonitor.disableAllAlerts()
 }

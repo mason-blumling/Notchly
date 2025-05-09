@@ -50,3 +50,27 @@ class NotchlyWindowPanel: NSPanel {
         super.setFrameOrigin(NSPoint(x: point.x, y: lockedY))
     }
 }
+
+extension NotchlyWindowPanel {
+    /**
+     Applies the user's background opacity setting to the panel
+     - Parameter opacity: The opacity level (0.0 to 1.0)
+     */
+    func applyBackgroundOpacity(_ opacity: Double) {
+        // The panel itself is transparent, but we need to inform the
+        // NotchlyShape renderer about the opacity value
+        
+        // Post a notification that can be observed by the shape renderer
+        NotificationCenter.default.post(
+            name: .NotchlyBackgroundOpacityChanged,
+            object: self,
+            userInfo: ["opacity": opacity]
+        )
+    }
+}
+
+// MARK: - Notification Extensions
+
+extension Notification.Name {
+    static let NotchlyBackgroundOpacityChanged = Notification.Name("NotchlyBackgroundOpacityChanged")
+}

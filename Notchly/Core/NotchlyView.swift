@@ -60,9 +60,17 @@ struct NotchlyView: View {
 
     /// Determines whether the calendar live activity alert should show.
     private var shouldShowCalendarLiveActivity: Bool {
-        coordinator.state != .expanded &&
-        calendarActivityMonitor.upcomingEvent != nil &&
-        !calendarActivityMonitor.timeRemainingString.isEmpty
+        let settings = NotchlySettings.shared
+        
+        /// First check settings permissions
+        guard settings.enableCalendar && settings.enableCalendarAlerts else {
+            return false
+        }
+        
+        /// Then check the standard conditions
+        return coordinator.state != .expanded &&
+               calendarActivityMonitor.upcomingEvent != nil &&
+               !calendarActivityMonitor.timeRemainingString.isEmpty
     }
 
     /// Controls opacity for expanded content based on notch animation progress.
@@ -182,19 +190,7 @@ struct NotchlyView: View {
     // MARK: - Hover Handling
 
     private func debounceHover(_ hovering: Bool) {
-        debounceWorkItem?.cancel()
-        debounceWorkItem = DispatchWorkItem {
-            guard hovering != viewModel.isMouseInside else { return }
-            withAnimation(coordinator.animation) {
-                viewModel.isMouseInside = hovering
-                coordinator.update(
-                    expanded: hovering,
-                    mediaActive: mediaMonitor.isPlaying,
-                    calendarActive: calendarActivityMonitor.upcomingEvent != nil
-                )
-            }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: debounceWorkItem!)
+        viewModel.debounceHoverWithSettings(hovering)
     }
 
     // MARK: - Subscriptions
@@ -250,5 +246,88 @@ struct NotchlyView: View {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    
+    /**
+     Updates setupSubscriptions to respect user settings.
+     The key parts to integrate are the checks for enabled features.
+     */
+    private func setupSubscriptionsWithSettings() {
+        /// Only start monitoring calendar if we're not in the intro and have permission
+        if !shouldShowIntro && NotchlySettings.shared.enableCalendar {
+            calendarActivityMonitor.evaluateLiveActivity()
+        }
+
+        /// Respond to live activity changes (with settings check)
+        calendarActivityMonitor.$isLiveActivityVisible
+            .removeDuplicates()
+            .sink { [unowned self] isActive in
+                guard NotchlySettings.shared.enableCalendarAlerts else { return }
+                
+                self.viewModel.calendarHasLiveActivity = isActive
+                self.forceCollapseForCalendar = true
+
+                /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
+                self.coordinator.update(
+                    expanded: false,
+                    mediaActive: self.mediaMonitor.isPlaying,
+                    calendarActive: isActive
+                )
+
+                /// Step 2: After delay, show media if appropriate
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
+                ) {
+                    self.forceCollapseForCalendar = false
+                    let mediaPlaying = self.mediaMonitor.isPlaying &&
+                                       self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
+
+                    self.coordinator.update(
+                        expanded: false,
+                        mediaActive: mediaPlaying,
+                        calendarActive: false
+                    )
+                    self.showMediaAfterCalendar = mediaPlaying && !isActive
+                }
+            }
+            .store(in: &cancellables)
+
+        /// Respond to media playback changes (with settings check)
+        mediaMonitor.$isPlaying
+            .sink { [self] playing in
+                // Check if this media app is enabled in settings
+                let isEnabled = self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
+                let effectivePlaying = playing && isEnabled
+                
+                self.viewModel.isMediaPlaying = effectivePlaying
+
+                if self.coordinator.state != .expanded {
+                    self.coordinator.update(
+                        expanded: false,
+                        mediaActive: effectivePlaying,
+                        calendarActive: self.calendarActivityMonitor.upcomingEvent != nil
+                    )
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    /**
+     Helper to check if a media app is enabled in settings
+     */
+    private func isMediaAppEnabled(_ appName: String) -> Bool {
+        let settings = NotchlySettings.shared
+        let appNameLower = appName.lowercased()
+        
+        if appNameLower.contains("music") || appNameLower.contains("apple") {
+            return settings.enableAppleMusic
+        } else if appNameLower.contains("spotify") {
+            return settings.enableSpotify
+        } else if appNameLower.contains("podcast") {
+            return settings.enablePodcasts
+        }
+        
+        return true // Default to enabled if unknown
     }
 }

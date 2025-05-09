@@ -37,7 +37,7 @@ public final class NotchlyViewModel: ObservableObject {
     
     @Published var hasNotch: Bool = false
     @Published public var isNotchEnabled: Bool = true
-
+    
     /// Window management
     public var windowController: NSWindowController?
     
@@ -49,11 +49,12 @@ public final class NotchlyViewModel: ObservableObject {
     @Published public var calendarHasLiveActivity: Bool = false
     @Published private var isCompletingIntro: Bool = false
     @Published var isInIntroSequence = false
-
+    
     // MARK: - Private Properties
     
     private var subscription: AnyCancellable?
     private var subscriptions = Set<AnyCancellable>()
+    private var debounceWorkItem: DispatchWorkItem?
     var currentScreen: NSScreen?
     
     // MARK: - Animation
@@ -103,10 +104,10 @@ public final class NotchlyViewModel: ObservableObject {
     public func initializeWindow(screen: NSScreen) async {
         guard windowController == nil else { return }
         currentScreen = screen
-
+        
         /// Detect notch BEFORE calculating position
         detectNotchPresence(on: screen)
-
+        
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
         
@@ -158,16 +159,22 @@ public final class NotchlyViewModel: ObservableObject {
         guard let window = windowController?.window,
               let screen = currentScreen else { return }
         
-        /// Reposition window to be exactly centered on screen
-        let centerX = screen.frame.midX
-        let adjustedX = centerX - (configuration.width / 2)
+        // Apply horizontal offset from settings (percentage of screen width)
+        let offset = NotchlySettings.shared.horizontalOffset
+        let screenWidth = screen.frame.width
+        let offsetPoints = (screenWidth * offset) / 100 // Convert percentage to points
+        
+        // Calculate center position with offset
+        let centerX = screen.frame.midX + offsetPoints
+        let adjustedX = centerX - (window.frame.width / 2)
         let lockedY = screen.frame.maxY - window.frame.height
         
+        // Apply the position
         window.setFrameOrigin(NSPoint(x: adjustedX, y: lockedY))
         
-        print("🔄 Recentering shape: config width=\(configuration.width), window width=\(window.frame.width)")
+        print("🔄 Recentering shape with \(offset)% offset: config width=\(configuration.width), window width=\(window.frame.width)")
     }
-
+    
     private func detectNotchPresence(on screen: NSScreen?) {
         if #available(macOS 12.0, *), let screen = screen {
             hasNotch = screen.safeAreaInsets.top > 0
@@ -184,11 +191,11 @@ public final class NotchlyViewModel: ObservableObject {
             print("⚠️ Notchly is Disabled, ignoring show()")
             return
         }
-
+        
         let target = screen
-                  ?? NSScreen.screenWithMouse
-                  ?? NSScreen.largestScreen
-                  ?? NSScreen.screens.first
+        ?? NSScreen.screenWithMouse
+        ?? NSScreen.largestScreen
+        ?? NSScreen.screens.first
         guard let screen = target else { return }
         
         Task { @MainActor in
@@ -204,17 +211,17 @@ public final class NotchlyViewModel: ObservableObject {
         deinitializeWindow()
         isVisible = false
     }
-
+    
     public func enable() {
         isNotchEnabled = true
         show()
     }
-
+    
     public func disable() {
         isNotchEnabled = false
         hide()
     }
-
+    
     // MARK: - Private Setup Methods
     
     private func setupStateObservation() {
@@ -261,8 +268,8 @@ public final class NotchlyViewModel: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 let newScreen = NSScreen.screenWithMouse
-                              ?? NSScreen.largestScreen
-                              ?? NSScreen.main
+                ?? NSScreen.largestScreen
+                ?? NSScreen.main
                 if newScreen != self.currentScreen {
                     Task { @MainActor in
                         self.deinitializeWindow()
@@ -296,8 +303,8 @@ public final class NotchlyViewModel: ObservableObject {
                 )
                 
                 let newScreen = NSScreen.screenWithMouse
-                              ?? NSScreen.largestScreen
-                              ?? NSScreen.main
+                ?? NSScreen.largestScreen
+                ?? NSScreen.main
                 if newScreen != self.currentScreen {
                     self.deinitializeWindow()
                     await self.initializeWindow(screen: newScreen!)
@@ -321,6 +328,90 @@ public final class NotchlyViewModel: ObservableObject {
             }
             .store(in: &subscriptions)
     }
+    
+    /**
+     Modified version of the update method that respects the hover sensitivity setting.
+     This should replace or be integrated with the original debounceHover method.
+     */
+    func debounceHoverWithSettings(_ hovering: Bool) {
+        // Get the hover sensitivity from settings (higher value = longer delay)
+        let sensitivity = NotchlySettings.shared.hoverSensitivity
+        let debounceDelay = sensitivity // Use sensitivity value directly as delay
+        
+        debounceWorkItem?.cancel()
+        debounceWorkItem = DispatchWorkItem {
+            guard hovering != self.isMouseInside else { return }
+            withAnimation(self.animation) {
+                self.isMouseInside = hovering
+                self.update(
+                    expanded: hovering,
+                    mediaActive: self.isMediaPlaying,
+                    calendarActive: self.calendarHasLiveActivity
+                )
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: debounceWorkItem!)
+    }
+    
+    /**
+     Updates window initialization to respect settings for positioning.
+     This modified version should be integrated with initializeWindow
+     */
+    func initializeWindowWithSettings(screen: NSScreen) async {
+        guard windowController == nil else { return }
+        currentScreen = screen
+        
+        /// Detect notch BEFORE calculating position
+        detectNotchPresence(on: screen)
+        
+        let maxWidth: CGFloat = 800
+        let maxHeight: CGFloat = 500
+        
+        // Apply horizontal offset from settings
+        let offset = NotchlySettings.shared.horizontalOffset
+        let screenWidth = screen.frame.width
+        let offsetPoints = (screenWidth * offset) / 100 // Convert percentage to points
+        
+        /// Calculate the center position with the user's offset preference
+        let centerX = screen.frame.origin.x + (screen.frame.width / 2) + offsetPoints
+        
+        /// Position the window with the notch shape centered, not the overall frame
+        let frame = NSRect(
+            x: centerX - (maxWidth / 2),
+            y: screen.frame.origin.y + screen.frame.height - maxHeight,
+            width: maxWidth, height: maxHeight
+        )
+        
+        let view = NSHostingView(rootView: environmentInjectedContainerView())
+        
+        let panel = NotchlyWindowPanel(
+            contentRect: frame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: true
+        )
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.contentView = view
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.level = .screenSaver
+        panel.orderFrontRegardless()
+        
+        print("🪟 Initialized notch window on screen: \(screen.localizedName) with \(offset)% offset")
+        windowController = NSWindowController(window: panel)
+    }
+    
+    /**
+     Updated window positioning that respects background opacity setting
+     */
+    func updateWindowAppearance() {
+        guard let window = windowController?.window else { return }
+        
+        // Apply background opacity if window panel supports it
+        if let panel = window as? NotchlyWindowPanel {
+            panel.applyBackgroundOpacity(NotchlySettings.shared.backgroundOpacity)
+        }
+    }
 }
 
 /// Compatibility extension for NotchlyView
@@ -328,3 +419,5 @@ extension NotchlyViewModel {
     /// Bridge property to maintain compatibility with existing NotchlyView
     var notchly: NotchlyViewModel { self }
 }
+
+
