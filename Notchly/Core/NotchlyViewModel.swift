@@ -111,8 +111,13 @@ public final class NotchlyViewModel: ObservableObject {
         let maxWidth: CGFloat = 800
         let maxHeight: CGFloat = 500
         
-        /// Calculate the center position accounting for screen width
-        let centerX = screen.frame.origin.x + (screen.frame.width / 2)
+        /// Apply horizontal offset from settings
+        let offset = NotchlySettings.shared.horizontalOffset
+        let screenWidth = screen.frame.width
+        let offsetPoints = (screenWidth * offset) / 100 /// Convert percentage to points
+        
+        /// Calculate the center position with the user's offset preference
+        let centerX = screen.frame.origin.x + (screen.frame.width / 2) + offsetPoints
         
         /// Position the window with the notch shape centered, not the overall frame
         let frame = NSRect(
@@ -136,7 +141,7 @@ public final class NotchlyViewModel: ObservableObject {
         panel.level = .screenSaver
         panel.orderFrontRegardless()
         
-        print("🪟 Initialized notch window on screen: \(screen.localizedName)")
+        print("🪟 Initialized notch window on screen: \(screen.localizedName) with \(offset)% offset")
         windowController = NSWindowController(window: panel)
     }
     
@@ -159,17 +164,17 @@ public final class NotchlyViewModel: ObservableObject {
         guard let window = windowController?.window,
               let screen = currentScreen else { return }
         
-        // Apply horizontal offset from settings (percentage of screen width)
+        /// Apply horizontal offset from settings (percentage of screen width)
         let offset = NotchlySettings.shared.horizontalOffset
         let screenWidth = screen.frame.width
         let offsetPoints = (screenWidth * offset) / 100 // Convert percentage to points
         
-        // Calculate center position with offset
+        /// Calculate center position with offset
         let centerX = screen.frame.midX + offsetPoints
         let adjustedX = centerX - (window.frame.width / 2)
         let lockedY = screen.frame.maxY - window.frame.height
         
-        // Apply the position
+        /// Apply the position
         window.setFrameOrigin(NSPoint(x: adjustedX, y: lockedY))
         
         print("🔄 Recentering shape with \(offset)% offset: config width=\(configuration.width), window width=\(window.frame.width)")
@@ -329,14 +334,10 @@ public final class NotchlyViewModel: ObservableObject {
             .store(in: &subscriptions)
     }
     
-    /**
-     Modified version of the update method that respects the hover sensitivity setting.
-     This should replace or be integrated with the original debounceHover method.
-     */
-    func debounceHoverWithSettings(_ hovering: Bool) {
-        // Get the hover sensitivity from settings (higher value = longer delay)
+    func debounceHover(_ hovering: Bool) {
+        /// Get the hover sensitivity from settings (higher value = longer delay)
         let sensitivity = NotchlySettings.shared.hoverSensitivity
-        let debounceDelay = sensitivity // Use sensitivity value directly as delay
+        let debounceDelay = sensitivity /// Use sensitivity value directly as delay
         
         debounceWorkItem?.cancel()
         debounceWorkItem = DispatchWorkItem {
@@ -352,55 +353,7 @@ public final class NotchlyViewModel: ObservableObject {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: debounceWorkItem!)
     }
-    
-    /**
-     Updates window initialization to respect settings for positioning.
-     This modified version should be integrated with initializeWindow
-     */
-    func initializeWindowWithSettings(screen: NSScreen) async {
-        guard windowController == nil else { return }
-        currentScreen = screen
-        
-        /// Detect notch BEFORE calculating position
-        detectNotchPresence(on: screen)
-        
-        let maxWidth: CGFloat = 800
-        let maxHeight: CGFloat = 500
-        
-        // Apply horizontal offset from settings
-        let offset = NotchlySettings.shared.horizontalOffset
-        let screenWidth = screen.frame.width
-        let offsetPoints = (screenWidth * offset) / 100 // Convert percentage to points
-        
-        /// Calculate the center position with the user's offset preference
-        let centerX = screen.frame.origin.x + (screen.frame.width / 2) + offsetPoints
-        
-        /// Position the window with the notch shape centered, not the overall frame
-        let frame = NSRect(
-            x: centerX - (maxWidth / 2),
-            y: screen.frame.origin.y + screen.frame.height - maxHeight,
-            width: maxWidth, height: maxHeight
-        )
-        
-        let view = NSHostingView(rootView: environmentInjectedContainerView())
-        
-        let panel = NotchlyWindowPanel(
-            contentRect: frame,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered, defer: true
-        )
-        panel.isMovable = false
-        panel.isMovableByWindowBackground = false
-        panel.contentView = view
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.level = .screenSaver
-        panel.orderFrontRegardless()
-        
-        print("🪟 Initialized notch window on screen: \(screen.localizedName) with \(offset)% offset")
-        windowController = NSWindowController(window: panel)
-    }
-    
+
     /**
      Updated window positioning that respects background opacity setting
      */

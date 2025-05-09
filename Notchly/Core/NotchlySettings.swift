@@ -586,59 +586,6 @@ class NotchlySettings: ObservableObject {
     }
 }
 
-// MARK: - Extensions for Calendar Manager
-
-@MainActor
-extension CalendarManager {
-    func reloadSelectedCalendars(_ selectedIDs: Set<String>) async {
-        /// Only load selected calendars rather than all
-        guard !selectedIDs.isEmpty else {
-            self.events = []
-            return
-        }
-        
-        /// Create a method to get filtered events that avoids direct access to private properties
-        let startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())!
-        let endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
-        
-        /// Use the existing fetchEvents method which has access to the eventStore
-        var fetchedEvents: [EKEvent] = []
-        
-        /// Get all available calendars
-        let allCalendars = getAllCalendars()
-        
-        /// Filter for just the selected ones
-        let selectedCalendars = allCalendars.filter { calendar in
-            selectedIDs.contains(calendar.calendarIdentifier)
-        }
-        
-        /// Only fetch if we have calendars selected
-        if !selectedCalendars.isEmpty {
-            /// Use a custom implementation that doesn't need direct eventStore access
-            fetchedEvents = fetchEventsForCalendars(selectedCalendars, startDate: startDate, endDate: endDate)
-        }
-        
-        self.events = fetchedEvents
-    }
-    
-    /// Helper method to fetch events for specific calendars without requiring direct eventStore access
-    private func fetchEventsForCalendars(_ calendars: [EKCalendar], startDate: Date, endDate: Date) -> [EKEvent] {
-        /// This method is implemented in the CalendarManager class and has access to the eventStore
-        return fetchEvents(startDate: startDate, endDate: endDate)
-            .filter { event in
-                /// Only include events from the selected calendars
-                guard let eventCalendar = event.calendar else { return false }
-                return calendars.contains(where: { $0.calendarIdentifier == eventCalendar.calendarIdentifier })
-            }
-    }
-    
-    /// Clear all events
-    @MainActor
-    func clearEvents() {
-        self.events = []
-    }
-}
-
 // MARK: - Notification Extensions
 
 extension Notification.Name {

@@ -135,7 +135,7 @@ struct NotchlyView: View {
                 }
                 .onHover { hovering in
                     guard !viewModel.ignoreHoverOnboarding else { return }
-                    debounceHover(hovering)
+                    viewModel.debounceHover(hovering)
                 }
                 .position(x: geometry.size.width / 2, y: coordinator.configuration.height / 2)
             }
@@ -222,12 +222,6 @@ struct NotchlyView: View {
                     )
             }
         }
-    }
-
-    // MARK: - Hover Handling
-
-    private func debounceHover(_ hovering: Bool) {
-        viewModel.debounceHoverWithSettings(hovering)
     }
 
     // MARK: - Subscriptions

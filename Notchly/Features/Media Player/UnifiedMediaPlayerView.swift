@@ -41,14 +41,14 @@ struct UnifiedMediaPlayerView: View {
         let expandedSize: CGFloat = 100
         let activitySize: CGFloat = 24
         
-        // Use state directly for more stable sizing
+        /// Use state directly for more stable sizing
         switch coordinator.state {
         case .expanded:
             return expandedSize
         case .mediaActivity, .calendarActivity:
             return activitySize
         case .collapsed:
-            // For collapsed state, interpolate based on width
+            /// For collapsed state, interpolate based on width
             let expandedWidth = NotchlyConfiguration.large.width
             let activityWidth = NotchlyConfiguration.activity.width
             let currentWidth = coordinator.configuration.width
@@ -70,9 +70,8 @@ struct UnifiedMediaPlayerView: View {
     var body: some View {
         ZStack {
             /// Glow background (only in expanded state)
-            if playerState == .expanded && settings.enableBackgroundGlow {
+            if playerState == .expanded {
                 expandedBackgroundGlow()
-                    .opacity(backgroundGlowOpacity)
             }
 
             Group {
@@ -120,11 +119,14 @@ struct UnifiedMediaPlayerView: View {
     // MARK: - Expanded Glow Background
 
     private func expandedBackgroundGlow() -> some View {
-        /// Only show glow if enabled in settings
-        if !NotchlySettings.shared.enableBackgroundGlow {
+        /// Early return if glow is disabled in settings
+        guard settings.enableBackgroundGlow else {
             return AnyView(EmptyView())
         }
-
+        
+        /// Calculate opacity based on configuration width
+        let glowOpacity = calculateGlowOpacity()
+        
         return AnyView(
             HStack(spacing: 0) {
                 RenderSafeView {
@@ -146,7 +148,7 @@ struct UnifiedMediaPlayerView: View {
                                 endPoint: .trailing
                             )
                         )
-                        .opacity(0.5)
+                        .opacity(0.5 * glowOpacity)
                         .transition(.opacity)
                         .allowsHitTesting(false)
                 }
@@ -155,7 +157,8 @@ struct UnifiedMediaPlayerView: View {
         )
     }
 
-    private var backgroundGlowOpacity: Double {
+    /// Calculates the appropriate glow opacity based on current configuration
+    private func calculateGlowOpacity() -> Double {
         let expandedWidth = NotchlyConfiguration.large.width
         let activityWidth = NotchlyConfiguration.activity.width
         let currentWidth = coordinator.configuration.width
@@ -287,18 +290,23 @@ struct UnifiedMediaPlayerView: View {
 
     private func updateGlowColor(from image: NSImage?) {
         /// Skip processing if glow effect is disabled
-        if !NotchlySettings.shared.enableBackgroundGlow {
+        guard settings.enableBackgroundGlow else {
             backgroundGlowColor = .gray.opacity(0.25)
             return
         }
         
-        /// Safely process image for color
-        if let image,
-           !image.isKind(of: NSAppleEventDescriptor.self),
-           let dom = image.dominantColor(),
-           let vib = dom.vibrantColor() {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                backgroundGlowColor = Color(nsColor: vib)
+        /// Process image only if we have a valid one
+        if let image = image,
+           !image.isKind(of: NSAppleEventDescriptor.self) {
+            Task { @MainActor in
+                if let dom = image.dominantColor(),
+                   let vib = dom.vibrantColor() {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        backgroundGlowColor = Color(nsColor: vib)
+                    }
+                } else {
+                    backgroundGlowColor = .gray.opacity(0.25)
+                }
             }
         } else {
             backgroundGlowColor = .gray.opacity(0.25)
