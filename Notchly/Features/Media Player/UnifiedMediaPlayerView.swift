@@ -210,16 +210,20 @@ struct UnifiedMediaPlayerView: View {
                     
                     if showAudioBars {
                         AudioBarsView()
-                            .frame(width: 30, height: 24)
+                            .frame(width: 30, height: 24, alignment: .center)
+                            .background(Color.clear) // Explicit background
                             .opacity(activityContentOpacity)
-                            .offset(x: 2)
+                            .overlay(
+                                /// Debug outline that can be removed in production
+                                Rectangle()
+                                    .stroke(Color.clear, lineWidth: 1)
+                            )
                     } else {
                         /// Simple alternative when audio bars disabled
                         Image(systemName: "music.note")
                             .font(.system(size: 12))
                             .foregroundColor(.white)
                             .opacity(activityContentOpacity)
-                            .offset(x: 2)
                     }
 
                     Spacer()
