@@ -180,9 +180,23 @@ struct NotchlySettingsView: View {
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(foregroundColor)
             }
-            .frame(height: 60)
+            .frame(height: 80)
             .frame(maxWidth: .infinity)
             .padding(.top, 14)
+            .background(
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        colorScheme == .dark ?
+                            Color(NSColor.windowBackgroundColor).opacity(0.7) :
+                            Color(NSColor.controlBackgroundColor).opacity(0.3)
+                    )
+                    .overlay(
+                        Divider().opacity(0.5),
+                        alignment: .bottom
+                    )
+            )
             
             /// Tab list
             List {
@@ -310,7 +324,7 @@ struct NotchlySettingsView: View {
                 .padding(.vertical, 4)
             }
             
-            // Colors
+            /// Colors
             SettingsSectionView(title: "Colors", icon: "eyedropper") {
                 VStack(alignment: .leading, spacing: contentSpacing) {
                     ToggleRow(
@@ -336,7 +350,7 @@ struct NotchlySettingsView: View {
                 }
             }
             
-            // Transparency
+            /// Transparency
             SettingsSectionView(title: "Transparency", icon: "slider.horizontal.below.rectangle") {
                 VStack(alignment: .leading, spacing: contentSpacing) {
                     HStack {
@@ -371,7 +385,7 @@ struct NotchlySettingsView: View {
     
     private var mediaSettings: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            // Media sources
+            /// Media sources
             SettingsSectionView(title: "Media Sources", icon: "music.note.list") {
                 VStack(spacing: contentSpacing) {
                     ToggleRow(
@@ -401,7 +415,7 @@ struct NotchlySettingsView: View {
                 }
             }
             
-            // Interactions
+            /// Interactions
             SettingsSectionView(title: "Interactions", icon: "hand.tap") {
                 VStack(alignment: .leading, spacing: contentSpacing) {
                     Text("When artwork is clicked:")
@@ -418,11 +432,11 @@ struct NotchlySettingsView: View {
                 .padding(.vertical, 4)
             }
             
-            // Visual effects
+            /// Visual effects
             SettingsSectionView(title: "Visual Effects", icon: "sparkles") {
                 VStack(spacing: contentSpacing) {
                     ToggleRow(
-                        icon: "gradient",
+                        icon: "paintpalette.fill",  // Updated icon for background glow
                         title: "Show Background Glow",
                         description: "Display color-adaptive glow behind album artwork",
                         isOn: $settings.enableBackgroundGlow
@@ -445,7 +459,7 @@ struct NotchlySettingsView: View {
     
     private var calendarSettings: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            // Calendar integration
+            /// Calendar integration
             SettingsSectionView(title: "Calendar Integration", icon: "calendar.badge.clock") {
                 VStack(spacing: contentSpacing) {
                     HStack {
@@ -488,7 +502,7 @@ struct NotchlySettingsView: View {
             .disabled(calendarPermissionStatus != .fullAccess)
             
             if settings.enableCalendar && calendarPermissionStatus == .fullAccess {
-                // Visible calendars
+                /// Visible calendars
                 SettingsSectionView(title: "Visible Calendars", icon: "list.bullet.rectangle") {
                     ZStack {
                         if isLoadingCalendars {
@@ -534,7 +548,7 @@ struct NotchlySettingsView: View {
                     }
                 }
                 
-                // Event alerts
+                /// Event alerts
                 SettingsSectionView(title: "Event Alerts", icon: "bell") {
                     VStack(spacing: contentSpacing) {
                         ToggleRow(
@@ -573,7 +587,7 @@ struct NotchlySettingsView: View {
                     }
                 }
                 
-                // Display options
+                /// Display options
                 SettingsSectionView(title: "Display Options", icon: "text.viewfinder") {
                     VStack(spacing: contentSpacing) {
                         HStack {
@@ -605,7 +619,7 @@ struct NotchlySettingsView: View {
                                     .frame(width: 36, alignment: .center)
                                 
                                 Button(action: {
-                                    if settings.maxEventsToDisplay < 10 {
+                                    if settings.maxEventsToDisplay < 20 {
                                         settings.maxEventsToDisplay += 1
                                     }
                                 }) {
@@ -613,7 +627,7 @@ struct NotchlySettingsView: View {
                                         .padding(8)
                                 }
                                 .buttonStyle(StepperButtonStyle())
-                                .disabled(settings.maxEventsToDisplay >= 10)
+                                .disabled(settings.maxEventsToDisplay >= 20)
                             }
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
@@ -659,17 +673,31 @@ struct NotchlySettingsView: View {
     
     private var weatherSettings: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            // Weather display
+            /// Weather display
             SettingsSectionView(title: "Weather Display", icon: "cloud.sun") {
-                ToggleRow(
-                    title: "Show Weather in Notchly",
-                    description: "Display current weather conditions",
-                    isOn: $settings.enableWeather
-                )
+                VStack(spacing: contentSpacing) {
+                    ToggleRow(
+                        title: "Show Weather in Notchly",
+                        description: "Display current weather conditions",
+                        isOn: $settings.enableWeather
+                    )
+                    
+                    /// Experimental notice
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                            .imageScale(.small)
+                        
+                        Text("Weather functionality is experimental and still in development")
+                            .font(.system(size: 12))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 4)
+                }
             }
             
             if settings.enableWeather {
-                // Temperature unit
+                /// Temperature unit
                 SettingsSectionView(title: "Temperature Unit", icon: "thermometer") {
                     VStack(alignment: .leading, spacing: contentSpacing) {
                         SegmentedPicker(
@@ -687,7 +715,7 @@ struct NotchlySettingsView: View {
                     .padding(.vertical, 4)
                 }
                 
-                // Location
+                /// Location
                 SettingsSectionView(title: "Location", icon: "location") {
                     VStack(alignment: .leading, spacing: contentSpacing) {
                         Button("Use Current Location") {
@@ -704,6 +732,26 @@ struct NotchlySettingsView: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(secondaryTextColor)
                         }
+                        
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "hammer.fill")
+                                .foregroundColor(.orange)
+                                .imageScale(.medium)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Coming Soon")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.orange)
+                                
+                                Text("Additional weather features including forecasts, weather maps, and custom location support will be added in future updates.")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(secondaryTextColor)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
                     .padding(.vertical, 4)
                 }
@@ -715,7 +763,7 @@ struct NotchlySettingsView: View {
     
     private var aboutView: some View {
         VStack(spacing: 24) {
-            // App logo
+            /// App logo
             VStack(spacing: 14) {
                 NotchlyLogoShape()
                     .fill(AngularGradient.notchly(offset: Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 360)))
@@ -730,7 +778,7 @@ struct NotchlySettingsView: View {
             }
             .padding(.top, 20)
             
-            // Description
+            /// Description
             VStack(spacing: 20) {
                 Text("Notchly transforms your MacBook notch into an\nintuitive hub for your music and calendar.")
                     .font(.system(size: 15))
@@ -814,7 +862,7 @@ struct SettingsSectionView<Content: View>: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section Header
+            /// Section Header
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
@@ -832,7 +880,7 @@ struct SettingsSectionView<Content: View>: View {
             }
             .padding(.bottom, 4)
             
-            // Content Container
+            /// Content Container
             content()
                 .padding(16)
                 .background(
@@ -910,6 +958,7 @@ struct SliderRow: View {
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(.accentColor)
                     .monospacedDigit()
+                    .frame(minWidth: 40)
             }
             
             CustomSlider(value: $value, range: range, step: step)
@@ -934,12 +983,12 @@ struct CustomSlider: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // Track
+                /// Track
                 Capsule()
                     .fill(Color.gray.opacity(0.25))
                     .frame(height: 4)
                 
-                // Fill
+                /// Fill
                 Capsule()
                     .fill(
                         LinearGradient(
@@ -948,9 +997,9 @@ struct CustomSlider: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: getThumbPosition(in: geometry.size.width), height: 4)
+                    .frame(width: max(16, getThumbPosition(in: geometry.size.width)), height: 4)
                 
-                // Thumb
+                /// Thumb
                 Circle()
                     .fill(Color.white)
                     .frame(width: 16, height: 16)
@@ -967,6 +1016,7 @@ struct CustomSlider: View {
                             }
                     )
             }
+            .padding(.horizontal, 2)
             .frame(height: 24)
             .contentShape(Rectangle())
             .gesture(
