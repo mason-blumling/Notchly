@@ -14,9 +14,12 @@ struct UnifiedMediaPlayerView: View {
     @ObservedObject var mediaMonitor: MediaPlaybackMonitor
     var isExpanded: Bool
     var namespace: Namespace.ID
+    
     @State private var backgroundGlowColor: Color = .clear
     @State private var showBars = false
-
+    @State private var showAudioBars: Bool = true
+    @State private var currentArtworkAction: NotchlySettings.ArtworkClickAction = .openApp
+    @ObservedObject private var settings = NotchlySettings.shared
     @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     // MARK: - Player State Enum
@@ -67,7 +70,7 @@ struct UnifiedMediaPlayerView: View {
     var body: some View {
         ZStack {
             /// Glow background (only in expanded state)
-            if playerState == .expanded {
+            if playerState == .expanded && settings.enableBackgroundGlow {
                 expandedBackgroundGlow()
                     .opacity(backgroundGlowOpacity)
             }
@@ -88,8 +91,29 @@ struct UnifiedMediaPlayerView: View {
             }
         }
         .animation(coordinator.animation, value: coordinator.configuration)
+        .onAppear {
+            // Initialize state from settings
+            showAudioBars = settings.showAudioBars
+            currentArtworkAction = settings.artworkClickAction
+        }
         .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
             updateGlowColor(from: new)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NotchlyVisualizationChanged)) { notification in
+            if let show = notification.userInfo?["showAudioBars"] as? Bool {
+                withAnimation {
+                    self.showAudioBars = show
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NotchlyArtworkActionChanged)) { notification in
+            if let actionStr = notification.userInfo?["action"] as? String,
+               let action = NotchlySettings.ArtworkClickAction(rawValue: actionStr) {
+                self.currentArtworkAction = action
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NotchlyBackgroundGlowChanged)) { _ in
+            // Just trigger a re-render when the background glow setting changes
         }
     }
 
@@ -181,10 +205,18 @@ struct UnifiedMediaPlayerView: View {
                     Spacer(minLength: 8)
                         .frame(maxWidth: .infinity)
                     
-                    AudioBarsView()
-                        .frame(width: 30, height: 24)
-                        .opacity(activityContentOpacity)
-                        .offset(x: 2)
+                    if showAudioBars {
+                        AudioBarsView()
+                            .frame(width: 30, height: 24)
+                            .opacity(activityContentOpacity)
+                            .offset(x: 2)
+                    } else {
+                        // Simple alternative when audio bars disabled
+                        Image(systemName: "music.note")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .opacity(activityContentOpacity)
+                    }
 
                     Spacer()
                         .frame(width: 16)
@@ -237,10 +269,9 @@ struct UnifiedMediaPlayerView: View {
             ArtworkView(
                 artwork: artwork,
                 isExpanded: playerState == .expanded,
-                action: openAppForTrack
+                action: handleArtworkClick
             )
             .cornerRadius(playerState == .expanded ? 10 : 4)
-            // Remove individual animation, let the container handle it
         } else {
             RoundedRectangle(cornerRadius: playerState == .expanded ? 10 : 4)
                 .fill(Color.gray.opacity(0.3))
@@ -255,7 +286,15 @@ struct UnifiedMediaPlayerView: View {
     // MARK: - Glow Color Utility
 
     private func updateGlowColor(from image: NSImage?) {
+        /// Skip processing if glow effect is disabled
+        if !NotchlySettings.shared.enableBackgroundGlow {
+            backgroundGlowColor = .gray.opacity(0.25)
+            return
+        }
+        
+        /// Safely process image for color
         if let image,
+           !image.isKind(of: NSAppleEventDescriptor.self),
            let dom = image.dominantColor(),
            let vib = dom.vibrantColor() {
             withAnimation(.easeInOut(duration: 0.3)) {
@@ -263,6 +302,22 @@ struct UnifiedMediaPlayerView: View {
             }
         } else {
             backgroundGlowColor = .gray.opacity(0.25)
+        }
+    }
+
+    // MARK: - Artwork Click Action
+
+    private func handleArtworkClick() {
+        switch currentArtworkAction {
+        case .openApp:
+            openAppForTrack()
+        case .playPause:
+            mediaMonitor.togglePlayPause()
+        case .openAlbum:
+            openAlbumForTrack()
+        case .doNothing:
+            // Do nothing
+            break
         }
     }
 
@@ -279,89 +334,9 @@ struct UnifiedMediaPlayerView: View {
             NSWorkspace.shared.open(url)
         }
     }
-}
-
-/**
- This file contains extension methods and properties for the UnifiedMediaPlayerView
- to make it respect user settings. These should be integrated into the original file.
- */
-
-// MARK: - Settings Extensions for UnifiedMediaPlayerView
-
-/**
- Replace existing expandedBackgroundGlow() method with this version
- that respects user settings for background glow
- */
-extension UnifiedMediaPlayerView {
     
-
-    
-    /**
-     Modified media content view to respect settings for audio bars
-     This function handles the presence of audio bars based on settings
-     */
-    private func activityContentWithSettings() -> some View {
-        // Check if audio bars are enabled in settings
-        if NotchlySettings.shared.showAudioBars {
-            return AnyView(
-                AudioBarsView()
-                    .frame(width: 30, height: 24)
-                    .opacity(activityContentOpacity)
-                    .offset(x: 2)
-            )
-        } else {
-            // Simple alternative when audio bars disabled
-            return AnyView(
-                Image(systemName: "play.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 10, height: 10)
-                    .foregroundColor(.white.opacity(0.7))
-                    .opacity(activityContentOpacity)
-                    .offset(x: 2)
-            )
-        }
-    }
-    
-    /**
-     Settings-aware version of openAppForTrack that respects the user's preference
-     for what happens when clicking on artwork
-     */
-    private func handleArtworkClick() {
-        let settings = NotchlySettings.shared
-        let action = settings.artworkClickAction
-        
-        switch action {
-        case .openApp:
-            openMediaApp()
-        case .playPause:
-            mediaMonitor.togglePlayPause()
-        case .openAlbum:
-            openCurrentAlbum()
-        case .doNothing:
-            // Do nothing as requested
-            break
-        }
-    }
-    
-    // Helper methods for artwork actions
-    
-    private func openMediaApp() {
-        let urlScheme = mediaMonitor.activePlayerName.lowercased() == "spotify"
-            ? "spotify://"
-            : (mediaMonitor.activePlayerName.lowercased() == "podcasts"
-               ? "podcasts://"
-               : "music://")
-
-        if let url = URL(string: urlScheme) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-    
-    private func openCurrentAlbum() {
-        // Logic to open the current album (implementation varies by player)
-        // This is an approximate implementation
-        
+    private func openAlbumForTrack() {
+        /// Logic to open the current album (implementation varies by player)        
         if mediaMonitor.activePlayerName.lowercased() == "spotify" {
             // Spotify-specific: try to open album view
             if let url = URL(string: "spotify:album:") {
@@ -373,32 +348,5 @@ extension UnifiedMediaPlayerView {
                 NSWorkspace.shared.open(url)
             }
         }
-    }
-    
-    /**
-     Helper method to determine if media player is enabled in settings
-     */
-    private func isMediaAppEnabled(appName: String) -> Bool {
-        let settings = NotchlySettings.shared
-        let appNameLower = appName.lowercased()
-        
-        if appNameLower.contains("music") || appNameLower.contains("apple") {
-            return settings.enableAppleMusic
-        } else if appNameLower.contains("spotify") {
-            return settings.enableSpotify
-        } else if appNameLower.contains("podcast") {
-            return settings.enablePodcasts
-        }
-        
-        return true
-    }
-    
-    /**
-     This property should be used in the body view where opacity values
-     for the background are set, to respect the user's transparency setting
-     */
-    private var settingsAdjustedBackgroundOpacity: Double {
-        let userOpacity = NotchlySettings.shared.backgroundOpacity
-        return backgroundGlowOpacity * userOpacity
     }
 }

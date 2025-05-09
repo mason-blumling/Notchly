@@ -72,6 +72,12 @@ class NotchlySettings: ObservableObject {
     @Published var backgroundOpacity: Double {
         didSet {
             saveSettings()
+            // Apply immediately to window
+            NotificationCenter.default.post(
+                name: .NotchlyBackgroundOpacityChanged,
+                object: nil,
+                userInfo: ["opacity": backgroundOpacity]
+            )
         }
     }
     
@@ -81,6 +87,7 @@ class NotchlySettings: ObservableObject {
     @Published var enableAppleMusic: Bool {
         didSet {
             saveSettings()
+            updateMediaPlayerSettings()
         }
     }
     
@@ -88,6 +95,7 @@ class NotchlySettings: ObservableObject {
     @Published var enableSpotify: Bool {
         didSet {
             saveSettings()
+            updateMediaPlayerSettings()
         }
     }
     
@@ -95,6 +103,7 @@ class NotchlySettings: ObservableObject {
     @Published var enablePodcasts: Bool {
         didSet {
             saveSettings()
+            updateMediaPlayerSettings()
         }
     }
     
@@ -102,6 +111,11 @@ class NotchlySettings: ObservableObject {
     @Published var artworkClickAction: ArtworkClickAction {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyArtworkActionChanged,
+                object: nil,
+                userInfo: ["action": artworkClickAction.rawValue]
+            )
         }
     }
     
@@ -109,6 +123,11 @@ class NotchlySettings: ObservableObject {
     @Published var enableBackgroundGlow: Bool {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyBackgroundGlowChanged,
+                object: nil,
+                userInfo: ["enabled": enableBackgroundGlow]
+            )
         }
     }
     
@@ -116,6 +135,11 @@ class NotchlySettings: ObservableObject {
     @Published var showAudioBars: Bool {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyVisualizationChanged,
+                object: nil,
+                userInfo: ["showAudioBars": showAudioBars]
+            )
         }
     }
     
@@ -125,8 +149,17 @@ class NotchlySettings: ObservableObject {
     @Published var enableCalendar: Bool {
         didSet {
             saveSettings()
-            if !enableCalendar {
-                disableCalendarLiveActivity()
+            
+            if enableCalendar {
+                // If enabling, load/refresh events
+                loadAvailableCalendars()
+                refreshCalendarEvents()
+            } else {
+                // If disabling, clear events
+                Task { @MainActor in
+                    AppEnvironment.shared.calendarManager.clearEvents()
+                    disableCalendarLiveActivity()
+                }
             }
         }
     }
@@ -153,6 +186,10 @@ class NotchlySettings: ObservableObject {
     @Published var alertTiming: [Int] {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyCalendarSettingsChanged,
+                object: nil
+            )
         }
     }
     
@@ -160,6 +197,10 @@ class NotchlySettings: ObservableObject {
     @Published var maxEventsToDisplay: Int {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyCalendarSettingsChanged,
+                object: nil
+            )
         }
     }
     
@@ -167,6 +208,10 @@ class NotchlySettings: ObservableObject {
     @Published var showEventOrganizer: Bool {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyCalendarSettingsChanged,
+                object: nil
+            )
         }
     }
     
@@ -174,6 +219,10 @@ class NotchlySettings: ObservableObject {
     @Published var showEventLocation: Bool {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyCalendarSettingsChanged,
+                object: nil
+            )
         }
     }
     
@@ -181,6 +230,10 @@ class NotchlySettings: ObservableObject {
     @Published var showEventAttendees: Bool {
         didSet {
             saveSettings()
+            NotificationCenter.default.post(
+                name: .NotchlyCalendarSettingsChanged,
+                object: nil
+            )
         }
     }
     
@@ -446,10 +499,14 @@ class NotchlySettings: ObservableObject {
                 }
             }
         } else {
-            // Fallback for older macOS versions
+            /// Fallback for older macOS versions
             let bundleIdentifier = Bundle.main.bundleIdentifier!
-            let loginItemsRef = LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems, nil)?
-                .takeUnretainedValue()
+            
+            /// Safely unwrap the shared file list
+            guard let loginItemsRef = LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil)?.takeUnretainedValue() else {
+                print("Failed to create login items list")
+                return
+            }
             
             if launchAtLogin {
                 let appURL = Bundle.main.bundleURL as CFURL
@@ -478,16 +535,24 @@ class NotchlySettings: ObservableObject {
 
     private func loadAvailableCalendars() {
         Task {
-            // Use the existing CalendarManager's eventStore instead
-            let manager = AppEnvironment.shared.calendarManager
+            let calendarManager = AppEnvironment.shared.calendarManager
             
             switch EKEventStore.authorizationStatus(for: .event) {
             case .fullAccess:
-                // Full access granted
-                let calendars = manager.getAllCalendars()
-                selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                /// Full access granted - if this is the first time, select all calendars
+                let calendars = calendarManager.getAllCalendars()
+                
+                /// Only set all calendars to selected if we're initializing for the first time
+                /// (otherwise, respect the user's existing selection)
+                if selectedCalendarIDs.isEmpty || isFirstLaunch() {
+                    selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                    /// Force a save of the selected IDs
+                    saveSettings()
+                    /// Refresh immediately to load events
+                    refreshCalendarEvents()
+                }
             default:
-                // No access or limited access
+                /// No access or limited access
                 selectedCalendarIDs = []
             }
         }
@@ -506,6 +571,19 @@ class NotchlySettings: ObservableObject {
             AppEnvironment.shared.calendarActivityMonitor.reset()
         }
     }
+    
+    private func updateMediaPlayerSettings() {
+        /// Post notification that media settings changed
+        NotificationCenter.default.post(
+            name: .NotchlyMediaSettingsChanged,
+            object: nil,
+            userInfo: [
+                "enableAppleMusic": enableAppleMusic,
+                "enableSpotify": enableSpotify,
+                "enablePodcasts": enablePodcasts
+            ]
+        )
+    }
 }
 
 // MARK: - Extensions for Calendar Manager
@@ -519,16 +597,55 @@ extension CalendarManager {
             return
         }
         
-        let selectedCalendars = eventStore.calendars(for: .event).filter { calendar in
-            selectedIDs.contains(calendar.calendarIdentifier)
-        }
-        
+        /// Create a method to get filtered events that avoids direct access to private properties
         let startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())!
         let endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
         
-        let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: selectedCalendars)
-        let fetchedEvents = eventStore.events(matching: predicate)
+        /// Use the existing fetchEvents method which has access to the eventStore
+        var fetchedEvents: [EKEvent] = []
+        
+        /// Get all available calendars
+        let allCalendars = getAllCalendars()
+        
+        /// Filter for just the selected ones
+        let selectedCalendars = allCalendars.filter { calendar in
+            selectedIDs.contains(calendar.calendarIdentifier)
+        }
+        
+        /// Only fetch if we have calendars selected
+        if !selectedCalendars.isEmpty {
+            /// Use a custom implementation that doesn't need direct eventStore access
+            fetchedEvents = fetchEventsForCalendars(selectedCalendars, startDate: startDate, endDate: endDate)
+        }
         
         self.events = fetchedEvents
     }
+    
+    /// Helper method to fetch events for specific calendars without requiring direct eventStore access
+    private func fetchEventsForCalendars(_ calendars: [EKCalendar], startDate: Date, endDate: Date) -> [EKEvent] {
+        /// This method is implemented in the CalendarManager class and has access to the eventStore
+        return fetchEvents(startDate: startDate, endDate: endDate)
+            .filter { event in
+                /// Only include events from the selected calendars
+                guard let eventCalendar = event.calendar else { return false }
+                return calendars.contains(where: { $0.calendarIdentifier == eventCalendar.calendarIdentifier })
+            }
+    }
+    
+    /// Clear all events
+    @MainActor
+    func clearEvents() {
+        self.events = []
+    }
+}
+
+// MARK: - Notification Extensions
+
+extension Notification.Name {
+    static let NotchlyBackgroundOpacityChanged = Notification.Name("NotchlyBackgroundOpacityChanged")
+    static let NotchlyMediaSettingsChanged = Notification.Name("NotchlyMediaSettingsChanged")
+    static let NotchlyArtworkActionChanged = Notification.Name("NotchlyArtworkActionChanged")
+    static let NotchlyVisualizationChanged = Notification.Name("NotchlyVisualizationChanged")
+    static let NotchlyCalendarSettingsChanged = Notification.Name("NotchlyCalendarSettingsChanged")
+    static let NotchlyBackgroundGlowChanged = Notification.Name("NotchlyBackgroundGlowChanged")
 }

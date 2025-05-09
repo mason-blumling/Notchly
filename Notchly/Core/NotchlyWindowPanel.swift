@@ -68,9 +68,3 @@ extension NotchlyWindowPanel {
         )
     }
 }
-
-// MARK: - Notification Extensions
-
-extension Notification.Name {
-    static let NotchlyBackgroundOpacityChanged = Notification.Name("NotchlyBackgroundOpacityChanged")
-}
