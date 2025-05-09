@@ -264,39 +264,29 @@ struct NotchlySettingsView: View {
                     value: $settings.horizontalOffset,
                     range: -20...20,
                     step: 1,
-                    valueFormatter: { "\(Int($0))%" }
+                    valueFormatter: { "\(Int($0))%" },
+                    leftLabel: "Left",
+                    rightLabel: "Right",
+                    leftLabelWidth: 30,
+                    rightLabelWidth: 35
                 )
             }
             
             /// Hover behavior
             SettingsSectionView(title: "Hover Behavior", icon: "hand.point.up.fill") {
                 VStack(spacing: contentSpacing) {
-                    HStack {
-                        Text("Hover Sensitivity")
-                            .font(.system(size: 14, weight: .semibold))
-                        Spacer()
-                    }
-                    
-                    HStack(spacing: 8) {
-                        Text("Fast")
-                            .font(.system(size: 12))
-                            .foregroundColor(secondaryTextColor)
-                        
-                        CustomSlider(
-                            value: $settings.hoverSensitivity,
-                            range: 0.05...0.3,
-                            step: 0.05
-                        )
-                        .frame(maxWidth: .infinity)
-                        
-                        Text("Slow")
-                            .font(.system(size: 12))
-                            .foregroundColor(secondaryTextColor)
-                    }
-                    
-                    Text("How quickly Notchly responds to your cursor")
-                        .font(.system(size: 12))
-                        .foregroundColor(secondaryTextColor)
+                    SliderRow(
+                        title: "Hover Sensitivity",
+                        description: "How quickly Notchly responds to your cursor",
+                        value: $settings.hoverSensitivity,
+                        range: 0.05...0.3,
+                        step: 0.05,
+                        valueFormatter: { _ in "" }, /// Hide the value display
+                        leftLabel: "Fast",
+                        rightLabel: "Slow",
+                        leftLabelWidth: 28,
+                        rightLabelWidth: 28
+                    )
                 }
                 .padding(.vertical, 4)
             }
@@ -359,22 +349,20 @@ struct NotchlySettingsView: View {
                         Spacer()
                     }
                     
-                    HStack(spacing: 8) {
-                        Text("Transparent")
-                            .font(.system(size: 12))
-                            .foregroundColor(secondaryTextColor)
-                        
-                        CustomSlider(
-                            value: $settings.backgroundOpacity,
-                            range: 0.5...1.0,
-                            step: 0.05
-                        )
-                        .frame(maxWidth: .infinity)
-                        
-                        Text("Solid")
-                            .font(.system(size: 12))
-                            .foregroundColor(secondaryTextColor)
-                    }
+                    /// Using the updated SliderRow component with custom labels
+                    SliderRow(
+                        title: "",
+                        description: "",
+                        value: $settings.backgroundOpacity,
+                        range: 0.5...1.0,
+                        step: 0.05,
+                        valueFormatter: { _ in "" }, /// Hide the value display
+                        leftLabel: "Transparent",
+                        rightLabel: "Solid",
+                        leftLabelWidth: 80,
+                        rightLabelWidth: 40
+                    )
+                    .padding(.top, -8) /// Remove extra spacing since we don't have a title
                 }
                 .padding(.vertical, 4)
             }
@@ -790,14 +778,14 @@ struct NotchlySettingsView: View {
                     .foregroundColor(secondaryTextColor)
             }
             
-            // Links
+            /// Links
             HStack(spacing: 20) {
-                LinkButton(title: "Website", icon: "globe", action: {
-                    openURL("https://notchly.app")
+                LinkButton(title: "GitHub Repository", icon: "chevron.left.forwardslash.chevron.right", action: {
+                    openURL("https://github.com/mason-blumling/Notchly/tree/main")
                 })
                 
-                LinkButton(title: "Support", icon: "questionmark.circle", action: {
-                    openURL("https://notchly.app/support")
+                LinkButton(title: "Releases", icon: "tag.fill", action: {
+                    openURL("https://github.com/mason-blumling/Notchly/releases")
                 })
             }
             .padding(.top, 10)
@@ -946,6 +934,12 @@ struct SliderRow: View {
     var step: Double
     var valueFormatter: (Double) -> String
     
+    /// Add optional parameters for customizing the labels
+    var leftLabel: String = "Fast"
+    var rightLabel: String = "Slow"
+    var leftLabelWidth: CGFloat = 28
+    var rightLabelWidth: CGFloat = 28
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -961,7 +955,25 @@ struct SliderRow: View {
                     .frame(minWidth: 40)
             }
             
-            CustomSlider(value: $value, range: range, step: step)
+            /// Fixed-width label HStack for better spacing control
+            HStack(spacing: 8) {
+                Text(leftLabel)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(.secondaryLabelColor))
+                    .frame(width: leftLabelWidth, alignment: .leading)
+                
+                CustomSlider(
+                    value: $value,
+                    range: range,
+                    step: step
+                )
+                .frame(maxWidth: .infinity)
+                
+                Text(rightLabel)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(.secondaryLabelColor))
+                    .frame(width: rightLabelWidth, alignment: .trailing)
+            }
             
             Text(description)
                 .font(.system(size: 12))
@@ -978,17 +990,22 @@ struct CustomSlider: View {
     let range: ClosedRange<Double>
     let step: Double
     
+    /// Added track padding to ensure proper spacing from labels
+    private let horizontalPadding: CGFloat = 8
+    private let thumbSize: CGFloat = 16
+    
     @State private var isDragging = false
     
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                /// Track
+                /// Track - now with horizontal padding
                 Capsule()
                     .fill(Color.gray.opacity(0.25))
                     .frame(height: 4)
+                    .padding(.horizontal, horizontalPadding)
                 
-                /// Fill
+                /// Fill - adjusted to respect padding
                 Capsule()
                     .fill(
                         LinearGradient(
@@ -997,37 +1014,45 @@ struct CustomSlider: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: max(16, getThumbPosition(in: geometry.size.width)), height: 4)
+                    .frame(
+                        width: max(
+                            thumbSize,
+                            getThumbPosition(in: geometry.size.width - (horizontalPadding * 2)) + horizontalPadding
+                        ),
+                        height: 4
+                    )
+                    .padding(.leading, horizontalPadding)
                 
                 /// Thumb
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 16, height: 16)
+                    .frame(width: thumbSize, height: thumbSize)
                     .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
-                    .offset(x: getThumbPosition(in: geometry.size.width) - 8)
+                    .offset(x: getThumbPosition(in: geometry.size.width - (horizontalPadding * 2)) + horizontalPadding - (thumbSize / 2))
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 isDragging = true
-                                updateValue(at: value.location.x, in: geometry.size.width)
+                                updateValue(at: value.location.x - horizontalPadding,
+                                           in: geometry.size.width - (horizontalPadding * 2))
                             }
                             .onEnded { _ in
                                 isDragging = false
                             }
                     )
             }
-            .padding(.horizontal, 2)
             .frame(height: 24)
             .contentShape(Rectangle())
             .gesture(
                 TapGesture()
                     .onEnded { _ in
                         let location = NSEvent.mouseLocation
-                        let convertedPoint = geometry.frame(in: .global).contains(location)
-                            ? NSEvent.mouseLocation.x - geometry.frame(in: .global).minX
-                            : 0
-                        
-                        updateValue(at: convertedPoint, in: geometry.size.width)
+                        let frame = geometry.frame(in: .global)
+                        if frame.contains(location) {
+                            let adjustedX = location.x - frame.minX - horizontalPadding
+                            updateValue(at: adjustedX,
+                                       in: geometry.size.width - (horizontalPadding * 2))
+                        }
                     }
             )
         }
@@ -1040,7 +1065,8 @@ struct CustomSlider: View {
     }
     
     private func updateValue(at position: CGFloat, in width: CGFloat) {
-        let percent = max(0, min(position / width, 1.0))
+        let clampedPosition = max(0, min(position, width))
+        let percent = clampedPosition / width
         let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percent)
         
         // Round to nearest step
@@ -1048,7 +1074,6 @@ struct CustomSlider: View {
         value = max(range.lowerBound, min(roundedValue, range.upperBound))
     }
 }
-
 // MARK: - Segmented Picker
 
 struct SegmentedPicker<T: Hashable, Content: View>: View {
