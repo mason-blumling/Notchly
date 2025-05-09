@@ -145,7 +145,7 @@ struct NotchlyView: View {
             mediaMonitor.setExpanded(newState == .expanded)
         }
         .onAppear {
-            setupSubscriptionsWithSettings()
+            setupSubscriptions()
         }
     }
     
@@ -228,64 +228,6 @@ struct NotchlyView: View {
 
     private func setupSubscriptions() {
         /// Only start monitoring calendar if we're not in the intro and have permission
-        if !shouldShowIntro {
-            calendarActivityMonitor.evaluateLiveActivity()
-        }
-
-        /// Respond to live activity changes
-        calendarActivityMonitor.$isLiveActivityVisible
-            .removeDuplicates()
-            .sink { isActive in
-                viewModel.calendarHasLiveActivity = isActive
-                forceCollapseForCalendar = true
-
-                /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
-                coordinator.update(
-                    expanded: false,
-                    mediaActive: mediaMonitor.isPlaying,
-                    calendarActive: isActive
-                )
-
-                /// Step 2: After delay, show media if appropriate
-                DispatchQueue.main.asyncAfter(
-                    deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
-                ) {
-                    forceCollapseForCalendar = false
-                    let mediaPlaying = mediaMonitor.isPlaying
-
-                    coordinator.update(
-                        expanded: false,
-                        mediaActive: mediaPlaying,
-                        calendarActive: false
-                    )
-                    showMediaAfterCalendar = mediaPlaying && !isActive
-                }
-            }
-            .store(in: &cancellables)
-
-        /// Respond to media playback changes
-        mediaMonitor.$isPlaying
-            .sink { playing in
-                viewModel.isMediaPlaying = playing
-
-                if coordinator.state != .expanded {
-                    coordinator.update(
-                        expanded: false,
-                        mediaActive: playing,
-                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
-                    )
-                }
-            }
-            .store(in: &cancellables)
-    }
-    
-    
-    /**
-     Updates setupSubscriptions to respect user settings.
-     The key parts to integrate are the checks for enabled features.
-     */
-    private func setupSubscriptionsWithSettings() {
-        /// Only start monitoring calendar if we're not in the intro and have permission
         if !shouldShowIntro && NotchlySettings.shared.enableCalendar {
             calendarActivityMonitor.evaluateLiveActivity()
         }
@@ -293,16 +235,16 @@ struct NotchlyView: View {
         /// Respond to live activity changes (with settings check)
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
-            .sink { [self] isActive in
+            .sink { isActive in  // Remove [self] capture
                 guard NotchlySettings.shared.enableCalendarAlerts else { return }
                 
-                self.viewModel.calendarHasLiveActivity = isActive
-                self.forceCollapseForCalendar = true
+                viewModel.calendarHasLiveActivity = isActive  // Use direct property access
+                forceCollapseForCalendar = true  // Use direct property access
 
                 /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
-                self.coordinator.update(
+                coordinator.update(  // Use direct property access
                     expanded: false,
-                    mediaActive: self.mediaMonitor.isPlaying,
+                    mediaActive: mediaMonitor.isPlaying,  // Use direct property access
                     calendarActive: isActive
                 )
 
@@ -310,34 +252,48 @@ struct NotchlyView: View {
                 DispatchQueue.main.asyncAfter(
                     deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
                 ) {
-                    self.forceCollapseForCalendar = false
-                    let mediaPlaying = self.mediaMonitor.isPlaying &&
-                                       self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
+                    forceCollapseForCalendar = false  // Direct property access
+                    let mediaPlaying = mediaMonitor.isPlaying &&  // Direct property access
+                                       isMediaAppEnabled(mediaMonitor.activePlayerName)  // Direct method call
 
-                    self.coordinator.update(
+                    coordinator.update(  // Direct property access
                         expanded: false,
                         mediaActive: mediaPlaying,
                         calendarActive: false
                     )
-                    self.showMediaAfterCalendar = mediaPlaying && !isActive
+                    showMediaAfterCalendar = mediaPlaying && !isActive  // Direct property access
                 }
             }
             .store(in: &cancellables)
 
         /// Respond to media playback changes (with settings check)
         mediaMonitor.$isPlaying
-            .sink { [self] playing in
+            .sink { playing in  // Remove [self] capture
                 // Check if this media app is enabled in settings
-                let isEnabled = self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
+                let isEnabled = isMediaAppEnabled(mediaMonitor.activePlayerName)  // Direct method call
                 let effectivePlaying = playing && isEnabled
                 
-                self.viewModel.isMediaPlaying = effectivePlaying
+                viewModel.isMediaPlaying = effectivePlaying  // Direct property access
 
-                if self.coordinator.state != .expanded {
-                    self.coordinator.update(
+                if coordinator.state != .expanded {  // Direct property access
+                    coordinator.update(  // Direct property access
                         expanded: false,
                         mediaActive: effectivePlaying,
-                        calendarActive: self.calendarActivityMonitor.upcomingEvent != nil
+                        calendarActive: calendarActivityMonitor.upcomingEvent != nil  // Direct property access
+                    )
+                }
+            }
+            .store(in: &cancellables)
+            
+        /// Add listener for media settings changes
+        NotificationCenter.default.publisher(for: SettingsChangeType.media.notificationName)
+            .sink { _ in
+                // Refresh UI based on media settings changes
+                if coordinator.state != .expanded {
+                    coordinator.update(
+                        expanded: false,
+                        mediaActive: mediaMonitor.isPlaying && isMediaAppEnabled(mediaMonitor.activePlayerName),
+                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
                     )
                 }
             }

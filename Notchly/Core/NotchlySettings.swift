@@ -10,6 +10,25 @@ import Combine
 import EventKit
 import ServiceManagement
 
+// MARK: - Notification Consolidation
+
+/// Define a single enum for all settings change types
+enum SettingsChangeType: String {
+    case appearance
+    case media
+    case calendar
+    case backgroundOpacity
+    case backgroundGlow
+    case visualization
+    case artwork
+    case horizontalOffset
+    
+    /// Convert to notification name
+    var notificationName: Notification.Name {
+        return Notification.Name("NotchlySettings.\(self.rawValue)Changed")
+    }
+}
+
 /// Centralized settings model for Notchly
 /// Handles persistence, default values, and publishes changes to interested components
 @MainActor
@@ -18,6 +37,15 @@ class NotchlySettings: ObservableObject {
     
     /// Shared instance for global access
     static let shared = NotchlySettings()
+
+    /// Post a settings change notification with optional user info
+    private func notifySettingsChanged(_ type: SettingsChangeType, userInfo: [String: Any]? = nil) {
+        NotificationCenter.default.post(
+            name: type.notificationName,
+            object: self,
+            userInfo: userInfo
+        )
+    }
     
     // MARK: - General Settings
     
@@ -72,12 +100,7 @@ class NotchlySettings: ObservableObject {
     @Published var backgroundOpacity: Double {
         didSet {
             saveSettings()
-            // Apply immediately to window
-            NotificationCenter.default.post(
-                name: .NotchlyBackgroundOpacityChanged,
-                object: nil,
-                userInfo: ["opacity": backgroundOpacity]
-            )
+            notifySettingsChanged(.backgroundOpacity, userInfo: ["opacity": backgroundOpacity])
         }
     }
     
@@ -87,7 +110,11 @@ class NotchlySettings: ObservableObject {
     @Published var enableAppleMusic: Bool {
         didSet {
             saveSettings()
-            updateMediaPlayerSettings()
+            notifySettingsChanged(.media, userInfo: [
+                "enableAppleMusic": enableAppleMusic,
+                "enableSpotify": enableSpotify,
+                "enablePodcasts": enablePodcasts
+            ])
         }
     }
     
@@ -95,7 +122,11 @@ class NotchlySettings: ObservableObject {
     @Published var enableSpotify: Bool {
         didSet {
             saveSettings()
-            updateMediaPlayerSettings()
+            notifySettingsChanged(.media, userInfo: [
+                "enableAppleMusic": enableAppleMusic,
+                "enableSpotify": enableSpotify,
+                "enablePodcasts": enablePodcasts
+            ])
         }
     }
     
@@ -103,7 +134,11 @@ class NotchlySettings: ObservableObject {
     @Published var enablePodcasts: Bool {
         didSet {
             saveSettings()
-            updateMediaPlayerSettings()
+            notifySettingsChanged(.media, userInfo: [
+                "enableAppleMusic": enableAppleMusic,
+                "enableSpotify": enableSpotify,
+                "enablePodcasts": enablePodcasts
+            ])
         }
     }
     
@@ -111,35 +146,24 @@ class NotchlySettings: ObservableObject {
     @Published var artworkClickAction: ArtworkClickAction {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyArtworkActionChanged,
-                object: nil,
-                userInfo: ["action": artworkClickAction.rawValue]
-            )
+            notifySettingsChanged(.artwork, userInfo: ["action": artworkClickAction.rawValue])
         }
     }
+
     
     /// Enable the background glow effect
     @Published var enableBackgroundGlow: Bool {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyBackgroundGlowChanged,
-                object: nil,
-                userInfo: ["enabled": enableBackgroundGlow]
-            )
+            notifySettingsChanged(.backgroundGlow, userInfo: ["enabled": enableBackgroundGlow])
         }
     }
-    
+
     /// Show audio visualization bars when playing
     @Published var showAudioBars: Bool {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyVisualizationChanged,
-                object: nil,
-                userInfo: ["showAudioBars": showAudioBars]
-            )
+            notifySettingsChanged(.visualization, userInfo: ["showAudioBars": showAudioBars])
         }
     }
     
@@ -186,10 +210,7 @@ class NotchlySettings: ObservableObject {
     @Published var alertTiming: [Int] {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyCalendarSettingsChanged,
-                object: nil
-            )
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -197,21 +218,15 @@ class NotchlySettings: ObservableObject {
     @Published var maxEventsToDisplay: Int {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyCalendarSettingsChanged,
-                object: nil
-            )
+            notifySettingsChanged(.calendar)
         }
     }
-    
+
     /// Show event organizer in event details
     @Published var showEventOrganizer: Bool {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyCalendarSettingsChanged,
-                object: nil
-            )
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -219,10 +234,7 @@ class NotchlySettings: ObservableObject {
     @Published var showEventLocation: Bool {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyCalendarSettingsChanged,
-                object: nil
-            )
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -230,10 +242,7 @@ class NotchlySettings: ObservableObject {
     @Published var showEventAttendees: Bool {
         didSet {
             saveSettings()
-            NotificationCenter.default.post(
-                name: .NotchlyCalendarSettingsChanged,
-                object: nil
-            )
+            notifySettingsChanged(.calendar)
         }
     }
     
@@ -573,26 +582,10 @@ class NotchlySettings: ObservableObject {
     }
     
     private func updateMediaPlayerSettings() {
-        /// Post notification that media settings changed
-        NotificationCenter.default.post(
-            name: .NotchlyMediaSettingsChanged,
-            object: nil,
-            userInfo: [
-                "enableAppleMusic": enableAppleMusic,
-                "enableSpotify": enableSpotify,
-                "enablePodcasts": enablePodcasts
-            ]
-        )
+        notifySettingsChanged(.media, userInfo: [
+            "enableAppleMusic": enableAppleMusic,
+            "enableSpotify": enableSpotify,
+            "enablePodcasts": enablePodcasts
+        ])
     }
-}
-
-// MARK: - Notification Extensions
-
-extension Notification.Name {
-    static let NotchlyBackgroundOpacityChanged = Notification.Name("NotchlyBackgroundOpacityChanged")
-    static let NotchlyMediaSettingsChanged = Notification.Name("NotchlyMediaSettingsChanged")
-    static let NotchlyArtworkActionChanged = Notification.Name("NotchlyArtworkActionChanged")
-    static let NotchlyVisualizationChanged = Notification.Name("NotchlyVisualizationChanged")
-    static let NotchlyCalendarSettingsChanged = Notification.Name("NotchlyCalendarSettingsChanged")
-    static let NotchlyBackgroundGlowChanged = Notification.Name("NotchlyBackgroundGlowChanged")
 }

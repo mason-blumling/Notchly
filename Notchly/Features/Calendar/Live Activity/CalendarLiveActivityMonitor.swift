@@ -21,6 +21,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var previousRemaining: TimeInterval?
     private var dismissedEventID: String?
     private var lastShownPhase: String?
+    private var cancellables = Set<AnyCancellable>()
 
     private let calendarManager: CalendarManager
 
@@ -49,6 +50,13 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 self?.resumeTimers()
             }
         }
+        NotificationCenter.default.publisher(for: SettingsChangeType.calendar.notificationName)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                // Re-evaluate alerts based on new settings
+                self.evaluateLiveActivity()
+            }
+            .store(in: &cancellables)
     }
 
     deinit {

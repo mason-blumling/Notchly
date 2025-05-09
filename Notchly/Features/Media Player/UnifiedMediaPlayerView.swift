@@ -98,20 +98,20 @@ struct UnifiedMediaPlayerView: View {
         .onChange(of: mediaMonitor.nowPlaying?.artwork) { _, new in
             updateGlowColor(from: new)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NotchlyVisualizationChanged)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.visualization.notificationName)) { notification in
             if let show = notification.userInfo?["showAudioBars"] as? Bool {
                 withAnimation {
                     self.showAudioBars = show
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NotchlyArtworkActionChanged)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.artwork.notificationName)) { notification in
             if let actionStr = notification.userInfo?["action"] as? String,
                let action = NotchlySettings.ArtworkClickAction(rawValue: actionStr) {
                 self.currentArtworkAction = action
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NotchlyBackgroundGlowChanged)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.backgroundGlow.notificationName)) { _ in
             // Just trigger a re-render when the background glow setting changes
         }
     }

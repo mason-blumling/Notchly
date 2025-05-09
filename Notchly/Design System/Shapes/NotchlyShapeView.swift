@@ -131,11 +131,9 @@ struct NotchlyShapeView<Content: View>: View {
             /// Initialize opacity from settings
             backgroundOpacity = NotchlySettings.shared.backgroundOpacity
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NotchlyBackgroundOpacityChanged)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.backgroundOpacity.notificationName)) { notification in
             if let opacity = notification.userInfo?["opacity"] as? Double {
-                /// Update the background opacity
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    /// Apply to background shape
                     self.backgroundOpacity = opacity
                 }
             }

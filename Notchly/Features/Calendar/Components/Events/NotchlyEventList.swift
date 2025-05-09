@@ -126,6 +126,9 @@ private extension NotchlyEventList {
             }
             openEventInCalendar(event)
         }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsChangeType.calendar.notificationName)) { _ in
+            /// Force view refresh when calendar settings change
+        }
     }
 }
 

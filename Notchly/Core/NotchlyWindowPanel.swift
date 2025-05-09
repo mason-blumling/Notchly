@@ -29,10 +29,10 @@ class NotchlyWindowPanel: NSPanel {
 
     /// Applies configuration settings for visibility, layering, and appearance.
     private func configurePanel() {
-        self.hasShadow = false                      // Avoid glow/shadow behind the notch shape
-        self.backgroundColor = .clear               // Use full transparency (composited by NotchlyShape)
-        self.level = .screenSaver                   // Float above normal windows and menu bar
-        self.collectionBehavior = .canJoinAllSpaces // Persist across desktop Spaces
+        self.hasShadow = false                      /// Avoid glow/shadow behind the notch shape
+        self.backgroundColor = .clear               /// Use full transparency (composited by NotchlyShape)
+        self.level = .screenSaver                   /// Float above normal windows and menu bar
+        self.collectionBehavior = .canJoinAllSpaces /// Persist across desktop Spaces
     }
 
     // MARK: - Window Behavior Overrides
@@ -57,12 +57,12 @@ extension NotchlyWindowPanel {
      - Parameter opacity: The opacity level (0.0 to 1.0)
      */
     func applyBackgroundOpacity(_ opacity: Double) {
-        // The panel itself is transparent, but we need to inform the
-        // NotchlyShape renderer about the opacity value
+        /// The panel itself is transparent, but we need to inform the
+        /// NotchlyShape renderer about the opacity value
         
-        // Post a notification that can be observed by the shape renderer
+        /// Post a notification that can be observed by the shape renderer
         NotificationCenter.default.post(
-            name: .NotchlyBackgroundOpacityChanged,
+            name: SettingsChangeType.backgroundOpacity.notificationName,
             object: self,
             userInfo: ["opacity": opacity]
         )
