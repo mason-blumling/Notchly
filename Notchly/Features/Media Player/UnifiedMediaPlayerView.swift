@@ -255,14 +255,16 @@ struct UnifiedMediaPlayerView: View {
         let defaultWidth = NotchlyConfiguration.default.width
         let currentWidth = coordinator.configuration.width
 
-        if currentWidth <= defaultWidth {
+        guard currentWidth > defaultWidth else { return 0 }
+
+        let clamped = min(max(currentWidth, defaultWidth), activityWidth)
+        let progress = (clamped - defaultWidth) / (activityWidth - defaultWidth)
+
+        if coordinator.state == .expanded {
             return 0
-        } else if currentWidth >= activityWidth {
-            return coordinator.state == .expanded ? 0 : 1
-        } else {
-            let progress = (currentWidth - defaultWidth) / (activityWidth - defaultWidth)
-            return Double(max(0, min(1, progress)))
         }
+
+        return Double(progress)
     }
 
     // MARK: - Artwork View
