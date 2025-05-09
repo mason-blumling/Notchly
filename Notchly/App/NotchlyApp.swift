@@ -12,7 +12,7 @@ import Combine
 
 @main
 struct NotchlyApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate // Delegate to manage app lifecycle
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate /// Delegate to manage app lifecycle
 
     var body: some Scene {
         // 🔥 Settings scene is currently empty
@@ -34,7 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         /// Uncomment this line when you want to test the intro flows
-        /// UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
+         UserDefaults.standard.removeObject(forKey: "com.notchly.hasShownIntro")
 
         print("🚀 Notchly App is Launching...")
         AppDelegate.shared = self
