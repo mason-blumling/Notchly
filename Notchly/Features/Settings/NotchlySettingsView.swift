@@ -167,7 +167,7 @@ struct NotchlySettingsView: View {
         }
         .onAppear {
             loadCalendars()
-            checkCalendarPermission()
+            AppEnvironment.shared.checkCalendarPermissionStatus()
         }
     }
     
@@ -470,7 +470,7 @@ struct NotchlySettingsView: View {
                         
                         Spacer()
                         
-                        if calendarPermissionStatus != .fullAccess {
+                        if EKEventStore.authorizationStatus(for: .event) != .fullAccess {
                             Button("Request Access") {
                                 requestCalendarAccess()
                             }
@@ -479,7 +479,7 @@ struct NotchlySettingsView: View {
                         }
                     }
                     
-                    if calendarPermissionStatus != .fullAccess {
+                    if EKEventStore.authorizationStatus(for: .event) != .fullAccess {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
@@ -492,9 +492,8 @@ struct NotchlySettingsView: View {
                     }
                 }
             }
-            .disabled(calendarPermissionStatus != .fullAccess)
-            
-            if settings.enableCalendar && calendarPermissionStatus == .fullAccess {
+
+            if settings.enableCalendar && EKEventStore.authorizationStatus(for: .event) == .fullAccess {
                 /// Visible calendars
                 SettingsSectionView(title: "Visible Calendars", icon: "list.bullet.rectangle") {
                     ZStack {
@@ -659,7 +658,24 @@ struct NotchlySettingsView: View {
                 }
             }
         }
-        .disabled(calendarPermissionStatus != .fullAccess && settings.enableCalendar)
+        .disabled(EKEventStore.authorizationStatus(for: .event) != .fullAccess && settings.enableCalendar)
+        .onAppear {
+            AppEnvironment.shared.checkCalendarPermissionStatus()
+            loadCalendars()
+        }
+    }
+    
+    private func requestCalendarAccess() {
+        isLoadingCalendars = true
+        
+        AppEnvironment.shared.requestCalendarPermission { granted in
+            DispatchQueue.main.async {
+                self.isLoadingCalendars = false
+                if granted {
+                    self.loadCalendars()
+                }
+            }
+        }
     }
     
     // MARK: - Weather Settings
@@ -820,22 +836,6 @@ struct NotchlySettingsView: View {
     
     private func checkCalendarPermission() {
         calendarPermissionStatus = EKEventStore.authorizationStatus(for: .event)
-    }
-    
-    private func requestCalendarAccess() {
-        isLoadingCalendars = true
-        
-        Task {
-            AppEnvironment.shared.calendarManager.requestAccess { granted in
-                DispatchQueue.main.async {
-                    self.isLoadingCalendars = false
-                    self.checkCalendarPermission()
-                    if granted {
-                        self.loadCalendars()
-                    }
-                }
-            }
-        }
     }
     
     private func openURL(_ urlString: String) {

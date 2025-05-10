@@ -82,9 +82,13 @@ public final class NotchlyViewModel: ObservableObject {
     /// Priority: calendar > expanded > media > collapsed
     func update(expanded: Bool, mediaActive: Bool, calendarActive: Bool) {
         print("📊 State Update - expanded: \(expanded), mediaActive: \(mediaActive), calendarActive: \(calendarActive)")
+        
+        /// Use the shared animation for consistency across all state transitions
+        let transitionAnimation = animation
+        
         if calendarActive {
             print("📅 Setting calendar activity state")
-            withAnimation(animation) {
+            withAnimation(transitionAnimation) {
                 /// IMPORTANT: Set configuration FIRST in a single animation block
                 configuration = .activity
                 /// Then update state
@@ -92,19 +96,19 @@ public final class NotchlyViewModel: ObservableObject {
             }
         }
         else if expanded {
-            withAnimation(animation) {
+            withAnimation(transitionAnimation) {
                 configuration = .large
                 state = .expanded
             }
         }
         else if mediaActive {
-            withAnimation(animation) {
+            withAnimation(transitionAnimation) {
                 configuration = .activity
                 state = .mediaActivity
             }
         }
         else {
-            withAnimation(animation) {
+            withAnimation(transitionAnimation) {
                 configuration = .default
                 state = .collapsed
             }
@@ -272,8 +276,11 @@ public final class NotchlyViewModel: ObservableObject {
                     }
                 }
                 
-                withAnimation(self.animation) {
-                    self.configuration = newConfig
+                /// Only animate if the configuration is actually changing
+                if self.configuration != newConfig {
+                    withAnimation(self.animation) {
+                        self.configuration = newConfig
+                    }
                 }
             }
             .store(in: &subscriptions)
@@ -353,7 +360,8 @@ public final class NotchlyViewModel: ObservableObject {
         let debounceDelay = sensitivity /// Use sensitivity value directly as delay
         
         debounceWorkItem?.cancel()
-        debounceWorkItem = DispatchWorkItem {
+        debounceWorkItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
             guard hovering != self.isMouseInside else { return }
             withAnimation(self.animation) {
                 self.isMouseInside = hovering
@@ -383,5 +391,3 @@ extension NotchlyViewModel {
     /// Bridge property to maintain compatibility with existing NotchlyView
     var notchly: NotchlyViewModel { self }
 }
-
-

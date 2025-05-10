@@ -31,6 +31,19 @@ class CalendarManager: ObservableObject {
     func hasCalendarPermission() -> Bool {
         return EKEventStore.authorizationStatus(for: .event) == .fullAccess
     }
+    
+    @MainActor
+    func checkAndBroadcastPermissionStatus() {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        print("📅 Current calendar permission status: \(status.rawValue)")
+        
+        /// Broadcast the current status
+        NotificationCenter.default.post(
+            name: Notification.Name("NotchlyCalendarPermissionChanged"),
+            object: nil,
+            userInfo: ["status": status.rawValue, "granted": status == .fullAccess]
+        )
+    }
 
     /// Enhanced version of requestAccess that provides better permission handling
     func requestAccess(completion: @escaping (Bool) -> Void) {
@@ -43,6 +56,7 @@ class CalendarManager: ObservableObject {
             print("✅ Calendar access already granted")
             self.refreshCalendarData()
             DispatchQueue.main.async {
+                self.checkAndBroadcastPermissionStatus() // Add this broadcast
                 completion(true)
             }
             
@@ -54,17 +68,26 @@ class CalendarManager: ObservableObject {
                 
                 if let error = error {
                     print("❌ Calendar access error: \(error.localizedDescription)")
-                    DispatchQueue.main.async { completion(false) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
                     return
                 }
                 
                 if granted {
                     print("✅ Calendar access granted")
                     self.refreshCalendarData()
-                    DispatchQueue.main.async { completion(true) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
                 } else {
                     print("❌ Calendar access denied by user")
-                    DispatchQueue.main.async { completion(false) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
                 }
             }
             

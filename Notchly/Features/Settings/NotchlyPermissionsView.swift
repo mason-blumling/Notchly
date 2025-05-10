@@ -68,6 +68,7 @@ struct NotchlyPermissionsView: View {
         }
         .padding(.bottom, 30)
         .onAppear {
+            AppEnvironment.shared.checkCalendarPermissionStatus()
             checkAllPermissions()
         }
     }
@@ -144,16 +145,14 @@ struct NotchlyPermissionsView: View {
     private func requestCalendarAccess() {
         isCheckingCalendar = true
         
-        Task {
-            AppEnvironment.shared.calendarManager.requestAccess { granted in
-                DispatchQueue.main.async {
-                    self.isCheckingCalendar = false
-                    self.checkCalendarPermission()
-                }
+        AppEnvironment.shared.requestCalendarPermission { granted in
+            DispatchQueue.main.async {
+                self.isCheckingCalendar = false
+                self.checkCalendarPermission()
             }
         }
     }
-    
+
     // MARK: - Scripting Permission
     
     private func checkScriptingPermission() {

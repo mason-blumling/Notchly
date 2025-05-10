@@ -15,6 +15,9 @@ struct CalendarLiveActivityView: View {
     
     /// Track local appearance state
     @State private var appear = false
+    
+    /// Reference to shared view model to monitor configuration changes
+    @ObservedObject private var coordinator = NotchlyViewModel.shared
 
     var body: some View {
         LiveActivityView(
@@ -28,10 +31,18 @@ struct CalendarLiveActivityView: View {
         .opacity(appear ? 1 : 0)
         .onAppear {
             print("📅 Calendar view appeared - animating in")
-            /// Use a delay to ensure notch shape has animated
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    appear = true
+            /// Force notch into correct configuration before showing content
+            DispatchQueue.main.async {
+                withAnimation(NotchlyAnimations.liveActivityTransition) {
+                    coordinator.configuration = .activity
+                    coordinator.state = .calendarActivity
+                }
+                
+                /// Only start content animation after configuration change
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        appear = true
+                    }
                 }
             }
         }
@@ -45,7 +56,22 @@ struct CalendarLiveActivityView: View {
         }
         .onDisappear {
             print("📅 Calendar view disappeared")
-            /// Don't set appear = false here to avoid animation conflicts
+            
+            /// Additional safeguard: if disappearing and still in calendar activity state, force a transition to the appropriate state
+            if coordinator.state == .calendarActivity {
+                DispatchQueue.main.async {
+                    let shouldShowMedia = coordinator.isMediaPlaying
+                    withAnimation(NotchlyAnimations.liveActivityTransition) {
+                        if shouldShowMedia {
+                            coordinator.configuration = .activity
+                            coordinator.state = .mediaActivity
+                        } else {
+                            coordinator.configuration = .default
+                            coordinator.state = .collapsed
+                        }
+                    }
+                }
+            }
         }
     }
     

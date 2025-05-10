@@ -8,6 +8,7 @@
 import Foundation
 import EventKit
 import Combine
+import SwiftUI
 
 /// Monitors upcoming calendar events and triggers live activity alerts (15m, 5m, countdown).
 @MainActor
@@ -30,13 +31,16 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var evaluationWorkItem: DispatchWorkItem?
 
     private let calendarManager: CalendarManager
+    
+    /// New direct access to shared view model for state coordination
+    private let viewModel = NotchlyViewModel.shared
 
     // MARK: - Init & Lifecycle
 
     init(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
         
-        // Start with clean state
+        /// Start with clean state
         self.upcomingEvent = nil
         self.timeRemainingString = ""
         self.previousRemaining = nil
@@ -54,7 +58,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     }
 
     private func setupNotifications() {
-        // Clear any existing observers first
+        /// Clear any existing observers first
         NotificationCenter.default.removeObserver(self)
         
         NotificationCenter.default.addObserver(
@@ -220,6 +224,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 /// Only update visibility if it's changing
                 if !isLiveActivityVisible {
                     isLiveActivityVisible = true
+                    /// Set calendar activity flag
+                    viewModel.calendarHasLiveActivity = true
                 }
             }
             finishProcessing()
@@ -235,6 +241,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 /// Only update visibility if it's changing
                 if !isLiveActivityVisible {
                     isLiveActivityVisible = true
+                    /// Set calendar activity flag
+                    viewModel.calendarHasLiveActivity = true
                 }
             }
             finishProcessing()
@@ -250,6 +258,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 /// Only update visibility if it's changing
                 if !isLiveActivityVisible {
                     isLiveActivityVisible = true
+                    /// Set calendar activity flag
+                    viewModel.calendarHasLiveActivity = true
                 }
             }
             finishProcessing()
@@ -321,8 +331,25 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 self.previousRemaining = nil
                 self.lastShownPhase = nil
                 
+                /// Set calendar activity flag to false directly in view model
+                self.viewModel.calendarHasLiveActivity = false
+                
                 /// Then signal that activity is gone
                 self.isLiveActivityVisible = false
+                
+                /// Update the configuration based on media playing state
+                let shouldShowMedia = self.viewModel.isMediaPlaying
+                DispatchQueue.main.async {
+                    withAnimation(NotchlyAnimations.liveActivityTransition) {
+                        if shouldShowMedia {
+                            self.viewModel.configuration = .activity
+                            self.viewModel.state = .mediaActivity
+                        } else {
+                            self.viewModel.configuration = .default
+                            self.viewModel.state = .collapsed
+                        }
+                    }
+                }
                 
                 /// Wait for the change to propagate before completing
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -336,6 +363,9 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             self.previousRemaining = nil
             self.lastShownPhase = nil
             self.isExiting = false
+            
+            /// Also update the view model state here
+            self.viewModel.calendarHasLiveActivity = false
             
             /// Immediately complete since no animation is needed
             completion?()

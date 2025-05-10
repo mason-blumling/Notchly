@@ -261,6 +261,31 @@ class NotchlySettings: ObservableObject {
         }
     }
     
+    @MainActor
+    func handleCalendarPermissionGranted() async {
+        /// Update the permission status internally
+        let currentStatus = EKEventStore.authorizationStatus(for: .event)
+        print("📊 Settings received permission update: \(currentStatus.rawValue)")
+        
+        /// If we have permission now, load available calendars
+        if currentStatus == .fullAccess {
+            /// Load available calendars
+            loadAvailableCalendars()
+            
+            /// If calendar is enabled but no events loaded, refresh them
+            if enableCalendar {
+                refreshCalendarEvents()
+            }
+        }
+        
+        /// Notify any observers
+        NotificationCenter.default.post(
+            name: SettingsChangeType.calendar.notificationName,
+            object: nil,
+            userInfo: ["permissionStatus": currentStatus.rawValue]
+        )
+    }
+    
     // MARK: - Types
     
     /// Appearance mode options
