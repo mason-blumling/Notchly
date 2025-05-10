@@ -28,14 +28,14 @@ struct CalendarLiveActivityView: View {
         .opacity(appear ? 1 : 0)
         .onAppear {
             print("📅 Calendar view appeared - animating in")
-            // Use a slightly longer delay to ensure notch shape has animated
+            /// Use a delay to ensure notch shape has animated
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     appear = true
                 }
             }
         }
-        // KEY CHANGE: Only begin animation-out when explicitly told
+        /// Key improvement: Respond to isExiting flag for animated exit
         .onChange(of: activityMonitor.isExiting) { _, isExiting in
             if isExiting {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -45,7 +45,7 @@ struct CalendarLiveActivityView: View {
         }
         .onDisappear {
             print("📅 Calendar view disappeared")
-            // Don't set appear = false here - we handle it in onChange
+            /// Don't set appear = false here to avoid animation conflicts
         }
     }
     
@@ -75,7 +75,7 @@ struct CalendarLiveActivityView: View {
             .minimumScaleFactor(0.8)
             .truncationMode(.tail)
             .padding(.vertical, 3)
-            .padding(.horizontal, 6) /// Add horizontal padding for better appearance
+            .padding(.horizontal, 6)
             .background(Color.black.opacity(0.4))
             .clipShape(Capsule())
             /// Consistent matchedGeometryEffect
@@ -85,17 +85,4 @@ struct CalendarLiveActivityView: View {
             /// Use same animation for all transformations
             .animation(NotchlyAnimations.liveActivityTransition, value: appear)
     }
-
-    /// Custom modifier for better transition control
-    struct FadeScaleModifier: ViewModifier {
-        var isVisible: Bool
-        
-        func body(content: Content) -> some View {
-            content
-                .opacity(isVisible ? 1 : 0)
-                .scaleEffect(isVisible ? 1 : 0.95)
-                .animation(NotchlyAnimations.liveActivityTransition, value: isVisible)
-        }
-    }
-
 }

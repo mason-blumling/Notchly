@@ -24,10 +24,10 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var lastShownPhase: String?
     private var cancellables = Set<AnyCancellable>()
     
-    // MARK: - Reset Loop Protection
-    private var isResetting = false
-    private var isEvaluating = false
-    private var pendingReset = false
+    // MARK: - State Protection
+    private var isProcessing = false
+    private var pendingEvaluation = false
+    private var evaluationWorkItem: DispatchWorkItem?
 
     private let calendarManager: CalendarManager
 
@@ -36,7 +36,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     init(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
         
-        /// Start with clean state
+        // Start with clean state
         self.upcomingEvent = nil
         self.timeRemainingString = ""
         self.previousRemaining = nil
@@ -44,17 +44,17 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         self.lastShownPhase = nil
         self.isExiting = false
         
-        /// Delay timer start to prevent startup issues
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        /// Set up notifications before timer to prevent race conditions
+        setupNotifications()
+        
+        /// Delay timer start slightly to prevent startup issues
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.startTimer()
         }
-
-        /// Set up notifications after initialization
-        setupNotifications()
     }
 
     private func setupNotifications() {
-        /// Clear any existing observers first to prevent duplicates
+        // Clear any existing observers first
         NotificationCenter.default.removeObserver(self)
         
         NotificationCenter.default.addObserver(
@@ -77,15 +77,13 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             }
         }
 
-        /// Respond to settings changes
+        /// Respond to settings changes with debouncing
         cancellables.removeAll()
         NotificationCenter.default.publisher(for: SettingsChangeType.calendar.notificationName)
+            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                /// Only re-evaluate if we're not already in progress
-                if !self.isEvaluating && !self.isResetting {
-                    self.evaluateLiveActivity()
-                }
+                self.debouncedEvaluation()
             }
             .store(in: &cancellables)
     }
@@ -94,6 +92,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         print("🧹 CalendarLiveActivityMonitor deinit")
         timer?.invalidate()
         expirationTimer?.invalidate()
+        evaluationWorkItem?.cancel()
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -102,9 +101,10 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     func pauseTimers() {
         timer?.invalidate()
         timer = nil
-
         expirationTimer?.invalidate()
         expirationTimer = nil
+        evaluationWorkItem?.cancel()
+        evaluationWorkItem = nil
     }
 
     func resumeTimers() {
@@ -116,122 +116,162 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         /// Guard against double-starting
         timer?.invalidate()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self, !self.isEvaluating, !self.isResetting else { return }
+        /// Use a slightly longer interval to reduce CPU usage
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.debouncedEvaluation()
+        }
+    }
+
+    // MARK: - Debounced Evaluation
+    
+    /// Debounces evaluation calls to prevent rapid consecutive evaluations
+    private func debouncedEvaluation() {
+        evaluationWorkItem?.cancel()
+        
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
             Task { @MainActor in
-                self.evaluateLiveActivity()
+                /// Skip if already processing to prevent loops
+                if !self.isProcessing {
+                    self.evaluateLiveActivity()
+                } else {
+                    self.pendingEvaluation = true
+                }
             }
         }
         
-        /// Do an initial evaluation after a short delay to avoid startup race conditions
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            self.evaluateLiveActivity()
-        }
+        evaluationWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
     }
 
     // MARK: - Evaluation Logic
 
-   func evaluateLiveActivity() {
-       /// Guard against reentrant calls - this prevents the reset loop
-       guard !isEvaluating, !isResetting else {
-           print("⚠️ Evaluation already in progress, deferring")
-           pendingReset = true
-           return
-       }
-       
-       isEvaluating = true
-       print("📅 Evaluating calendar live activity...")
-       
-       /// Reset exit state on new evaluation
-       isExiting = false
-       let settings = NotchlySettings.shared
-       
-       /// Exit early if calendar or alerts are disabled in settings
-       guard settings.enableCalendar && settings.enableCalendarAlerts else {
-           isEvaluating = false
-           reset()
-           return
-       }
-       
-       guard let event = calendarManager.nextEventStartingSoon(),
-             event.eventIdentifier != dismissedEventID else {
-           isEvaluating = false
-           reset()
-           return
-       }
+    func evaluateLiveActivity() {
+        /// Prevent reentrant calls
+        if isProcessing {
+            pendingEvaluation = true
+            return
+        }
+        
+        isProcessing = true
+        
+        /// Reset exit state on new evaluation
+        isExiting = false
+        let settings = NotchlySettings.shared
+        
+        /// Exit early if calendar or alerts are disabled in settings
+        guard settings.enableCalendar && settings.enableCalendarAlerts else {
+            /// If we're currently showing something, reset it
+            if isLiveActivityVisible || upcomingEvent != nil || !timeRemainingString.isEmpty {
+                reset {
+                    self.finishProcessing()
+                }
+            } else {
+                finishProcessing()
+            }
+            return
+        }
+        
+        /// Find the next event starting soon
+        guard let event = calendarManager.nextEventStartingSoon(),
+              event.eventIdentifier != dismissedEventID else {
+            /// If we're currently showing something, reset it
+            if isLiveActivityVisible || upcomingEvent != nil || !timeRemainingString.isEmpty {
+                reset {
+                    self.finishProcessing()
+                }
+            } else {
+                finishProcessing()
+            }
+            return
+        }
 
-       let now = Date()
-       let remaining = event.startDate.timeIntervalSince(now)
+        let now = Date()
+        let remaining = event.startDate.timeIntervalSince(now)
 
-       if previousRemaining == nil {
-           previousRemaining = remaining
-       }
+        if previousRemaining == nil {
+            previousRemaining = remaining
+        }
 
-       if remaining < 0 {
-           /// Event already started
-           isEvaluating = false
-           reset()
-       } else if remaining < 60 && settings.alertTiming.contains(1) {
-           /// 1-minute countdown phase (only if 1m alerts enabled)
-           timeRemainingString = "\(Int(remaining))s"
-           upcomingEvent = event
+        if remaining < 0 {
+            /// Event already started
+            reset {
+                self.finishProcessing()
+            }
+        } else if remaining < 60 && settings.alertTiming.contains(1) {
+            /// 1-minute countdown phase (only if 1m alerts enabled)
+            timeRemainingString = "\(Int(remaining))s"
+            upcomingEvent = event
 
-           if lastShownPhase != "countdown" {
-               print("⏱️ Showing countdown for event: \(event.title ?? "Unknown")")
-               expirationTimer?.invalidate()
-               lastShownPhase = "countdown"
-               
-               let eventID = event.eventIdentifier
-               expirationTimer = Timer.scheduledTimer(withTimeInterval: remaining + 1.0, repeats: false) { [weak self] _ in
-                   Task { @MainActor in
-                       self?.dismissedEventID = eventID
-                       self?.reset()
-                   }
-               }
-               
-               /// Only update visibility if it's changing
-               if !isLiveActivityVisible {
-                   isLiveActivityVisible = true
-               }
-           }
-           isEvaluating = false
-       } else if remaining < 300 && settings.alertTiming.contains(5) {
-           /// 5-minute alert (only if 5m alerts enabled)
-           if previousRemaining! > 300 && lastShownPhase != "5m" {
-               print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
-               timeRemainingString = "5m"
-               upcomingEvent = event
-               lastShownPhase = "5m"
-               scheduleExpiration(for: event)
-               
-               /// Only update visibility if it's changing
-               if !isLiveActivityVisible {
-                   isLiveActivityVisible = true
-               }
-           }
-           isEvaluating = false
-       } else if remaining < 900 && settings.alertTiming.contains(15) {
-           /// 15-minute alert (only if 15m alerts enabled)
-           if previousRemaining! > 900 && lastShownPhase != "15m" {
-               print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
-               timeRemainingString = "15m"
-               upcomingEvent = event
-               lastShownPhase = "15m"
-               scheduleExpiration(for: event)
-               
-               /// Only update visibility if it's changing
-               if !isLiveActivityVisible {
-                   isLiveActivityVisible = true
-               }
-           }
-           isEvaluating = false
-       } else {
-           isEvaluating = false
-       }
+            if lastShownPhase != "countdown" {
+                print("⏱️ Showing countdown for event: \(event.title ?? "Unknown")")
+                expirationTimer?.invalidate()
+                lastShownPhase = "countdown"
+                
+                let eventID = event.eventIdentifier
+                expirationTimer = Timer.scheduledTimer(withTimeInterval: remaining + 1.0, repeats: false) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.dismissedEventID = eventID
+                        self?.reset()
+                    }
+                }
+                
+                /// Only update visibility if it's changing
+                if !isLiveActivityVisible {
+                    isLiveActivityVisible = true
+                }
+            }
+            finishProcessing()
+        } else if remaining < 300 && settings.alertTiming.contains(5) {
+            /// 5-minute alert (only if 5m alerts enabled)
+            if previousRemaining! > 300 && lastShownPhase != "5m" {
+                print("🔔 Showing 5m alert for event: \(event.title ?? "Unknown")")
+                timeRemainingString = "5m"
+                upcomingEvent = event
+                lastShownPhase = "5m"
+                scheduleExpiration(for: event)
+                
+                /// Only update visibility if it's changing
+                if !isLiveActivityVisible {
+                    isLiveActivityVisible = true
+                }
+            }
+            finishProcessing()
+        } else if remaining < 900 && settings.alertTiming.contains(15) {
+            /// 15-minute alert (only if 15m alerts enabled)
+            if previousRemaining! > 900 && lastShownPhase != "15m" {
+                print("🔔 Showing 15m alert for event: \(event.title ?? "Unknown")")
+                timeRemainingString = "15m"
+                upcomingEvent = event
+                lastShownPhase = "15m"
+                scheduleExpiration(for: event)
+                
+                /// Only update visibility if it's changing
+                if !isLiveActivityVisible {
+                    isLiveActivityVisible = true
+                }
+            }
+            finishProcessing()
+        } else {
+            finishProcessing()
+        }
 
-       previousRemaining = remaining
-   }
+        previousRemaining = remaining
+    }
+    
+    /// Safely finish processing and handle any pending evaluations
+    private func finishProcessing() {
+        isProcessing = false
+        
+        /// If there was a pending evaluation, process it now
+        if pendingEvaluation {
+            pendingEvaluation = false
+            DispatchQueue.main.async {
+                self.evaluateLiveActivity()
+            }
+        }
+    }
 
     // MARK: - Expiration & Reset
 
@@ -249,22 +289,14 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         }
     }
 
-    func reset() {
-        /// Guard against recursive calls
-        guard !isResetting else {
-            print("⚠️ Reset already in progress, ignoring redundant call")
-            pendingReset = true
-            return
-        }
-        
+    func reset(completion: (() -> Void)? = nil) {
         /// Only proceed if we need to hide the activity or if data needs to be cleared
         guard isLiveActivityVisible || upcomingEvent != nil || !timeRemainingString.isEmpty else {
-            print("ℹ️ No need to reset calendar activity - already idle")
+            completion?()
             return
         }
         
-        print("🧹 Beginning reset of calendar live activity")
-        isResetting = true
+        print("🧹 Resetting calendar live activity")
         
         /// Cancel any existing expiration timer
         expirationTimer?.invalidate()
@@ -277,7 +309,10 @@ final class CalendarLiveActivityMonitor: ObservableObject {
         if isLiveActivityVisible {
             /// Wait for content to fade out
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                guard let self = self else { return }
+                guard let self = self else {
+                    completion?()
+                    return
+                }
                 
                 /// Reset state
                 self.isExiting = false
@@ -287,18 +322,11 @@ final class CalendarLiveActivityMonitor: ObservableObject {
                 self.lastShownPhase = nil
                 
                 /// Then signal that activity is gone
-                print("🔴 Setting calendar activity visible = false")
                 self.isLiveActivityVisible = false
                 
-                /// Reset the flag AFTER all operations are complete
+                /// Wait for the change to propagate before completing
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.isResetting = false
-                    
-                    /// Handle any pending reset that was requested while we were busy
-                    if self.pendingReset {
-                        self.pendingReset = false
-                        self.reset()
-                    }
+                    completion?()
                 }
             }
         } else {
@@ -309,16 +337,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
             self.lastShownPhase = nil
             self.isExiting = false
             
-            /// Immediately clear the resetting flag since no animation is needed
-            self.isResetting = false
-            
-            /// Handle any pending reset
-            if self.pendingReset {
-                self.pendingReset = false
-                DispatchQueue.main.async {
-                    self.reset()
-                }
-            }
+            /// Immediately complete since no animation is needed
+            completion?()
         }
     }
 }

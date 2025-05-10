@@ -250,16 +250,11 @@ struct NotchlyView: View {
         /// First check if calendar is enabled and we have permissions
         let calendarEnabled = NotchlySettings.shared.enableCalendar
         let hasPermission = calendarManager.hasCalendarPermission()
-        
-        /// Only start monitoring calendar if not in intro, has permission and enabled
+
+        /// Only start monitoring calendar if enabled and have permission
         if !shouldShowIntro && calendarEnabled && hasPermission {
-            print("📅 Setting up calendar activity monitoring...")
+            print("📅 Setting up calendar activity subscription...")
             setupCalendarActivitySubscription()
-            
-            /// Start calendar evaluation after a delay to prevent startup issues
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                self.calendarActivityMonitor.evaluateLiveActivity()
-            }
         } else if !hasPermission && calendarEnabled {
             print("⚠️ Calendar enabled but permission not granted")
         }
@@ -267,69 +262,77 @@ struct NotchlyView: View {
         /// Set up media playback monitoring
         setupMediaMonitoring()
     }
-    
+
     /// Set up a debounced subscription to calendar activity changes
     private func setupCalendarActivitySubscription() {
-        /// For structs, we don't use weak self
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
-            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
             .sink { isActive in
                 let settings = NotchlySettings.shared
                 
-                /// Only apply changes when enabled in settings
+                // Only apply changes when enabled in settings
                 guard settings.enableCalendarAlerts else {
-                    print("📅 Calendar alerts disabled in settings - ignoring activity state change")
+                    print("📅 Calendar alerts disabled in settings")
                     return
                 }
 
-                /// Prevent responding to changes during app startup
+                // Prevent responding to changes during app startup
                 guard self.viewModel.isVisible else {
-                    print("📆 Ignoring calendar activity change during initialization")
+                    print("📅 Ignoring calendar change during initialization")
                     return
                 }
                 
-                print("📆 Calendar activity visibility changed to: \(isActive)")
-                
-                /// Only proceed if this is a real state change
+                // Only proceed if this is a real state change
                 guard self.viewModel.calendarHasLiveActivity != isActive else {
-                    print("ℹ️ Calendar already in requested state, ignoring redundant update")
                     return
                 }
                 
-                /// Update view model state
-                self.viewModel.calendarHasLiveActivity = isActive
+                // Update view model state
+                print("📅 Calendar activity visibility changing to: \(isActive)")
                 
                 if isActive {
-                    print("📆 Calendar activity becoming visible - updating notch shape...")
-                    /// Set flags first
+                    print("📅 Calendar activity becoming visible")
+                    // Set flags first
                     self.forceCollapseForCalendar = true
                     self.showMediaAfterCalendar = false
                     
-                    /// Then animate notch shape
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        self.coordinator.configuration = .activity
-                        self.coordinator.state = .calendarActivity
+                    // IMPORTANT: First set the state to force configuration update
+                    self.viewModel.calendarHasLiveActivity = isActive
+                    
+                    // Then animate notch shape - use proper animation chain
+                    DispatchQueue.main.async {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            // First change configuration
+                            self.coordinator.configuration = .activity
+                            // Then change state
+                            self.coordinator.state = .calendarActivity
+                        }
                     }
                 } else {
-                    print("📆 Calendar activity dismissing - restoring previous state...")
+                    print("📅 Calendar activity dismissing")
                     
-                    /// Determine if we should show media after
+                    // Determine if we should show media after
                     let shouldShowMedia = self.mediaMonitor.isPlaying &&
                                 self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
                     
-                    /// Animate the shape with a slight delay (content will already be fading)
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        if shouldShowMedia {
-                            self.coordinator.configuration = .activity
-                            self.coordinator.state = .mediaActivity
-                        } else {
-                            self.coordinator.configuration = .default
-                            self.coordinator.state = .collapsed
+                    // Update flag first
+                    self.viewModel.calendarHasLiveActivity = isActive
+                    
+                    // Animate the shape with a slight delay
+                    DispatchQueue.main.async {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            if shouldShowMedia {
+                                self.coordinator.configuration = .activity
+                                self.coordinator.state = .mediaActivity
+                            } else {
+                                self.coordinator.configuration = .default
+                                self.coordinator.state = .collapsed
+                            }
                         }
                     }
                     
-                    /// After animation completes
+                    // After animation completes
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         if shouldShowMedia {
                             self.showMediaAfterCalendar = true
