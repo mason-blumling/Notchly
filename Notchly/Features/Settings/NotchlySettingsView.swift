@@ -671,24 +671,32 @@ struct NotchlySettingsView: View {
         AppEnvironment.shared.requestCalendarPermission { granted in
             DispatchQueue.main.async {
                 self.isLoadingCalendars = false
-                /// Check current permission status directly
+                
+                /// Always update the UI permission status immediately
                 self.calendarPermissionStatus = EKEventStore.authorizationStatus(for: .event)
                 
                 if granted {
                     /// Refresh calendars if permission was granted
                     self.loadCalendars()
                     
-                    /// Update the settings object to reflect the change
-                    NotchlySettings.shared.loadAvailableCalendars()
-                    
-                    /// Update the UI by reloading the view
+                    /// Enable calendar in settings if not already enabled
                     if !NotchlySettings.shared.enableCalendar {
-                        NotchlySettings.shared.updateEnableCalendarSetting(true)
+                        Task { @MainActor in
+                            await NotchlySettings.shared.updateEnableCalendarSetting(true)
+                        }
+                    } else {
+                        /// Force a refresh of calendar data
+                        Task { @MainActor in
+                            await NotchlySettings.shared.refreshCalendarEvents()
+                        }
                     }
+                    
+                    /// Show success feedback
+                    print("✅ Calendar access granted from settings view")
+                } else {
+                    /// Show failure feedback
+                    print("❌ Calendar access denied from settings view")
                 }
-                
-                /// Force refresh the UI
-                self.checkCalendarPermission()
             }
         }
     }
@@ -835,16 +843,27 @@ struct NotchlySettingsView: View {
         isLoadingCalendars = true
         
         Task {
-            let eventStore = EKEventStore()
-            switch EKEventStore.authorizationStatus(for: .event) {
-            case .fullAccess:
-                availableCalendars = eventStore.calendars(for: .event)
-            default:
-                availableCalendars = []
-            }
-            
-            DispatchQueue.main.async {
-                isLoadingCalendars = false
+            if EKEventStore.authorizationStatus(for: .event) == .fullAccess {
+                let calendars = AppEnvironment.shared.calendarManager.getAllCalendars()
+                
+                DispatchQueue.main.async {
+                    self.availableCalendars = calendars
+                    self.isLoadingCalendars = false
+                    
+                    /// If we have permission but no selected calendars, select all
+                    if NotchlySettings.shared.selectedCalendarIDs.isEmpty && !calendars.isEmpty {
+                        NotchlySettings.shared.selectedCalendarIDs = Set(calendars.map { $0.calendarIdentifier })
+                        /// Force refresh of calendar data
+                        Task { @MainActor in
+                            await NotchlySettings.shared.refreshCalendarEvents()
+                        }
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.availableCalendars = []
+                    self.isLoadingCalendars = false
+                }
             }
         }
     }

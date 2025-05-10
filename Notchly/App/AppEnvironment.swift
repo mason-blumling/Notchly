@@ -43,6 +43,46 @@ final class AppEnvironment: ObservableObject {
         /// Set up permission observer
         setupPermissionObservers()
     }
+
+    /// Add a method to request calendar permission
+    func requestCalendarPermission(completion: @escaping (Bool) -> Void) {
+        calendarManager.requestAccess(completion: completion)
+    }
+
+    func initialize() {
+        /// Check permission status immediately (synchronously)
+        self.checkCalendarPermissionStatus()
+        
+        /// Then launch an async task for the data loading part
+        Task { @MainActor in
+            /// If calendar is enabled and we have permission, load events
+            if NotchlySettings.shared.enableCalendar && self.calendarManager.hasCalendarPermission() {
+                print("📅 Loading calendar data on app initialization...")
+                await NotchlySettings.shared.refreshCalendarEvents()
+            }
+        }
+    }
+
+    func checkCalendarPermissionStatus() {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        self.calendarPermissionStatus = status
+        print("📅 Current calendar permission status: \(status.rawValue)")
+        
+        /// Broadcast the current status
+        NotificationCenter.default.post(
+            name: Notification.Name("NotchlyCalendarPermissionChanged"),
+            object: nil,
+            userInfo: ["status": status.rawValue, "granted": status == .fullAccess]
+        )
+        
+        /// If we have permission but no data loaded, refresh the data
+        if status == .fullAccess && NotchlySettings.shared.enableCalendar && calendarManager.events.isEmpty {
+            Task { @MainActor in
+                /// This ensures data is loaded whenever status is checked and we have permission
+                await NotchlySettings.shared.refreshCalendarEvents()
+            }
+        }
+    }
     
     private func setupPermissionObservers() {
         NotificationCenter.default.addObserver(
@@ -72,15 +112,5 @@ final class AppEnvironment: ObservableObject {
                 )
             }
         }
-    }
-    
-    /// Add a method to request calendar permission
-    func requestCalendarPermission(completion: @escaping (Bool) -> Void) {
-        calendarManager.requestAccess(completion: completion)
-    }
-    
-    /// Add a method to check current permission status
-    func checkCalendarPermissionStatus() {
-        calendarManager.checkAndBroadcastPermissionStatus()
     }
 }

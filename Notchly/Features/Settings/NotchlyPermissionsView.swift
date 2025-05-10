@@ -160,7 +160,7 @@ struct NotchlyPermissionsView: View {
                         /// Force enable calendar in settings if permission was just granted
                         /// and it's currently disabled
                         if !NotchlySettings.shared.enableCalendar {
-                            NotchlySettings.shared.updateEnableCalendarSetting(true)
+                            await NotchlySettings.shared.updateEnableCalendarSetting(true)
                         }
                     }
                 }

@@ -50,6 +50,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.viewModel = NotchlyViewModel.shared
             print("ViewModel Initialized")
 
+            /// Initialize the environment (with new proactive initialization)
+            AppEnvironment.shared.initialize()
+            print("Environment Initialized")
+
             /// Initialize and show on the main screen
             if let screen = NSScreen.main {
                 await self.viewModel.initializeWindow(screen: screen)

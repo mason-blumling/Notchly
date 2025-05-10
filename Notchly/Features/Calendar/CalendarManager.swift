@@ -56,7 +56,7 @@ class CalendarManager: ObservableObject {
             print("✅ Calendar access already granted")
             self.refreshCalendarData()
             DispatchQueue.main.async {
-                self.checkAndBroadcastPermissionStatus() // Add this broadcast
+                self.checkAndBroadcastPermissionStatus()
                 completion(true)
             }
             
@@ -102,10 +102,16 @@ class CalendarManager: ObservableObject {
                 if granted {
                     print("✅ Calendar access upgraded to full access")
                     self.refreshCalendarData()
-                    DispatchQueue.main.async { completion(true) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
                 } else {
                     print("❌ Unable to upgrade calendar access: \(error?.localizedDescription ?? "No reason given")")
-                    DispatchQueue.main.async { completion(false) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
                 }
             }
             
@@ -118,15 +124,21 @@ class CalendarManager: ObservableObject {
                 if granted {
                     print("✅ Calendar access granted from unknown state")
                     self.refreshCalendarData()
-                    DispatchQueue.main.async { completion(true) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(true)
+                    }
                 } else {
                     print("❌ Unable to get calendar access: \(error?.localizedDescription ?? "No reason provided")")
-                    DispatchQueue.main.async { completion(false) }
+                    DispatchQueue.main.async {
+                        self.checkAndBroadcastPermissionStatus()
+                        completion(false)
+                    }
                 }
             }
         }
     }
-    
+
     /// Refreshes calendar data after permissions are granted
     private func refreshCalendarData() {
         print("📅 Refreshing calendar data after permission granted...")
