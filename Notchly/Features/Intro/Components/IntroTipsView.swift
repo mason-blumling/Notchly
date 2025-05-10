@@ -41,7 +41,10 @@ struct IntroTipsView: View {
             Spacer()
                 .frame(height: geometry.size.height * 0.02)
                 
+            /// Center the cards with proper spacing
             HStack(spacing: min(geometry.size.width * 0.015, 10)) {
+                Spacer()
+                
                 tipCard(
                     icon: "hand.point.up.fill",
                     title: "Hover to Expand",
@@ -59,6 +62,8 @@ struct IntroTipsView: View {
                     title: "Calendar Alerts",
                     description: "Get alerts for upcoming events"
                 )
+                
+                Spacer()
             }
             .padding(.horizontal, geometry.size.width * 0.02)
             
