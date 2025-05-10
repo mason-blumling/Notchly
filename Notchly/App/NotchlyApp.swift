@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import EventKit
 
 // MARK: - Application Entry Point
 
@@ -65,9 +66,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("⚠️ No Main Screen Found")
             }
         }
+        
+        /// Set up testing keyboard shortcut with helper
+        NotchlyTestingHelper.shared.setupForAppDelegate(self)
     }
-    
-    /// Handles first launch logic and shows intro if needed
+
+    /// This method stays in AppDelegate because it's core app functionality
     @MainActor
     func handleFirstLaunch() {
         guard viewModel.isFirstLaunch else {
@@ -83,7 +87,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showIntroSequence()
     }
 
-    /// Initiates the enhanced intro sequence with multi-stage animations
+    /// This method stays in AppDelegate because it's core app functionality
     @MainActor
     private func showIntroSequence() {
         Task { @MainActor in
@@ -92,5 +96,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
             viewModel.showIntro()
         }
+    }
+
+    /// Just this menu-triggering method stays in AppDelegate
+    @objc func showDevTestingMenu() {
+        NotchlyTestingHelper.shared.showTestingMenu(for: self)
     }
 }

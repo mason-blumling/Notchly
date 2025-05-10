@@ -633,7 +633,7 @@ class NotchlySettings: ObservableObject {
         /// First check if we have calendar permission
         if calendarManager.hasCalendarPermission() {
             /// We have permission, load calendars
-            let calendars = await calendarManager.getAllCalendars()
+            let calendars = calendarManager.getAllCalendars()
             
             /// Only set all calendars to selected if we're initializing for the first time
             /// or if selection is empty
