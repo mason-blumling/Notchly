@@ -19,7 +19,7 @@ struct NotchlyAnimations {
     static let notchExpansion = Animation.spring(response: 0.4, dampingFraction: 0.8)
     static let fadeIn = Animation.easeInOut(duration: 0.3)
     static let opacityTransition = Animation.linear(duration: 0.2)
-    static let liveActivityTransition = Animation.spring(response: 0.25, dampingFraction: 0.8, blendDuration: 0.1)
+    static let liveActivityTransition = Animation.spring(response: 0.35, dampingFraction: 0.75, blendDuration: 0.2)
     static let morphAnimation = Animation.spring(response: 0.3, dampingFraction: 0.8, blendDuration: 0.5)
 
     // MARK: - Timing Constants
@@ -32,7 +32,7 @@ struct NotchlyAnimations {
         static let notchExpand = 0.4
         static let fadeIn = 0.3
         static let opacity = 0.2
-        static let liveActivity = 0.25
+        static let liveActivityTransition = 0.35
         static let morph = 0.3
     }
 
@@ -40,7 +40,7 @@ struct NotchlyAnimations {
 
     /// Returns a delay following the end of a live activity animation.
     static func delayAfterLiveActivityTransition(_ extra: Double = 0) -> Double {
-        Durations.liveActivity + extra
+        Durations.liveActivityTransition + extra
     }
 
     /// Returns a delay following a notch expansion morph.

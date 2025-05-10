@@ -102,6 +102,7 @@ struct NotchlyView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
+                /// Main notch content
                 NotchlyShapeView(
                     configuration: coordinator.configuration,
                     state: coordinator.state,
@@ -118,8 +119,12 @@ struct NotchlyView: View {
                                     activityMonitor: calendarActivityMonitor,
                                     namespace: notchAnimation
                                 )
-                                .matchedGeometryEffect(id: "calendarLiveActivity", in: notchAnimation)
-                                .transition(.opacity.combined(with: .scale))
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .opacity.animation(NotchlyAnimations.liveActivityTransition),
+                                        removal: .opacity.animation(NotchlyAnimations.liveActivityTransition.delay(0.2))
+                                    )
+                                )
                                 .zIndex(999)
                             }
 
@@ -145,7 +150,11 @@ struct NotchlyView: View {
             mediaMonitor.setExpanded(newState == .expanded)
         }
         .onAppear {
-            setupSubscriptions()
+            /// Delay subscription setup until view is fully rendered
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                print("📝 Setting up Notchly view subscriptions")
+                self.setupSubscriptions()
+            }
         }
     }
     
@@ -210,7 +219,16 @@ struct NotchlyView: View {
                     height: layout.bounds.height,
                     alignment: .leading
                 )
-                .opacity(shouldShowCalendarLiveActivity && !showMediaAfterCalendar ? 0 : activityContentOpacity)
+                /// Add animation to the opacity change for smoother transitions
+                .opacity(
+                    shouldShowCalendarLiveActivity && !showMediaAfterCalendar
+                    ? 0
+                    : activityContentOpacity
+                )
+                .animation(
+                    NotchlyAnimations.liveActivityTransition,
+                    value: shouldShowCalendarLiveActivity || showMediaAfterCalendar
+                )
             } else {
                 /// Empty view if media app is disabled
                 Color.clear
@@ -235,31 +253,60 @@ struct NotchlyView: View {
             .removeDuplicates()
             .sink { isActive in
                 guard NotchlySettings.shared.enableCalendarAlerts else { return }
+
+                /// Prevent responding to changes during app startup
+                guard viewModel.isVisible else {
+                    print("📆 Ignoring calendar activity change during initialization")
+                    return
+                }
                 
+                print("📆 Calendar activity visibility changed to: \(isActive)")
+                
+                /// Only proceed if this is a real state change
+                guard viewModel.calendarHasLiveActivity != isActive else {
+                    print("⚠️ Calendar already in requested state, ignoring redundant update")
+                    return
+                }
+                
+                /// Update view model state
                 viewModel.calendarHasLiveActivity = isActive
-                forceCollapseForCalendar = true
-
-                /// Step 1: Collapse into calendar activity (or media if calendar alert ends)
-                coordinator.update(
-                    expanded: false,
-                    mediaActive: mediaMonitor.isPlaying,
-                    calendarActive: isActive
-                )
-
-                /// Step 2: After delay, show media if appropriate
-                DispatchQueue.main.asyncAfter(
-                    deadline: .now() + NotchlyAnimations.delayAfterLiveActivityTransition()
-                ) {
-                    forceCollapseForCalendar = false
-                    let mediaPlaying = mediaMonitor.isPlaying &&
-                                       isMediaAppEnabled(mediaMonitor.activePlayerName)
-
-                    coordinator.update(
-                        expanded: false,
-                        mediaActive: mediaPlaying,
-                        calendarActive: false
-                    )
-                    showMediaAfterCalendar = mediaPlaying && !isActive
+                
+                if isActive {
+                    print("📆 Calendar activity becoming visible - updating notch shape...")
+                    /// Set flags first
+                    forceCollapseForCalendar = true
+                    showMediaAfterCalendar = false
+                    
+                    /// Then animate notch shape
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        coordinator.configuration = .activity
+                        coordinator.state = .calendarActivity
+                    }
+                } else {
+                    print("📆 Calendar activity dismissing - restoring previous state...")
+                    
+                    /// Determine if we should show media after
+                    let shouldShowMedia = mediaMonitor.isPlaying &&
+                                        isMediaAppEnabled(mediaMonitor.activePlayerName)
+                    
+                    /// Animate the shape with a slight delay (content will already be fading)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if shouldShowMedia {
+                            coordinator.configuration = .activity
+                            coordinator.state = .mediaActivity
+                        } else {
+                            coordinator.configuration = .default
+                            coordinator.state = .collapsed
+                        }
+                    }
+                    
+                    /// After animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        if shouldShowMedia {
+                            showMediaAfterCalendar = true
+                        }
+                        forceCollapseForCalendar = false
+                    }
                 }
             }
             .store(in: &cancellables)

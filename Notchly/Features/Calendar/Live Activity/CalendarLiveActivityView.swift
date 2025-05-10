@@ -12,7 +12,8 @@ import SwiftUI
 struct CalendarLiveActivityView: View {
     @ObservedObject var activityMonitor: CalendarLiveActivityMonitor
     var namespace: Namespace.ID
-
+    
+    /// Track local appearance state
     @State private var appear = false
 
     var body: some View {
@@ -24,22 +25,33 @@ struct CalendarLiveActivityView: View {
                 timeRemainingLabel
             }
         )
-        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .opacity(appear ? 1 : 0)
         .onAppear {
-            appear = true
+            print("📅 Calendar view appeared - animating in")
+            // Use a slightly longer delay to ensure notch shape has animated
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    appear = true
+                }
+            }
+        }
+        // KEY CHANGE: Only begin animation-out when explicitly told
+        .onChange(of: activityMonitor.isExiting) { _, isExiting in
+            if isExiting {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    appear = false
+                }
+            }
         }
         .onDisappear {
-            appear = false
+            print("📅 Calendar view disappeared")
+            // Don't set appear = false here - we handle it in onChange
         }
     }
-}
-
-// MARK: - Components
-
-private extension CalendarLiveActivityView {
     
-    /// The icon shown on the left side (calendar symbol with background).
-    var calendarIcon: some View {
+    // MARK: - Components
+    
+    private var calendarIcon: some View {
         Image(systemName: "calendar")
             .resizable()
             .scaledToFit()
@@ -47,14 +59,15 @@ private extension CalendarLiveActivityView {
             .padding(4)
             .background(Color.blue.opacity(0.8))
             .clipShape(RoundedRectangle(cornerRadius: 6))
+            /// Consistent matchedGeometryEffect
             .matchedGeometryEffect(id: "calendarIcon", in: namespace)
             .scaleEffect(appear ? 1 : 0.8)
             .opacity(appear ? 1 : 0)
-            .animation(NotchlyAnimations.notchExpansion, value: appear)
+            /// Use same animation for all transformations
+            .animation(NotchlyAnimations.liveActivityTransition, value: appear)
     }
-
-    /// The countdown or time-remaining text shown on the right side.
-    var timeRemainingLabel: some View {
+    
+    private var timeRemainingLabel: some View {
         Text(activityMonitor.timeRemainingString)
             .font(.system(size: 11, weight: .semibold, design: .rounded))
             .foregroundColor(.white)
@@ -62,11 +75,27 @@ private extension CalendarLiveActivityView {
             .minimumScaleFactor(0.8)
             .truncationMode(.tail)
             .padding(.vertical, 3)
+            .padding(.horizontal, 6) /// Add horizontal padding for better appearance
             .background(Color.black.opacity(0.4))
             .clipShape(Capsule())
+            /// Consistent matchedGeometryEffect
             .matchedGeometryEffect(id: "calendarTimeText", in: namespace)
             .scaleEffect(appear ? 1 : 0.8)
             .opacity(appear ? 1 : 0)
-            .animation(NotchlyAnimations.notchExpansion, value: appear)
+            /// Use same animation for all transformations
+            .animation(NotchlyAnimations.liveActivityTransition, value: appear)
     }
+
+    /// Custom modifier for better transition control
+    struct FadeScaleModifier: ViewModifier {
+        var isVisible: Bool
+        
+        func body(content: Content) -> some View {
+            content
+                .opacity(isVisible ? 1 : 0)
+                .scaleEffect(isVisible ? 1 : 0.95)
+                .animation(NotchlyAnimations.liveActivityTransition, value: isVisible)
+        }
+    }
+
 }

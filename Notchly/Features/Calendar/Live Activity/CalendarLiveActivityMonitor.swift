@@ -15,6 +15,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     @Published var upcomingEvent: EKEvent?
     @Published var timeRemainingString: String = ""
     @Published var isLiveActivityVisible: Bool = false
+    @Published var isExiting: Bool = false
 
     private var timer: Timer?
     private var expirationTimer: Timer?
@@ -22,6 +23,7 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private var dismissedEventID: String?
     private var lastShownPhase: String?
     private var cancellables = Set<AnyCancellable>()
+    private var isResetting = false
 
     private let calendarManager: CalendarManager
 
@@ -29,8 +31,21 @@ final class CalendarLiveActivityMonitor: ObservableObject {
 
     init(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
-        startTimer()
+        
+        /// Start with clean state - don't call reset() during init
+        self.upcomingEvent = nil
+        self.timeRemainingString = ""
+        self.previousRemaining = nil
+        self.isLiveActivityVisible = false
+        self.lastShownPhase = nil
+        self.isExiting = false
+        
+        /// Start timer after initialization is complete
+        DispatchQueue.main.async { [weak self] in
+            self?.startTimer()
+        }
 
+        /// Set up notifications after initialization
         NotificationCenter.default.addObserver(
             forName: .NotchlySuspendCalendarUpdates,
             object: nil,
@@ -96,6 +111,8 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     // MARK: - Evaluation Logic
 
    func evaluateLiveActivity() {
+       /// Reset exit state on new evaluation
+       isExiting = false
        let settings = NotchlySettings.shared
        
        /// Exit early if calendar or alerts are disabled in settings
@@ -173,29 +190,63 @@ final class CalendarLiveActivityMonitor: ObservableObject {
     private func scheduleExpiration(for event: EKEvent) {
         let id = event.eventIdentifier
         expirationTimer?.invalidate()
-        isLiveActivityVisible = false
 
         expirationTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
-                self.upcomingEvent = nil
-                self.timeRemainingString = ""
-                self.lastShownPhase = nil
+                self.reset()
                 self.dismissedEventID = id
             }
         }
     }
 
-
     func reset() {
-        /// Directly call reset to disable any active alerts
-        Task { @MainActor in
-            upcomingEvent = nil
-            timeRemainingString = ""
-            previousRemaining = nil
-            lastShownPhase = nil
-            isLiveActivityVisible = false
-            expirationTimer?.invalidate()
+        /// Guard against recursive calls
+        guard !isResetting else {
+            print("⚠️ Reset already in progress, ignoring redundant call")
+            return
+        }
+        
+        print("🧹 Beginning reset of calendar live activity")
+        isResetting = true
+        
+        /// Cancel any existing expiration timer
+        expirationTimer?.invalidate()
+        expirationTimer = nil
+        
+        /// First signal that we're exiting (to animate the content)
+        isExiting = true
+        
+        /// Only proceed with visibility change if it's currently visible
+        /// This prevents the reset loop
+        if isLiveActivityVisible {
+            /// Wait for content to fade out
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                guard let self = self else { return }
+                
+                /// Reset state
+                self.isExiting = false
+                self.upcomingEvent = nil
+                self.timeRemainingString = ""
+                self.previousRemaining = nil
+                self.lastShownPhase = nil
+                
+                /// Then signal that activity is gone
+                print("🔴 Setting calendar activity visible = false")
+                self.isLiveActivityVisible = false
+                
+                /// Reset the flag AFTER all operations are complete
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.isResetting = false
+                }
+            }
+        } else {
+            /// Just clear data without changing visibility
+            self.upcomingEvent = nil
+            self.timeRemainingString = ""
+            self.previousRemaining = nil
+            self.lastShownPhase = nil
+            isResetting = false
         }
     }
 }

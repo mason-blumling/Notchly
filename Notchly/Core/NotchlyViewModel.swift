@@ -81,20 +81,32 @@ public final class NotchlyViewModel: ObservableObject {
     /// Updates the notch state based on hover, media, and calendar input.
     /// Priority: calendar > expanded > media > collapsed
     func update(expanded: Bool, mediaActive: Bool, calendarActive: Bool) {
-        let newState: NotchState
-        
         if calendarActive {
-            newState = .calendarActivity
-        } else if expanded {
-            newState = .expanded
-        } else if mediaActive {
-            newState = .mediaActivity
-        } else {
-            newState = .collapsed
+            /// IMPORTANT: Set configuration FIRST in a single animation block
+            withAnimation(animation) {
+                /// First update configuration
+                configuration = .activity
+                /// Then update state
+                state = .calendarActivity
+            }
         }
-        
-        withAnimation(animation) {
-            state = newState
+        else if expanded {
+            withAnimation(animation) {
+                configuration = .large
+                state = .expanded
+            }
+        }
+        else if mediaActive {
+            withAnimation(animation) {
+                configuration = .activity
+                state = .mediaActivity
+            }
+        }
+        else {
+            withAnimation(animation) {
+                configuration = .default
+                state = .collapsed
+            }
         }
     }
     
