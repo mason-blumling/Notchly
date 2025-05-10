@@ -586,10 +586,17 @@ class NotchlySettings: ObservableObject {
                             /// Also refresh the UI
                             NotificationCenter.default.post(
                                 name: SettingsChangeType.calendar.notificationName,
-                                object: nil
+                                object: nil,
+                                userInfo: ["permissionGranted": true]
                             )
                         } else {
                             print("❌ Calendar permission denied after enabling feature")
+                            /// Notify that permission was denied
+                            NotificationCenter.default.post(
+                                name: SettingsChangeType.calendar.notificationName,
+                                object: nil,
+                                userInfo: ["permissionDenied": true]
+                            )
                         }
                     }
                 }
@@ -605,6 +612,13 @@ class NotchlySettings: ObservableObject {
                 disableCalendarLiveActivity()
             }
         }
+        
+        /// Always notify that calendar setting changed
+        NotificationCenter.default.post(
+            name: SettingsChangeType.calendar.notificationName,
+            object: nil,
+            userInfo: ["enabled": value]
+        )
     }
 
     func loadAvailableCalendars() {

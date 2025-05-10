@@ -148,7 +148,29 @@ struct NotchlyPermissionsView: View {
         AppEnvironment.shared.requestCalendarPermission { granted in
             DispatchQueue.main.async {
                 self.isCheckingCalendar = false
+                /// Always re-check the permission status after request
                 self.checkCalendarPermission()
+                
+                /// If granted, also notify Settings model to update its state and load calendars
+                if granted {
+                    Task { @MainActor in
+                        /// Update calendar settings
+                        await NotchlySettings.shared.handleCalendarPermissionGranted()
+                        
+                        /// Force enable calendar in settings if permission was just granted
+                        /// and it's currently disabled
+                        if !NotchlySettings.shared.enableCalendar {
+                            NotchlySettings.shared.updateEnableCalendarSetting(true)
+                        }
+                    }
+                }
+                
+                /// Post notification to update any UI components
+                NotificationCenter.default.post(
+                    name: SettingsChangeType.calendar.notificationName,
+                    object: nil,
+                    userInfo: ["permissionChanged": true, "permissionGranted": granted]
+                )
             }
         }
     }

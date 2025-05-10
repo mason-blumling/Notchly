@@ -671,9 +671,24 @@ struct NotchlySettingsView: View {
         AppEnvironment.shared.requestCalendarPermission { granted in
             DispatchQueue.main.async {
                 self.isLoadingCalendars = false
+                /// Check current permission status directly
+                self.calendarPermissionStatus = EKEventStore.authorizationStatus(for: .event)
+                
                 if granted {
+                    /// Refresh calendars if permission was granted
                     self.loadCalendars()
+                    
+                    /// Update the settings object to reflect the change
+                    NotchlySettings.shared.loadAvailableCalendars()
+                    
+                    /// Update the UI by reloading the view
+                    if !NotchlySettings.shared.enableCalendar {
+                        NotchlySettings.shared.updateEnableCalendarSetting(true)
+                    }
                 }
+                
+                /// Force refresh the UI
+                self.checkCalendarPermission()
             }
         }
     }
