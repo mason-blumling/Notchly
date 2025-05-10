@@ -242,20 +242,49 @@ struct NotchlyView: View {
 
     // MARK: - Subscriptions
 
-    private func setupSubscriptions() {
-        /// Only start monitoring calendar if we're not in the intro and have permission
-        if !shouldShowIntro && NotchlySettings.shared.enableCalendar {
-            calendarActivityMonitor.evaluateLiveActivity()
+    /// Sets up improved subscription handling for live activities
+    func setupSubscriptions() {
+        /// Clear previous subscriptions to avoid duplicates
+        cancellables.removeAll()
+        
+        /// First check if calendar is enabled and we have permissions
+        let calendarEnabled = NotchlySettings.shared.enableCalendar
+        let hasPermission = calendarManager.hasCalendarPermission()
+        
+        /// Only start monitoring calendar if not in intro, has permission and enabled
+        if !shouldShowIntro && calendarEnabled && hasPermission {
+            print("📅 Setting up calendar activity monitoring...")
+            setupCalendarActivitySubscription()
+            
+            /// Start calendar evaluation after a delay to prevent startup issues
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                self.calendarActivityMonitor.evaluateLiveActivity()
+            }
+        } else if !hasPermission && calendarEnabled {
+            print("⚠️ Calendar enabled but permission not granted")
         }
 
-        /// Respond to live activity changes (with settings check)
+        /// Set up media playback monitoring
+        setupMediaMonitoring()
+    }
+    
+    /// Set up a debounced subscription to calendar activity changes
+    private func setupCalendarActivitySubscription() {
+        /// For structs, we don't use weak self
         calendarActivityMonitor.$isLiveActivityVisible
             .removeDuplicates()
+            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
             .sink { isActive in
-                guard NotchlySettings.shared.enableCalendarAlerts else { return }
+                let settings = NotchlySettings.shared
+                
+                /// Only apply changes when enabled in settings
+                guard settings.enableCalendarAlerts else {
+                    print("📅 Calendar alerts disabled in settings - ignoring activity state change")
+                    return
+                }
 
                 /// Prevent responding to changes during app startup
-                guard viewModel.isVisible else {
+                guard self.viewModel.isVisible else {
                     print("📆 Ignoring calendar activity change during initialization")
                     return
                 }
@@ -263,68 +292,72 @@ struct NotchlyView: View {
                 print("📆 Calendar activity visibility changed to: \(isActive)")
                 
                 /// Only proceed if this is a real state change
-                guard viewModel.calendarHasLiveActivity != isActive else {
-                    print("⚠️ Calendar already in requested state, ignoring redundant update")
+                guard self.viewModel.calendarHasLiveActivity != isActive else {
+                    print("ℹ️ Calendar already in requested state, ignoring redundant update")
                     return
                 }
                 
                 /// Update view model state
-                viewModel.calendarHasLiveActivity = isActive
+                self.viewModel.calendarHasLiveActivity = isActive
                 
                 if isActive {
                     print("📆 Calendar activity becoming visible - updating notch shape...")
                     /// Set flags first
-                    forceCollapseForCalendar = true
-                    showMediaAfterCalendar = false
+                    self.forceCollapseForCalendar = true
+                    self.showMediaAfterCalendar = false
                     
                     /// Then animate notch shape
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        coordinator.configuration = .activity
-                        coordinator.state = .calendarActivity
+                        self.coordinator.configuration = .activity
+                        self.coordinator.state = .calendarActivity
                     }
                 } else {
                     print("📆 Calendar activity dismissing - restoring previous state...")
                     
                     /// Determine if we should show media after
-                    let shouldShowMedia = mediaMonitor.isPlaying &&
-                                        isMediaAppEnabled(mediaMonitor.activePlayerName)
+                    let shouldShowMedia = self.mediaMonitor.isPlaying &&
+                                self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
                     
                     /// Animate the shape with a slight delay (content will already be fading)
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         if shouldShowMedia {
-                            coordinator.configuration = .activity
-                            coordinator.state = .mediaActivity
+                            self.coordinator.configuration = .activity
+                            self.coordinator.state = .mediaActivity
                         } else {
-                            coordinator.configuration = .default
-                            coordinator.state = .collapsed
+                            self.coordinator.configuration = .default
+                            self.coordinator.state = .collapsed
                         }
                     }
                     
                     /// After animation completes
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         if shouldShowMedia {
-                            showMediaAfterCalendar = true
+                            self.showMediaAfterCalendar = true
                         }
-                        forceCollapseForCalendar = false
+                        self.forceCollapseForCalendar = false
                     }
                 }
             }
             .store(in: &cancellables)
-
+    }
+    
+    /// Set up media monitoring as a separate function
+    private func setupMediaMonitoring() {
         /// Respond to media playback changes (with settings check)
+        /// For structs, we don't use weak self
         mediaMonitor.$isPlaying
             .sink { playing in
                 /// Check if this media app is enabled in settings
-                let isEnabled = isMediaAppEnabled(mediaMonitor.activePlayerName)
+                let isEnabled = self.isMediaAppEnabled(self.mediaMonitor.activePlayerName)
                 let effectivePlaying = playing && isEnabled
                 
-                viewModel.isMediaPlaying = effectivePlaying
+                self.viewModel.isMediaPlaying = effectivePlaying
 
-                if coordinator.state != .expanded {
-                    coordinator.update(
+                if self.coordinator.state != .expanded {
+                    self.coordinator.update(
                         expanded: false,
                         mediaActive: effectivePlaying,
-                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
+                        calendarActive: self.calendarActivityMonitor.isLiveActivityVisible
                     )
                 }
             }
@@ -333,18 +366,19 @@ struct NotchlyView: View {
         /// Add listener for media settings changes
         NotificationCenter.default.publisher(for: SettingsChangeType.media.notificationName)
             .sink { _ in
-                // Refresh UI based on media settings changes
-                if coordinator.state != .expanded {
-                    coordinator.update(
+                /// Refresh UI based on media settings changes
+                if self.coordinator.state != .expanded {
+                    self.coordinator.update(
                         expanded: false,
-                        mediaActive: mediaMonitor.isPlaying && isMediaAppEnabled(mediaMonitor.activePlayerName),
-                        calendarActive: calendarActivityMonitor.upcomingEvent != nil
+                        mediaActive: self.mediaMonitor.isPlaying &&
+                                    self.isMediaAppEnabled(self.mediaMonitor.activePlayerName),
+                        calendarActive: self.calendarActivityMonitor.isLiveActivityVisible
                     )
                 }
             }
             .store(in: &cancellables)
     }
-    
+
     /**
      Helper to check if a media app is enabled in settings
      */

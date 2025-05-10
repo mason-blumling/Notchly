@@ -537,13 +537,58 @@ class NotchlySettings: ObservableObject {
         }
     }
 
-    private func loadAvailableCalendars() {
+    func updateEnableCalendarSetting(_ value: Bool) {
+        /// Store the previous value to detect changes
+        let previousValue = enableCalendar
+        
+        /// Update the stored value
+        enableCalendar = value
+        saveSettings()
+        
+        /// If enabling for the first time, check permission
+        if value && !previousValue {
+            /// Check current permission status
+            let currentStatus = EKEventStore.authorizationStatus(for: .event)
+            
+            if currentStatus != .fullAccess {
+                /// If we don't have permission, request it
+                Task { @MainActor in
+                    print("🔄 Requesting calendar permission after enabling calendar feature")
+                    AppEnvironment.shared.calendarManager.requestAccess { success in
+                        if success {
+                            print("✅ Calendar permission granted after enabling feature")
+                            self.loadAvailableCalendars()
+                            /// Also refresh the UI
+                            NotificationCenter.default.post(
+                                name: SettingsChangeType.calendar.notificationName,
+                                object: nil
+                            )
+                        } else {
+                            print("❌ Calendar permission denied after enabling feature")
+                        }
+                    }
+                }
+            } else {
+                /// If we already have permission, just load calendars
+                loadAvailableCalendars()
+                refreshCalendarEvents()
+            }
+        } else if !value && previousValue {
+            /// If disabling, clear events
+            Task { @MainActor in
+                AppEnvironment.shared.calendarManager.clearEvents()
+                disableCalendarLiveActivity()
+            }
+        }
+    }
+
+    func loadAvailableCalendars() {
         Task {
             let calendarManager = AppEnvironment.shared.calendarManager
             
-            switch EKEventStore.authorizationStatus(for: .event) {
-            case .fullAccess:
-                /// Full access granted - if this is the first time, select all calendars
+            /// First check if we have calendar permission
+            if calendarManager.hasCalendarPermission() {
+                /// We have permission, load calendars
                 let calendars = calendarManager.getAllCalendars()
                 
                 /// Only set all calendars to selected if we're initializing for the first time
@@ -555,10 +600,36 @@ class NotchlySettings: ObservableObject {
                     /// Refresh immediately to load events
                     refreshCalendarEvents()
                 }
-            default:
-                /// No access or limited access
+            } else {
+                /// No permission, don't try to load
+                print("⚠️ Cannot load calendars - no permission")
                 selectedCalendarIDs = []
             }
+        }
+    }
+    
+    func handleCalendarPermissionChange(isGranted: Bool) {
+        if isGranted {
+            /// Permission was granted, load calendars
+            loadAvailableCalendars()
+            
+            /// Update any UI by posting a notification
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil
+            )
+            
+            /// No need to change enableCalendar as the user has already set it
+        } else {
+            /// Permission denied, show warning
+            print("⚠️ Calendar permission was denied")
+            
+            /// Post notification to UI can update accordingly
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil,
+                userInfo: ["permissionDenied": true]
+            )
         }
     }
     

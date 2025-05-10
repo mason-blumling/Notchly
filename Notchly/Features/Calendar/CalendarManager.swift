@@ -26,36 +26,101 @@ class CalendarManager: ObservableObject {
     }
     
     // MARK: - Permissions
-    
+
+    /// Checks if we have proper calendar permissions
+    func hasCalendarPermission() -> Bool {
+        return EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    }
+
+    /// Enhanced version of requestAccess that provides better permission handling
     func requestAccess(completion: @escaping (Bool) -> Void) {
-        eventStore.requestFullAccessToEvents { [weak self] granted, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("❌ Calendar access error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
-            
-            guard granted else {
-                print("❌ Calendar access denied by user.")
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
-            
+        print("📅 Checking calendar permission status...")
+        let currentStatus = EKEventStore.authorizationStatus(for: .event)
+        
+        switch currentStatus {
+        case .fullAccess:
+            /// Already have full access - no need to request again
+            print("✅ Calendar access already granted")
+            self.refreshCalendarData()
             DispatchQueue.main.async {
-                print("✅ Calendar access granted, fetching events...")
-                /// Force fetch events with maximum date range to ensure we get something
-                let startDate = Calendar.current.date(byAdding: .month, value: -2, to: Date())!
-                let endDate = Calendar.current.date(byAdding: .month, value: 2, to: Date())!
-                let loadedEvents = self.fetchEvents(startDate: startDate, endDate: endDate)
-                
-                /// Important: set published property to trigger UI updates
-                self.events = loadedEvents
-                
-                print("📆 Fetched \(loadedEvents.count) events after permission granted")
                 completion(true)
             }
+            
+        case .notDetermined:
+            /// Need to request access
+            print("📝 Requesting calendar access...")
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Calendar access error: \(error.localizedDescription)")
+                    DispatchQueue.main.async { completion(false) }
+                    return
+                }
+                
+                if granted {
+                    print("✅ Calendar access granted")
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async { completion(true) }
+                } else {
+                    print("❌ Calendar access denied by user")
+                    DispatchQueue.main.async { completion(false) }
+                }
+            }
+            
+        case .authorized, .restricted, .denied, .writeOnly:
+            /// Legacy or partial access states
+            print("⚠️ Calendar has partial access: \(currentStatus.rawValue)")
+            
+            /// Try to request full access
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+                
+                if granted {
+                    print("✅ Calendar access upgraded to full access")
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async { completion(true) }
+                } else {
+                    print("❌ Unable to upgrade calendar access: \(error?.localizedDescription ?? "No reason given")")
+                    DispatchQueue.main.async { completion(false) }
+                }
+            }
+            
+        @unknown default:
+            /// Handle future states
+            print("⚠️ Unknown calendar permission state: \(currentStatus.rawValue)")
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+                
+                if granted {
+                    print("✅ Calendar access granted from unknown state")
+                    self.refreshCalendarData()
+                    DispatchQueue.main.async { completion(true) }
+                } else {
+                    print("❌ Unable to get calendar access: \(error?.localizedDescription ?? "No reason provided")")
+                    DispatchQueue.main.async { completion(false) }
+                }
+            }
+        }
+    }
+    
+    /// Refreshes calendar data after permissions are granted
+    private func refreshCalendarData() {
+        print("📅 Refreshing calendar data after permission granted...")
+        let startDate = Calendar.current.date(byAdding: .month, value: -2, to: Date())!
+        let endDate = Calendar.current.date(byAdding: .month, value: 2, to: Date())!
+        let loadedEvents = self.fetchEvents(startDate: startDate, endDate: endDate)
+        
+        /// Update the events collection
+        DispatchQueue.main.async {
+            self.events = loadedEvents
+            print("📆 Fetched \(loadedEvents.count) events after permission confirmed")
+            
+            /// Notify others that calendar data has been refreshed
+            NotificationCenter.default.post(
+                name: SettingsChangeType.calendar.notificationName,
+                object: nil
+            )
         }
     }
     
